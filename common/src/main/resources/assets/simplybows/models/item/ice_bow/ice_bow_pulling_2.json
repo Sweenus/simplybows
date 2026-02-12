@@ -1,0 +1,7 @@
+{
+    "parent": "simplybows:item/bow_large_template",
+    "textures": {
+        "layer0": "simplybows:item/ice_bow/ice_bow_pulling_2",
+        "layer1": "simplybows:item/ice_bow/ice_bow_lights_pulling_2_strip"
+    }
+}
