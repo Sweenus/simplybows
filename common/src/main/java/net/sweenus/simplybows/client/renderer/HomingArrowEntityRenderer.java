@@ -9,7 +9,6 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Vec3d;
 import net.sweenus.simplybows.entity.HomingArrowEntity;
 
 public class HomingArrowEntityRenderer extends ProjectileEntityRenderer<HomingArrowEntity> {
@@ -39,24 +38,14 @@ public class HomingArrowEntityRenderer extends ProjectileEntityRenderer<HomingAr
 
     @Override
     public void render(HomingArrowEntity entity, float yaw, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
-        // Force rotation to follow velocity each frame for accurate visuals.
-        Vec3d vel = entity.getVelocity();
-        if (vel.lengthSquared() > 1.0E-6) {
-            float velYaw = (float)(-Math.atan2(vel.x, vel.z) * (180F / Math.PI));
-            float velPitch = (float)(-Math.atan2(vel.y, vel.horizontalLength()) * (180F / Math.PI));
-            entity.prevYaw = entity.getYaw();
-            entity.prevPitch = entity.getPitch();
-            entity.setYaw(velYaw);
-            entity.setPitch(velPitch);
-        }
         this.currentColor = getArrowColor(entity);
-        super.render(entity, entity.getYaw(), tickDelta, matrices, vertexConsumers, light);
+        super.render(entity, yaw, tickDelta, matrices, vertexConsumers, light);
         this.currentColor = -1;
     }
 
     @Override
     public void vertex(MatrixStack.Entry entry, VertexConsumer consumer, int x, int y, int z, float u, float v,
-                       int normalX, int normalZ, int normalY, int light) {
+                       int normalX, int normalY, int normalZ, int light) {
         consumer.vertex(entry, (float) x, (float) y, (float) z)
                 .color(this.currentColor)
                 .texture(u, v)

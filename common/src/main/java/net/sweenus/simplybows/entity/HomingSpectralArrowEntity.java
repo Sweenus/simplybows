@@ -6,6 +6,8 @@ import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.projectile.SpectralArrowEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -17,9 +19,15 @@ import java.util.Set;
 public class HomingSpectralArrowEntity extends SpectralArrowEntity {
 
     private static final double HOMING_RADIUS = 16.0; // Radius to detect mobs
-    private static final double HOMING_ACCEL = 0.4; // Strength of homing adjustment
-    private static final double MAX_SPEED = 0.7; // Cap homing arrow speed
+    private static final double HOMING_ACCEL = 0.3; // Strength of homing adjustment
+    private static final int HOMING_START_TICKS = 15; // Delay before arrows begin homing
+    private static final float INITIAL_SPREAD_YAW_RADIANS = 0.90F; // ~20.1 degrees
+    private static final float INITIAL_SPREAD_PITCH_RADIANS = 0.14F; // ~8.0 degrees
+    private static final double START_SPEED = 0.2; // Initial speed cap at spawn
+    private static final double MAX_SPEED = 0.7; // Maximum speed cap over lifetime
+    private static final int SPEED_RAMP_TICKS = 40; // Ticks to ramp from START_SPEED to MAX_SPEED
     private LivingEntity target;
+    private boolean initialSpreadApplied;
 
     public HomingSpectralArrowEntity(EntityType<? extends HomingSpectralArrowEntity> type, World world) {
         super(type, world);
@@ -34,11 +42,23 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
     public void tick() {
         super.tick(); // Ensure the arrow continues to behave like a normal arrow
 
+        if (this.getWorld() instanceof ServerWorld serverWorld && !this.inGround) {
+            spawnTrailParticles(serverWorld);
+        }
+
+        updateNoGravityState();
+
+        if (!this.getWorld().isClient() && !this.initialSpreadApplied) {
+            applyInitialSpread();
+        }
+
+        limitVelocityToCurrentMaxSpeed();
+
         // Keep model rotation aligned with velocity on both sides.
         Vec3d vel = this.getVelocity();
         if (vel.lengthSquared() > 1.0E-6) {
-            float yaw = (float)(-Math.atan2(vel.x, vel.z) * (180F / Math.PI));
-            float pitch = (float)(-Math.atan2(vel.y, vel.horizontalLength()) * (180F / Math.PI));
+            float yaw = (float)(Math.atan2(vel.x, vel.z) * (180F / Math.PI));
+            float pitch = (float)(Math.atan2(vel.y, vel.horizontalLength()) * (180F / Math.PI));
             this.prevYaw = this.getYaw();
             this.prevPitch = this.getPitch();
             this.setYaw(yaw);
@@ -47,6 +67,15 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
         }
 
         if (!this.getWorld().isClient()) {
+            if (this.inGround) {
+                this.target = null;
+                return;
+            }
+
+            if (this.age < HOMING_START_TICKS) {
+                return;
+            }
+
             // Locate a target if none exists
             if (target == null || !target.isAlive()) {
                 target = findNearestHostileMob();
@@ -123,15 +152,16 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
 
         // Smoothly adjust the velocity toward the target
         Vec3d newVelocity = this.getVelocity().add(direction.multiply(HOMING_ACCEL));
-        if (newVelocity.lengthSquared() > (MAX_SPEED * MAX_SPEED)) {
-            newVelocity = newVelocity.normalize().multiply(MAX_SPEED);
+        double speedCap = getCurrentMaxSpeed();
+        if (newVelocity.lengthSquared() > (speedCap * speedCap)) {
+            newVelocity = newVelocity.normalize().multiply(speedCap);
         }
 
         this.setVelocity(newVelocity);
 
         // Update the pitch and yaw for proper rendering
-        float yaw = (float)(-Math.atan2(newVelocity.x, newVelocity.z) * (180F / Math.PI));
-        float pitch = (float)(-Math.atan2(newVelocity.y, newVelocity.horizontalLength()) * (180F / Math.PI));
+        float yaw = (float)(Math.atan2(newVelocity.x, newVelocity.z) * (180F / Math.PI));
+        float pitch = (float)(Math.atan2(newVelocity.y, newVelocity.horizontalLength()) * (180F / Math.PI));
         this.prevYaw = this.getYaw();
         this.prevPitch = this.getPitch();
         this.setYaw(yaw);
@@ -139,11 +169,76 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
         this.velocityDirty = true;
     }
 
+    private double getCurrentMaxSpeed() {
+        double ramp = Math.min(1.0, (double) this.age / SPEED_RAMP_TICKS);
+        return START_SPEED + (MAX_SPEED - START_SPEED) * ramp;
+    }
+
+    private void applyInitialSpread() {
+        this.initialSpreadApplied = true;
+        if (this.age > 1) {
+            return;
+        }
+
+        Vec3d velocity = this.getVelocity();
+        if (velocity.lengthSquared() <= 1.0E-6) {
+            return;
+        }
+
+        float yawJitter = (this.random.nextFloat() * 2.0F - 1.0F) * INITIAL_SPREAD_YAW_RADIANS;
+        float pitchJitter = (this.random.nextFloat() * 2.0F - 1.0F) * INITIAL_SPREAD_PITCH_RADIANS;
+        Vec3d spreadVelocity = velocity.rotateY(yawJitter).rotateX(pitchJitter);
+        this.setVelocity(spreadVelocity);
+        this.velocityDirty = true;
+    }
+
+    private void updateNoGravityState() {
+        this.setNoGravity(!this.inGround && this.age < HOMING_START_TICKS);
+    }
+
+    private void spawnTrailParticles(ServerWorld world) {
+        Vec3d velocity = this.getVelocity();
+        if (velocity.lengthSquared() <= 1.0E-6) {
+            return;
+        }
+
+        world.spawnParticles(ParticleTypes.SNOWFLAKE, this.getX(), this.getY() + 0.1, this.getZ(), 2, 0.03, 0.03, 0.03, 0.005);
+        if (this.age % 2 == 0) {
+            world.spawnParticles(ParticleTypes.WHITE_ASH, this.getX(), this.getY() + 0.1, this.getZ(), 1, 0.04, 0.04, 0.04, 0.002);
+        }
+    }
+
+    private void spawnImpactParticles(ServerWorld world, LivingEntity hitTarget) {
+        double x = hitTarget.getX();
+        double y = hitTarget.getBodyY(0.5);
+        double z = hitTarget.getZ();
+        world.spawnParticles(ParticleTypes.SNOWFLAKE, x, y, z, 18, 0.25, 0.25, 0.25, 0.06);
+        world.spawnParticles(ParticleTypes.WHITE_ASH, x, y, z, 10, 0.2, 0.2, 0.2, 0.02);
+        world.spawnParticles(ParticleTypes.CLOUD, x, y, z, 6, 0.15, 0.15, 0.15, 0.01);
+    }
+
+    private void limitVelocityToCurrentMaxSpeed() {
+        Vec3d velocity = this.getVelocity();
+        double speedSq = velocity.lengthSquared();
+        if (speedSq <= 1.0E-6) {
+            return;
+        }
+
+        double speedCap = getCurrentMaxSpeed();
+        if (speedSq > speedCap * speedCap) {
+            this.setVelocity(velocity.normalize().multiply(speedCap));
+            this.velocityDirty = true;
+        }
+    }
+
     @Override
     protected void onHit(LivingEntity target) {
         // Allow multiple fan arrows to damage in the same tick by clearing invulnerability frames.
         target.hurtTime = 0;
         target.timeUntilRegen = 0;
+        if (this.getWorld() instanceof ServerWorld serverWorld) {
+            spawnImpactParticles(serverWorld, target);
+        }
         super.onHit(target);
     }
 
