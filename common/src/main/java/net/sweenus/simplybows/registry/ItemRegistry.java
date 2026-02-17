@@ -8,6 +8,7 @@ import net.sweenus.simplybows.SimplyBows;
 import net.sweenus.simplybows.item.unique.BeeBowItem;
 import net.sweenus.simplybows.item.unique.BlossomBowItem;
 import net.sweenus.simplybows.item.unique.BubbleBowItem;
+import net.sweenus.simplybows.item.unique.EarthBowItem;
 import net.sweenus.simplybows.item.unique.IceBowItem;
 import net.sweenus.simplybows.item.unique.VineBowItem;
 
@@ -28,6 +29,9 @@ public class ItemRegistry {
             new Item.Settings()
     ));
     public static final RegistrySupplier<Item> BLOSSOM_BOW = ITEM.register("blossom_bow/blossom_bow", () -> new BlossomBowItem(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> EARTH_BOW = ITEM.register("earth_bow/earth_bow", () -> new EarthBowItem(
             new Item.Settings()
     ));
 

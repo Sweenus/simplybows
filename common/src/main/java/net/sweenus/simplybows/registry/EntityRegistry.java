@@ -11,9 +11,12 @@ import net.sweenus.simplybows.entity.BeeArrowEntity;
 import net.sweenus.simplybows.entity.BlossomArrowEntity;
 import net.sweenus.simplybows.SimplyBows;
 import net.sweenus.simplybows.entity.BubbleArrowEntity;
+import net.sweenus.simplybows.entity.EarthArrowEntity;
+import net.sweenus.simplybows.entity.EarthSpikeVisualEntity;
 import net.sweenus.simplybows.entity.HomingArrowEntity;
 import net.sweenus.simplybows.entity.HomingSpectralArrowEntity;
 import net.sweenus.simplybows.entity.VineArrowEntity;
+import net.sweenus.simplybows.entity.VineFlowerVisualEntity;
 
 public class EntityRegistry {
 
@@ -49,6 +52,21 @@ public class EntityRegistry {
             () -> EntityType.Builder.<BlossomArrowEntity>create(BlossomArrowEntity::new, SpawnGroup.MISC)
                     .dimensions(0.5F, 0.5F)
                     .build(SimplyBows.MOD_ID + ":blossom_arrow"));
+
+    public static final RegistrySupplier<EntityType<EarthArrowEntity>> EARTH_ARROW = ENTITY_TYPES.register("earth_arrow",
+            () -> EntityType.Builder.<EarthArrowEntity>create(EarthArrowEntity::new, SpawnGroup.MISC)
+                    .dimensions(0.5F, 0.5F)
+                    .build(SimplyBows.MOD_ID + ":earth_arrow"));
+
+    public static final RegistrySupplier<EntityType<EarthSpikeVisualEntity>> EARTH_SPIKE_VISUAL = ENTITY_TYPES.register("earth_spike_visual",
+            () -> EntityType.Builder.<EarthSpikeVisualEntity>create(EarthSpikeVisualEntity::new, SpawnGroup.MISC)
+                    .dimensions(0.9F, 2.5F)
+                    .build(SimplyBows.MOD_ID + ":earth_spike_visual"));
+
+    public static final RegistrySupplier<EntityType<VineFlowerVisualEntity>> VINE_FLOWER_VISUAL = ENTITY_TYPES.register("vine_flower_visual",
+            () -> EntityType.Builder.<VineFlowerVisualEntity>create(VineFlowerVisualEntity::new, SpawnGroup.MISC)
+                    .dimensions(0.8F, 1.2F)
+                    .build(SimplyBows.MOD_ID + ":vine_flower_visual"));
 
     public static void registerEntities() {
         ENTITY_TYPES.register();

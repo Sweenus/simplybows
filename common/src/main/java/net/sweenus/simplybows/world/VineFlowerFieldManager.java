@@ -1,8 +1,8 @@
 package net.sweenus.simplybows.world;
 
+import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.FallingBlockEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.passive.AnimalEntity;
@@ -15,8 +15,9 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
-import net.sweenus.simplybows.mixin.EntityAccessor;
+import net.sweenus.simplybows.entity.VineFlowerVisualEntity;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,11 +35,14 @@ public final class VineFlowerFieldManager {
     private static final int GROWTH_POINTS_PER_TICK = 6;
     private static final int SPRING_ANIM_TICKS = 8;
     private static final double SPRING_START_OFFSET_Y = -0.62;
-    private static final float SPRING_MAX_TILT_DEGREES = 18.0F;
     private static final float FRIENDLY_HEAL = 2.0F;
     private static final float UNDEAD_DAMAGE = 3.0F;
     private static final int GROUND_SCAN_UP = 5;
     private static final int GROUND_SCAN_DOWN = 18;
+    private static final int FLOWER_TYPE_SHORT_GRASS = 0;
+    private static final int FLOWER_TYPE_FERN = 1;
+    private static final int FLOWER_TYPE_DANDELION = 2;
+    private static final int FLOWER_TYPE_POPPY = 3;
     private static final String FIELD_VISUAL_TAG = "simplybows_vine_field_visual";
     private static final Map<ServerWorld, List<ActiveFlowerField>> ACTIVE_FIELDS = new HashMap<>();
 
@@ -171,18 +175,18 @@ public final class VineFlowerFieldManager {
             double x = center.x + Math.cos(angle) * radius;
             double z = center.z + Math.sin(angle) * radius;
             double y = findGroundTopY(world, x, z, center.y) + 0.03;
-            net.minecraft.block.BlockState state;
+            int flowerType;
 
             if (i % 4 == 0) {
-                state = Blocks.DANDELION.getDefaultState();
+                flowerType = FLOWER_TYPE_DANDELION;
             } else if (i % 5 == 0) {
-                state = Blocks.POPPY.getDefaultState();
+                flowerType = FLOWER_TYPE_POPPY;
             } else if (i % 3 == 0) {
-                state = Blocks.FERN.getDefaultState();
+                flowerType = FLOWER_TYPE_FERN;
             } else {
-                state = Blocks.SHORT_GRASS.getDefaultState();
+                flowerType = FLOWER_TYPE_SHORT_GRASS;
             }
-            points.add(new FlowerPoint(x, y, z, state));
+            points.add(new FlowerPoint(x, y, z, flowerType));
         }
         return points;
     }
@@ -195,13 +199,13 @@ public final class VineFlowerFieldManager {
         int spawnCount = Math.min(GROWTH_POINTS_PER_TICK, field.pendingPoints.size() - field.spawnCursor);
         for (int i = 0; i < spawnCount; i++) {
             FlowerPoint point = field.pendingPoints.get(field.spawnCursor++);
-            UUID id = spawnBlockDisplay(world, field.displayIds, point.x, point.y, point.z, point.state);
+            BlockState state = flowerTypeToBlockState(point.flowerType);
+            UUID id = spawnFlowerVisual(world, field.displayIds, point.x, point.y, point.z, point.flowerType);
             if (id != null) {
-                float tilt = (world.random.nextFloat() * 2.0F - 1.0F) * SPRING_MAX_TILT_DEGREES;
-                field.springVisuals.add(new SpringVisual(id, point.x, point.y, point.z, world.getTime(), tilt));
+                field.springVisuals.add(new SpringVisual(id, point.x, point.y, point.z, world.getTime()));
             }
             // Brief upward burst so the patch feels like it's emerging from the ground.
-            world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, point.state), point.x, point.y - 0.08, point.z, 3, 0.08, 0.02, 0.08, 0.03);
+            world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, state), point.x, point.y - 0.08, point.z, 3, 0.08, 0.02, 0.08, 0.03);
             world.spawnParticles(ParticleTypes.COMPOSTER, point.x, point.y + 0.04, point.z, 2, 0.06, 0.01, 0.06, 0.0);
         }
     }
@@ -213,14 +217,14 @@ public final class VineFlowerFieldManager {
 
         field.springVisuals.removeIf(visual -> {
             Entity entity = world.getEntity(visual.id());
-            if (!(entity instanceof FallingBlockEntity display)) {
+            if (!(entity instanceof VineFlowerVisualEntity display)) {
                 return true;
             }
 
             long age = world.getTime() - visual.spawnTick();
             if (age >= SPRING_ANIM_TICKS) {
                 display.setPos(visual.targetX(), visual.targetY(), visual.targetZ());
-                display.setPitch(0.0F);
+                display.setHeightScale(1.0F);
                 return true;
             }
 
@@ -229,29 +233,30 @@ public final class VineFlowerFieldManager {
             double bounceOffset = Math.sin(t * Math.PI * 2.3) * 0.10 * (1.0 - t);
             double y = visual.targetY() + riseOffset + bounceOffset;
             display.setPos(visual.targetX(), y, visual.targetZ());
-            display.setPitch(visual.initialTilt() * (1.0F - t));
+            display.setHeightScale(MathHelper.clamp(t * 1.05F, 0.0F, 1.0F));
             return false;
         });
     }
 
-    private static UUID spawnBlockDisplay(ServerWorld world, List<UUID> ids, double x, double y, double z, net.minecraft.block.BlockState state) {
-        BlockPos pos = BlockPos.ofFloored(x, y, z);
-        FallingBlockEntity display = FallingBlockEntity.spawnFromBlock(world, pos, state);
-        if (display == null) {
+    private static UUID spawnFlowerVisual(ServerWorld world, List<UUID> ids, double x, double y, double z, int flowerType) {
+        VineFlowerVisualEntity visual = new VineFlowerVisualEntity(world, x, y + SPRING_START_OFFSET_Y, z, flowerType);
+        visual.setYaw(world.random.nextFloat() * 360.0F);
+        visual.setHeightScale(0.0F);
+        visual.addCommandTag(FIELD_VISUAL_TAG);
+        if (!world.spawnEntity(visual)) {
             return null;
         }
-        display.setFallingBlockPos(display.getBlockPos());
-        display.setDestroyedOnLanding();
-        display.setHurtEntities(0.0F, 0);
-        display.setNoGravity(true);
-        ((EntityAccessor) display).simplybows$setNoClip(true);
-        display.setVelocity(0.0, 0.0, 0.0);
-        display.setPos(x, y + SPRING_START_OFFSET_Y, z);
-        display.setYaw(world.random.nextFloat() * 360.0F);
-        display.setPitch(0.0F);
-        display.addCommandTag(FIELD_VISUAL_TAG);
-        ids.add(display.getUuid());
-        return display.getUuid();
+        ids.add(visual.getUuid());
+        return visual.getUuid();
+    }
+
+    private static BlockState flowerTypeToBlockState(int flowerType) {
+        return switch (flowerType) {
+            case FLOWER_TYPE_DANDELION -> Blocks.DANDELION.getDefaultState();
+            case FLOWER_TYPE_POPPY -> Blocks.POPPY.getDefaultState();
+            case FLOWER_TYPE_FERN -> Blocks.FERN.getDefaultState();
+            default -> Blocks.SHORT_GRASS.getDefaultState();
+        };
     }
 
     private static double findGroundTopY(ServerWorld world, double x, double z, double centerY) {
@@ -285,7 +290,7 @@ public final class VineFlowerFieldManager {
 
     private static void purgeOrphanFieldVisuals(ServerWorld world) {
         for (Entity entity : world.iterateEntities()) {
-            if (entity instanceof FallingBlockEntity && entity.getCommandTags().contains(FIELD_VISUAL_TAG)) {
+            if (entity instanceof VineFlowerVisualEntity && entity.getCommandTags().contains(FIELD_VISUAL_TAG)) {
                 entity.discard();
             }
         }
@@ -320,9 +325,9 @@ public final class VineFlowerFieldManager {
         }
     }
 
-    private record FlowerPoint(double x, double y, double z, net.minecraft.block.BlockState state) {
+    private record FlowerPoint(double x, double y, double z, int flowerType) {
     }
 
-    private record SpringVisual(UUID id, double targetX, double targetY, double targetZ, long spawnTick, float initialTilt) {
+    private record SpringVisual(UUID id, double targetX, double targetY, double targetZ, long spawnTick) {
     }
 }
