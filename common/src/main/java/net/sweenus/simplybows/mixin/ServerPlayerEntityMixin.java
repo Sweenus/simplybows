@@ -23,7 +23,6 @@ public abstract class ServerPlayerEntityMixin {
         if (player instanceof ServerPlayerEntity serverPlayer) {
 
 
-            // Passive Particles
             IceBowItem.passiveParticles(serverPlayer, player, getServerWorld());
 
         }

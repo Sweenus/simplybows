@@ -64,6 +64,9 @@ public class SimplyBowItem extends BowItem {
             case VineBowItem vineBowItem -> {
                 vineBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, f == 1.0F, null);
             }
+            case BubbleBowItem bubbleBowItem -> {
+                bubbleBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, f == 1.0F, null);
+            }
             case CrossbowItem crossbowItem -> {
                 playerEntity.sendMessage(Text.literal("You stopped using the Crossbow!"), false);
             }
@@ -84,6 +87,9 @@ public class SimplyBowItem extends BowItem {
             }
             case VineBowItem vineBowItem -> {
                 vineBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, f == 1.0F, null);
+            }
+            case BubbleBowItem bubbleBowItem -> {
+                bubbleBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, f == 1.0F, null);
             }
             case CrossbowItem crossbowItem -> {
                 playerEntity.sendMessage(Text.literal("You stopped using the Crossbow!"), false);

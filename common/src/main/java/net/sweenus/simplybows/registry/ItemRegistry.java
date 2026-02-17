@@ -5,6 +5,7 @@ import dev.architectury.registry.registries.RegistrySupplier;
 import net.minecraft.item.Item;
 import net.minecraft.registry.RegistryKeys;
 import net.sweenus.simplybows.SimplyBows;
+import net.sweenus.simplybows.item.unique.BubbleBowItem;
 import net.sweenus.simplybows.item.unique.IceBowItem;
 import net.sweenus.simplybows.item.unique.VineBowItem;
 
@@ -16,6 +17,9 @@ public class ItemRegistry {
             new Item.Settings()
     ));
     public static final RegistrySupplier<Item> ICE_BOW = ITEM.register("ice_bow/ice_bow", () -> new IceBowItem(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> BUBBLE_BOW = ITEM.register("bubble_bow/bubble_bow", () -> new BubbleBowItem(
             new Item.Settings()
     ));
 

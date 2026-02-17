@@ -16,6 +16,7 @@ public class SimplyBowsItemProperties {
     public static void register() {
         makeBows(ItemRegistry.VINE_BOW.get(), 20f);
         makeBows(ItemRegistry.ICE_BOW.get(), 40f);
+        makeBows(ItemRegistry.BUBBLE_BOW.get(), 20f);
     }
 
     public static void makeBows(Item item, float drawSpeed) {

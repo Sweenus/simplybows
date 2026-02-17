@@ -1,0 +1,98 @@
+package net.sweenus.simplybows.entity;
+
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.projectile.ArrowEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.World;
+import net.sweenus.simplybows.world.BubbleColumnFieldManager;
+
+public class BubbleArrowEntity extends ArrowEntity {
+
+    private static final double WATER_DRAG_COMPENSATION = 1.0 / 0.6;
+    private boolean spawnedBubbleColumn;
+
+    public BubbleArrowEntity(EntityType<? extends BubbleArrowEntity> type, World world) {
+        super(type, world);
+    }
+
+    public BubbleArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
+        super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
+        this.setOwner(owner);
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+
+        if (this.isTouchingWater() && !this.inGround) {
+            Vec3d velocity = this.getVelocity();
+            this.setVelocity(velocity.multiply(WATER_DRAG_COMPENSATION));
+            this.velocityDirty = true;
+        }
+
+        if (this.getWorld() instanceof ServerWorld serverWorld && !this.inGround) {
+            spawnTrailParticles(serverWorld);
+        }
+    }
+
+    @Override
+    protected void onBlockHit(BlockHitResult blockHitResult) {
+        if (this.getWorld() instanceof ServerWorld serverWorld) {
+            spawnImpactParticles(serverWorld, blockHitResult.getPos());
+        }
+        trySpawnBubbleColumn(blockHitResult.getPos());
+        super.onBlockHit(blockHitResult);
+    }
+
+    @Override
+    protected void onEntityHit(EntityHitResult entityHitResult) {
+        if (this.getWorld() instanceof ServerWorld serverWorld) {
+            spawnImpactParticles(serverWorld, entityHitResult.getPos());
+        }
+        trySpawnBubbleColumn(entityHitResult.getPos());
+        super.onEntityHit(entityHitResult);
+    }
+
+    private void trySpawnBubbleColumn(Vec3d hitPos) {
+        if (this.spawnedBubbleColumn) {
+            return;
+        }
+
+        if (this.getWorld() instanceof ServerWorld serverWorld) {
+            this.spawnedBubbleColumn = BubbleColumnFieldManager.createOrReplaceColumn(serverWorld, hitPos);
+        }
+    }
+
+    private void spawnTrailParticles(ServerWorld world) {
+        world.spawnParticles(ParticleTypes.BUBBLE, this.getX(), this.getY() + 0.1, this.getZ(), 2, 0.05, 0.04, 0.05, 0.0);
+        if (this.age % 2 == 0) {
+            world.spawnParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 0.1, this.getZ(), 1, 0.02, 0.02, 0.02, 0.0);
+        }
+    }
+
+    private void spawnImpactParticles(ServerWorld world, Vec3d pos) {
+        world.spawnParticles(ParticleTypes.BUBBLE, pos.x, pos.y + 0.2, pos.z, 14, 0.35, 0.2, 0.35, 0.0);
+        world.spawnParticles(ParticleTypes.SPLASH, pos.x, pos.y + 0.1, pos.z, 10, 0.25, 0.12, 0.25, 0.0);
+    }
+
+    @Override
+    protected ItemStack getDefaultItemStack() {
+        return new ItemStack(Items.ARROW);
+    }
+
+    private static ItemStack sanitizeArrowStack(ItemStack arrowStack) {
+        if (arrowStack == null || arrowStack.isEmpty()) {
+            return new ItemStack(Items.ARROW);
+        }
+        ItemStack copy = arrowStack.copy();
+        copy.setCount(1);
+        return copy;
+    }
+}
