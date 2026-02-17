@@ -8,6 +8,7 @@ import net.sweenus.simplybows.SimplyBows;
 import net.sweenus.simplybows.item.unique.BeeBowItem;
 import net.sweenus.simplybows.item.unique.BlossomBowItem;
 import net.sweenus.simplybows.item.unique.BubbleBowItem;
+import net.sweenus.simplybows.item.unique.EchoBowItem;
 import net.sweenus.simplybows.item.unique.EarthBowItem;
 import net.sweenus.simplybows.item.unique.IceBowItem;
 import net.sweenus.simplybows.item.unique.VineBowItem;
@@ -32,6 +33,18 @@ public class ItemRegistry {
             new Item.Settings()
     ));
     public static final RegistrySupplier<Item> EARTH_BOW = ITEM.register("earth_bow/earth_bow", () -> new EarthBowItem(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> ECHO_BOW = ITEM.register("echo_bow/echo_bow", () -> new EchoBowItem(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> ECHO_BOW_VISUAL_PULL_0 = ITEM.register("echo_bow_visual_pull_0", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> ECHO_BOW_VISUAL_PULL_1 = ITEM.register("echo_bow_visual_pull_1", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> ECHO_BOW_VISUAL_PULL_2 = ITEM.register("echo_bow_visual_pull_2", () -> new Item(
             new Item.Settings()
     ));
 

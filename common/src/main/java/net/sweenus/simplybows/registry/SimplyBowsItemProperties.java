@@ -20,6 +20,7 @@ public class SimplyBowsItemProperties {
         makeBows(ItemRegistry.BEE_BOW.get(), 20f);
         makeBows(ItemRegistry.BLOSSOM_BOW.get(), 20f);
         makeBows(ItemRegistry.EARTH_BOW.get(), 20f);
+        makeBows(ItemRegistry.ECHO_BOW.get(), 20f);
     }
 
     public static void makeBows(Item item, float drawSpeed) {

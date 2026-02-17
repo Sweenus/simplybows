@@ -4,6 +4,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.sweenus.simplybows.item.unique.IceBowItem;
+import net.sweenus.simplybows.world.EchoShoulderBowManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -24,6 +25,7 @@ public abstract class ServerPlayerEntityMixin {
 
 
             IceBowItem.passiveParticles(serverPlayer, player, getServerWorld());
+            EchoShoulderBowManager.tickPlayer(serverPlayer);
 
         }
     }

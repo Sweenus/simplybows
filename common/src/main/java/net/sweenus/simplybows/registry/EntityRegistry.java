@@ -11,10 +11,12 @@ import net.sweenus.simplybows.entity.BeeArrowEntity;
 import net.sweenus.simplybows.entity.BlossomArrowEntity;
 import net.sweenus.simplybows.SimplyBows;
 import net.sweenus.simplybows.entity.BubbleArrowEntity;
+import net.sweenus.simplybows.entity.EchoArrowEntity;
 import net.sweenus.simplybows.entity.EarthArrowEntity;
 import net.sweenus.simplybows.entity.EarthSpikeVisualEntity;
 import net.sweenus.simplybows.entity.HomingArrowEntity;
 import net.sweenus.simplybows.entity.HomingSpectralArrowEntity;
+import net.sweenus.simplybows.entity.ShoulderBowEntity;
 import net.sweenus.simplybows.entity.VineArrowEntity;
 import net.sweenus.simplybows.entity.VineFlowerVisualEntity;
 
@@ -57,6 +59,18 @@ public class EntityRegistry {
             () -> EntityType.Builder.<EarthArrowEntity>create(EarthArrowEntity::new, SpawnGroup.MISC)
                     .dimensions(0.5F, 0.5F)
                     .build(SimplyBows.MOD_ID + ":earth_arrow"));
+
+    public static final RegistrySupplier<EntityType<EchoArrowEntity>> ECHO_ARROW = ENTITY_TYPES.register("echo_arrow",
+            () -> EntityType.Builder.<EchoArrowEntity>create(EchoArrowEntity::new, SpawnGroup.MISC)
+                    .dimensions(0.5F, 0.5F)
+                    .build(SimplyBows.MOD_ID + ":echo_arrow"));
+
+    public static final RegistrySupplier<EntityType<ShoulderBowEntity>> SHOULDER_BOW = ENTITY_TYPES.register("shoulder_bow",
+            () -> EntityType.Builder.<ShoulderBowEntity>create(ShoulderBowEntity::new, SpawnGroup.MISC)
+                    .dimensions(0.8F, 0.8F)
+                    .maxTrackingRange(64)
+                    .trackingTickInterval(1)
+                    .build(SimplyBows.MOD_ID + ":shoulder_bow"));
 
     public static final RegistrySupplier<EntityType<EarthSpikeVisualEntity>> EARTH_SPIKE_VISUAL = ENTITY_TYPES.register("earth_spike_visual",
             () -> EntityType.Builder.<EarthSpikeVisualEntity>create(EarthSpikeVisualEntity::new, SpawnGroup.MISC)

@@ -8,6 +8,7 @@ import net.sweenus.simplybows.client.renderer.BeeArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.EarthSpikeVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.HomingArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.HomingSpectralArrowEntityRenderer;
+import net.sweenus.simplybows.client.renderer.ShoulderBowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.VineFlowerVisualEntityRenderer;
 import net.sweenus.simplybows.registry.EntityRegistry;
 import net.sweenus.simplybows.registry.ItemRegistry;
@@ -36,6 +37,8 @@ public final class SimplyBows {
             EntityRendererRegistry.register(EntityRegistry.BEE_ARROW, BeeArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.BLOSSOM_ARROW, ArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.EARTH_ARROW, ArrowEntityRenderer::new);
+            EntityRendererRegistry.register(EntityRegistry.ECHO_ARROW, ArrowEntityRenderer::new);
+            EntityRendererRegistry.register(EntityRegistry.SHOULDER_BOW, ShoulderBowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.EARTH_SPIKE_VISUAL, EarthSpikeVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.VINE_FLOWER_VISUAL, VineFlowerVisualEntityRenderer::new);
 
