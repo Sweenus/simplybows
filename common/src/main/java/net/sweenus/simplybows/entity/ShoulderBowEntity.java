@@ -8,6 +8,8 @@ import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.projectile.ProjectileEntity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
@@ -19,8 +21,17 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.sweenus.simplybows.item.unique.BeeBowItem;
+import net.sweenus.simplybows.item.unique.BlossomBowItem;
+import net.sweenus.simplybows.item.unique.BubbleBowItem;
+import net.sweenus.simplybows.item.unique.EarthBowItem;
 import net.sweenus.simplybows.item.unique.EchoBowItem;
+import net.sweenus.simplybows.item.unique.IceBowItem;
+import net.sweenus.simplybows.item.unique.SimplyBowItem;
+import net.sweenus.simplybows.item.unique.VineBowItem;
 import net.sweenus.simplybows.registry.EntityRegistry;
+import net.sweenus.simplybows.upgrade.BowUpgradeData;
+import net.sweenus.simplybows.upgrade.RuneEtching;
 
 import java.util.UUID;
 
@@ -29,10 +40,20 @@ public class ShoulderBowEntity extends Entity {
     private static final TrackedData<Integer> SIDE = DataTracker.registerData(ShoulderBowEntity.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Integer> PULL_STAGE = DataTracker.registerData(ShoulderBowEntity.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Integer> OWNER_ENTITY_ID = DataTracker.registerData(ShoulderBowEntity.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Boolean> MIRROR_OFFHAND = DataTracker.registerData(ShoulderBowEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<Integer> MIRROR_ITEM_RAW_ID = DataTracker.registerData(ShoulderBowEntity.class, TrackedDataHandlerRegistry.INTEGER);
     private static final int DRAW_TICKS = 9;
     private static final int AUTO_FIRE_COOLDOWN_TICKS = 40;
     private static final int TARGET_SCAN_TICKS = 10;
     private static final double TARGET_RADIUS = 18.0;
+    private static final double STRING_TARGET_RADIUS_DELTA = 2.0;
+    private static final double FRAME_TARGET_RADIUS_DELTA = 2.0;
+    private static final int STRING_COOLDOWN_DELTA = 8;
+    private static final int FRAME_COOLDOWN_DELTA = 8;
+    private static final int MIN_TARGET_RADIUS = 6;
+    private static final int MAX_TARGET_RADIUS = 40;
+    private static final int MIN_COOLDOWN_TICKS = 10;
+    private static final int MAX_COOLDOWN_TICKS = 80;
     public static final double SHOULDER_SIDE_OFFSET = 0.68;
     public static final double SHOULDER_BACK_OFFSET = -0.16;
     public static final double SHOULDER_HEIGHT_OFFSET = -0.15;
@@ -71,6 +92,8 @@ public class ShoulderBowEntity extends Entity {
         builder.add(SIDE, 1);
         builder.add(PULL_STAGE, 0);
         builder.add(OWNER_ENTITY_ID, -1);
+        builder.add(MIRROR_OFFHAND, false);
+        builder.add(MIRROR_ITEM_RAW_ID, Item.getRawId(Items.AIR));
     }
 
     public UUID getOwnerUuid() {
@@ -99,6 +122,20 @@ public class ShoulderBowEntity extends Entity {
 
     public void setOwnerEntityId(int entityId) {
         this.dataTracker.set(OWNER_ENTITY_ID, entityId);
+    }
+
+    public boolean isMirroringOffhand() {
+        return this.dataTracker.get(MIRROR_OFFHAND);
+    }
+
+    public int getMirroredItemRawId() {
+        return this.dataTracker.get(MIRROR_ITEM_RAW_ID);
+    }
+
+    public void configureOffhandMirror(boolean enabled, ItemStack mirroredStack) {
+        this.dataTracker.set(MIRROR_OFFHAND, enabled);
+        Item item = mirroredStack == null || mirroredStack.isEmpty() ? Items.AIR : mirroredStack.getItem();
+        this.dataTracker.set(MIRROR_ITEM_RAW_ID, Item.getRawId(item));
     }
 
     public void queueLookShot(Vec3d direction) {
@@ -147,11 +184,12 @@ public class ShoulderBowEntity extends Entity {
             return;
         }
 
-        if (this.cooldownTicks > 0 || this.age % TARGET_SCAN_TICKS != 0) {
+        int scanTicks = getDynamicScanTicks(owner);
+        if (this.cooldownTicks > 0 || this.age % scanTicks != 0) {
             return;
         }
 
-        LivingEntity target = findNearestHostile(owner);
+        LivingEntity target = findNearestHostile(owner, getDynamicTargetRadius(owner));
         if (target != null) {
             Vec3d aim = target.getPos().add(0.0, target.getStandingEyeHeight() * 0.6, 0.0).subtract(this.getPos());
             beginDrawing(aim, target.getUuid());
@@ -186,10 +224,10 @@ public class ShoulderBowEntity extends Entity {
         }
     }
 
-    private LivingEntity findNearestHostile(ServerPlayerEntity owner) {
+    private LivingEntity findNearestHostile(ServerPlayerEntity owner, double targetRadius) {
         LivingEntity nearest = null;
-        double nearestDist = TARGET_RADIUS * TARGET_RADIUS;
-        for (HostileEntity hostile : this.getWorld().getEntitiesByClass(HostileEntity.class, owner.getBoundingBox().expand(TARGET_RADIUS, 8.0, TARGET_RADIUS), Entity::isAlive)) {
+        double nearestDist = targetRadius * targetRadius;
+        for (HostileEntity hostile : this.getWorld().getEntitiesByClass(HostileEntity.class, owner.getBoundingBox().expand(targetRadius, 8.0, targetRadius), Entity::isAlive)) {
             double dist = hostile.squaredDistanceTo(this.getX(), this.getY(), this.getZ());
             if (dist < nearestDist) {
                 nearestDist = dist;
@@ -230,9 +268,10 @@ public class ShoulderBowEntity extends Entity {
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) {
             return;
         }
+        int dynamicCooldown = getDynamicCooldown(owner);
         long now = serverWorld.getTime();
-        if (this.lastFiredTick >= 0L && now - this.lastFiredTick < AUTO_FIRE_COOLDOWN_TICKS) {
-            this.cooldownTicks = Math.max(this.cooldownTicks, (int) (AUTO_FIRE_COOLDOWN_TICKS - (now - this.lastFiredTick)));
+        if (this.lastFiredTick >= 0L && now - this.lastFiredTick < dynamicCooldown) {
+            this.cooldownTicks = Math.max(this.cooldownTicks, (int) (dynamicCooldown - (now - this.lastFiredTick)));
             this.preparedShotDirection = null;
             this.trackedTargetUuid = null;
             this.setPullStage(0);
@@ -244,18 +283,139 @@ public class ShoulderBowEntity extends Entity {
             direction = owner.getRotationVec(1.0F);
         }
 
-        EchoArrowEntity arrow = new EchoArrowEntity(serverWorld, owner, new ItemStack(Items.ARROW), owner.getMainHandStack());
-        arrow.setDamage(2.0);
-        arrow.setPosition(this.getX(), this.getY() + 0.02, this.getZ());
-        arrow.setVelocity(direction.x, direction.y, direction.z, ARROW_SPEED, ARROW_DIVERGENCE);
+        ProjectileEntity arrow = createCompanionArrow(serverWorld, owner, direction);
+        if (arrow == null) {
+            this.preparedShotDirection = null;
+            this.trackedTargetUuid = null;
+            this.setPullStage(0);
+            return;
+        }
         serverWorld.spawnEntity(arrow);
 
         serverWorld.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.BLOCK_AMETHYST_CLUSTER_HIT, SoundCategory.PLAYERS, 0.45F, 1.35F + serverWorld.random.nextFloat() * 0.1F);
         this.lastFiredTick = now;
-        this.cooldownTicks = AUTO_FIRE_COOLDOWN_TICKS + (this.getSide() > 0 ? 4 : 0);
+        this.cooldownTicks = dynamicCooldown + (this.getSide() > 0 ? 4 : 0);
         this.preparedShotDirection = null;
         this.trackedTargetUuid = null;
         this.setPullStage(0);
+    }
+
+    private double getDynamicTargetRadius(ServerPlayerEntity owner) {
+        BowUpgradeData upgrades = BowUpgradeData.from(owner.getMainHandStack());
+        double radius = TARGET_RADIUS
+                - upgrades.stringLevel() * STRING_TARGET_RADIUS_DELTA
+                + upgrades.frameLevel() * FRAME_TARGET_RADIUS_DELTA;
+        return MathHelper.clamp(radius, MIN_TARGET_RADIUS, MAX_TARGET_RADIUS);
+    }
+
+    private int getDynamicCooldown(ServerPlayerEntity owner) {
+        BowUpgradeData upgrades = BowUpgradeData.from(owner.getMainHandStack());
+        int cooldown = AUTO_FIRE_COOLDOWN_TICKS
+                - upgrades.stringLevel() * STRING_COOLDOWN_DELTA
+                + upgrades.frameLevel() * FRAME_COOLDOWN_DELTA;
+        return MathHelper.clamp(cooldown, MIN_COOLDOWN_TICKS, MAX_COOLDOWN_TICKS);
+    }
+
+    private int getDynamicScanTicks(ServerPlayerEntity owner) {
+        int cooldown = getDynamicCooldown(owner);
+        return MathHelper.clamp(cooldown / 4, 2, TARGET_SCAN_TICKS);
+    }
+
+    private ProjectileEntity createCompanionArrow(ServerWorld world, ServerPlayerEntity owner, Vec3d direction) {
+        ItemStack mainHand = owner.getMainHandStack();
+        ItemStack offHand = owner.getOffHandStack();
+        ItemStack arrowStack = owner.getProjectileType(this.isMirroringOffhand() ? offHand : mainHand);
+        if (arrowStack == null || arrowStack.isEmpty()) {
+            arrowStack = new ItemStack(Items.ARROW);
+        }
+
+        float speed = ARROW_SPEED;
+        float divergence = ARROW_DIVERGENCE;
+        ProjectileEntity projectile;
+
+        if (this.isMirroringOffhand() && offHand.getItem() instanceof SimplyBowItem offhandBow) {
+            BowUpgradeData upgrades = BowUpgradeData.from(offHand);
+            if (offhandBow instanceof VineBowItem) {
+                speed = 1.65F * (float) (1.0 + upgrades.stringLevel() * 0.05);
+                divergence = 1.15F;
+                VineArrowEntity arrow = new VineArrowEntity(world, owner, arrowStack, offHand);
+                arrow.setDamage(1.5 * upgrades.damageMultiplier());
+                projectile = arrow;
+            } else if (offhandBow instanceof EarthBowItem) {
+                speed = 2.16F * (float) (1.0 + upgrades.stringLevel() * 0.05);
+                divergence = 0.9F;
+                EarthArrowEntity arrow = new EarthArrowEntity(world, owner, arrowStack, offHand);
+                arrow.setDamage(2.0 * upgrades.damageMultiplier());
+                projectile = arrow;
+            } else if (offhandBow instanceof BubbleBowItem) {
+                speed = 2.85F;
+                divergence = 0.8F;
+                BubbleArrowEntity arrow = new BubbleArrowEntity(world, owner, arrowStack, offHand);
+                arrow.setDamage(1.75);
+                projectile = arrow;
+            } else if (offhandBow instanceof BeeBowItem) {
+                speed = 1.44F;
+                divergence = 0.7F;
+                BeeArrowEntity arrow = new BeeArrowEntity(world, owner, arrowStack, offHand);
+                arrow.setDamage(2.0);
+                projectile = arrow;
+            } else if (offhandBow instanceof BlossomBowItem) {
+                speed = 2.34F;
+                divergence = 0.85F;
+                BlossomArrowEntity arrow = new BlossomArrowEntity(world, owner, arrowStack, offHand);
+                arrow.setDamage(1.5);
+                projectile = arrow;
+            } else if (offhandBow instanceof IceBowItem) {
+                speed = 3.6F;
+                divergence = 1.0F;
+                double damageMultiplier = upgrades.damageMultiplier();
+                RuneEtching rune = upgrades.runeEtching();
+                if (rune == RuneEtching.PAIN) {
+                    damageMultiplier *= 1.5;
+                } else if (rune == RuneEtching.BOUNTY) {
+                    damageMultiplier *= 0.75;
+                }
+
+                if (arrowStack.isOf(Items.SPECTRAL_ARROW)) {
+                    HomingSpectralArrowEntity arrow = new HomingSpectralArrowEntity(world, owner, arrowStack, offHand);
+                    arrow.setDamage(2.0 * damageMultiplier);
+                    arrow.setLockSingleTarget(rune == RuneEtching.PAIN);
+                    arrow.setStackingSlowness(rune == RuneEtching.GRACE);
+                    if (rune == RuneEtching.PAIN && this.trackedTargetUuid != null) {
+                        arrow.setLockedTargetUuid(this.trackedTargetUuid);
+                    }
+                    projectile = arrow;
+                } else {
+                    HomingArrowEntity arrow = new HomingArrowEntity(world, owner, arrowStack, offHand);
+                    arrow.setDamage(2.0 * damageMultiplier);
+                    arrow.setLockSingleTarget(rune == RuneEtching.PAIN);
+                    arrow.setStackingSlowness(rune == RuneEtching.GRACE);
+                    if (rune == RuneEtching.PAIN && this.trackedTargetUuid != null) {
+                        arrow.setLockedTargetUuid(this.trackedTargetUuid);
+                    }
+                    projectile = arrow;
+                }
+            } else {
+                EchoArrowEntity arrow = new EchoArrowEntity(world, owner, arrowStack, mainHand);
+                arrow.setDamage(2.0);
+                projectile = arrow;
+                speed = ARROW_SPEED;
+                divergence = ARROW_DIVERGENCE;
+            }
+        } else {
+            EchoArrowEntity arrow = new EchoArrowEntity(world, owner, arrowStack, mainHand);
+            arrow.setDamage(2.0);
+            projectile = arrow;
+            speed = ARROW_SPEED;
+            divergence = ARROW_DIVERGENCE;
+        }
+
+        if (projectile instanceof net.minecraft.entity.projectile.PersistentProjectileEntity persistent) {
+            persistent.setCritical(this.getPullStage() >= 3);
+        }
+        projectile.setPosition(this.getX(), this.getY() + 0.02, this.getZ());
+        projectile.setVelocity(direction.x, direction.y, direction.z, speed, divergence);
+        return projectile;
     }
 
     private static int stageForRemainingDrawTicks(int remainingTicks) {
@@ -331,6 +491,12 @@ public class ShoulderBowEntity extends Entity {
         if (nbt.contains("pull_stage")) {
             this.setPullStage(nbt.getInt("pull_stage"));
         }
+        if (nbt.contains("mirror_offhand")) {
+            this.dataTracker.set(MIRROR_OFFHAND, nbt.getBoolean("mirror_offhand"));
+        }
+        if (nbt.contains("mirror_item_id")) {
+            this.dataTracker.set(MIRROR_ITEM_RAW_ID, nbt.getInt("mirror_item_id"));
+        }
         this.drawTicksRemaining = nbt.getInt("draw_ticks");
         this.cooldownTicks = nbt.getInt("cooldown_ticks");
         if (nbt.contains("last_fired_tick")) {
@@ -345,6 +511,8 @@ public class ShoulderBowEntity extends Entity {
         }
         nbt.putInt("side", this.getSide());
         nbt.putInt("pull_stage", this.getPullStage());
+        nbt.putBoolean("mirror_offhand", this.dataTracker.get(MIRROR_OFFHAND));
+        nbt.putInt("mirror_item_id", this.dataTracker.get(MIRROR_ITEM_RAW_ID));
         nbt.putInt("draw_ticks", this.drawTicksRemaining);
         nbt.putInt("cooldown_ticks", this.cooldownTicks);
         nbt.putLong("last_fired_tick", this.lastFiredTick);

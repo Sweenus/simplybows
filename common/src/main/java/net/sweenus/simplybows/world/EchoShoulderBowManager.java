@@ -1,11 +1,15 @@
 package net.sweenus.simplybows.world;
 
 import net.minecraft.entity.Entity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Vec3d;
 import net.sweenus.simplybows.entity.ShoulderBowEntity;
 import net.sweenus.simplybows.item.unique.EchoBowItem;
+import net.sweenus.simplybows.item.unique.SimplyBowItem;
+import net.sweenus.simplybows.upgrade.BowUpgradeData;
+import net.sweenus.simplybows.upgrade.RuneEtching;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,6 +46,13 @@ public final class EchoShoulderBowManager {
             right = new ShoulderBowEntity(world, player, 1);
             world.spawnEntity(right);
         }
+
+        BowUpgradeData upgrades = BowUpgradeData.from(player.getMainHandStack());
+        boolean mirrorOffhandBow = upgrades.runeEtching() == RuneEtching.BOUNTY
+                && player.getOffHandStack().getItem() instanceof SimplyBowItem
+                && !(player.getOffHandStack().getItem() instanceof EchoBowItem);
+        left.configureOffhandMirror(false, ItemStack.EMPTY);
+        right.configureOffhandMirror(mirrorOffhandBow, mirrorOffhandBow ? player.getOffHandStack() : ItemStack.EMPTY);
 
         ACTIVE_BOWS.put(ownerId, new CompanionPair(left.getUuid(), right.getUuid()));
 

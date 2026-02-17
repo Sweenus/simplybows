@@ -49,6 +49,60 @@ public class ItemRegistry {
     public static final RegistrySupplier<Item> ECHO_BOW_VISUAL_PULL_2 = ITEM.register("echo_bow_visual_pull_2", () -> new Item(
             new Item.Settings()
     ));
+    public static final RegistrySupplier<Item> VINE_BOW_VISUAL_PULL_0 = ITEM.register("vine_bow_visual_pull_0", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> VINE_BOW_VISUAL_PULL_1 = ITEM.register("vine_bow_visual_pull_1", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> VINE_BOW_VISUAL_PULL_2 = ITEM.register("vine_bow_visual_pull_2", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> ICE_BOW_VISUAL_PULL_0 = ITEM.register("ice_bow_visual_pull_0", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> ICE_BOW_VISUAL_PULL_1 = ITEM.register("ice_bow_visual_pull_1", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> ICE_BOW_VISUAL_PULL_2 = ITEM.register("ice_bow_visual_pull_2", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> BUBBLE_BOW_VISUAL_PULL_0 = ITEM.register("bubble_bow_visual_pull_0", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> BUBBLE_BOW_VISUAL_PULL_1 = ITEM.register("bubble_bow_visual_pull_1", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> BUBBLE_BOW_VISUAL_PULL_2 = ITEM.register("bubble_bow_visual_pull_2", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> BEE_BOW_VISUAL_PULL_0 = ITEM.register("bee_bow_visual_pull_0", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> BEE_BOW_VISUAL_PULL_1 = ITEM.register("bee_bow_visual_pull_1", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> BEE_BOW_VISUAL_PULL_2 = ITEM.register("bee_bow_visual_pull_2", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> BLOSSOM_BOW_VISUAL_PULL_0 = ITEM.register("blossom_bow_visual_pull_0", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> BLOSSOM_BOW_VISUAL_PULL_1 = ITEM.register("blossom_bow_visual_pull_1", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> BLOSSOM_BOW_VISUAL_PULL_2 = ITEM.register("blossom_bow_visual_pull_2", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> EARTH_BOW_VISUAL_PULL_0 = ITEM.register("earth_bow_visual_pull_0", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> EARTH_BOW_VISUAL_PULL_1 = ITEM.register("earth_bow_visual_pull_1", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> EARTH_BOW_VISUAL_PULL_2 = ITEM.register("earth_bow_visual_pull_2", () -> new Item(
+            new Item.Settings()
+    ));
     public static final RegistrySupplier<Item> ENCHANTED_BOW_STRING = ITEM.register("upgrades/enchanted_bow_string", () -> new BowUpgradeComponentItem(
             new Item.Settings(),
             BowUpgradeComponentItem.UpgradeKind.ENCHANTED_STRING,

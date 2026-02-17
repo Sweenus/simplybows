@@ -9,7 +9,9 @@ import net.minecraft.client.render.model.json.ModelTransformationMode;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
@@ -50,7 +52,7 @@ public class ShoulderBowEntityRenderer extends EntityRenderer<ShoulderBowEntity>
             }
         }
 
-        ItemStack renderStack = getStackForPullStage(entity.getPullStage());
+        ItemStack renderStack = getStackForPullStage(entity, entity.getPullStage());
 
         matrices.push();
         if (ownerEntity instanceof PlayerEntity owner) {
@@ -100,12 +102,70 @@ public class ShoulderBowEntityRenderer extends EntityRenderer<ShoulderBowEntity>
         matrices.translate(correction.x, correction.y, correction.z);
     }
 
-    private static ItemStack getStackForPullStage(int stage) {
+    private static ItemStack getStackForPullStage(ShoulderBowEntity entity, int stage) {
+        if (entity.isMirroringOffhand()) {
+            Item mirroredItem = Item.byRawId(entity.getMirroredItemRawId());
+            if (mirroredItem != null && mirroredItem != Items.AIR) {
+                if (stage > 0) {
+                    ItemStack pullProxy = getMirrorPullProxy(mirroredItem, stage);
+                    if (!pullProxy.isEmpty()) {
+                        return pullProxy;
+                    }
+                }
+                return new ItemStack(mirroredItem);
+            }
+        }
         return switch (stage) {
             case 1 -> new ItemStack(ItemRegistry.ECHO_BOW_VISUAL_PULL_0.get());
             case 2 -> new ItemStack(ItemRegistry.ECHO_BOW_VISUAL_PULL_1.get());
             case 3 -> new ItemStack(ItemRegistry.ECHO_BOW_VISUAL_PULL_2.get());
             default -> new ItemStack(ItemRegistry.ECHO_BOW.get());
         };
+    }
+
+    private static ItemStack getMirrorPullProxy(Item mirroredItem, int stage) {
+        if (mirroredItem == ItemRegistry.VINE_BOW.get()) {
+            return switch (stage) {
+                case 1 -> new ItemStack(ItemRegistry.VINE_BOW_VISUAL_PULL_0.get());
+                case 2 -> new ItemStack(ItemRegistry.VINE_BOW_VISUAL_PULL_1.get());
+                default -> new ItemStack(ItemRegistry.VINE_BOW_VISUAL_PULL_2.get());
+            };
+        }
+        if (mirroredItem == ItemRegistry.ICE_BOW.get()) {
+            return switch (stage) {
+                case 1 -> new ItemStack(ItemRegistry.ICE_BOW_VISUAL_PULL_0.get());
+                case 2 -> new ItemStack(ItemRegistry.ICE_BOW_VISUAL_PULL_1.get());
+                default -> new ItemStack(ItemRegistry.ICE_BOW_VISUAL_PULL_2.get());
+            };
+        }
+        if (mirroredItem == ItemRegistry.BUBBLE_BOW.get()) {
+            return switch (stage) {
+                case 1 -> new ItemStack(ItemRegistry.BUBBLE_BOW_VISUAL_PULL_0.get());
+                case 2 -> new ItemStack(ItemRegistry.BUBBLE_BOW_VISUAL_PULL_1.get());
+                default -> new ItemStack(ItemRegistry.BUBBLE_BOW_VISUAL_PULL_2.get());
+            };
+        }
+        if (mirroredItem == ItemRegistry.BEE_BOW.get()) {
+            return switch (stage) {
+                case 1 -> new ItemStack(ItemRegistry.BEE_BOW_VISUAL_PULL_0.get());
+                case 2 -> new ItemStack(ItemRegistry.BEE_BOW_VISUAL_PULL_1.get());
+                default -> new ItemStack(ItemRegistry.BEE_BOW_VISUAL_PULL_2.get());
+            };
+        }
+        if (mirroredItem == ItemRegistry.BLOSSOM_BOW.get()) {
+            return switch (stage) {
+                case 1 -> new ItemStack(ItemRegistry.BLOSSOM_BOW_VISUAL_PULL_0.get());
+                case 2 -> new ItemStack(ItemRegistry.BLOSSOM_BOW_VISUAL_PULL_1.get());
+                default -> new ItemStack(ItemRegistry.BLOSSOM_BOW_VISUAL_PULL_2.get());
+            };
+        }
+        if (mirroredItem == ItemRegistry.EARTH_BOW.get()) {
+            return switch (stage) {
+                case 1 -> new ItemStack(ItemRegistry.EARTH_BOW_VISUAL_PULL_0.get());
+                case 2 -> new ItemStack(ItemRegistry.EARTH_BOW_VISUAL_PULL_1.get());
+                default -> new ItemStack(ItemRegistry.EARTH_BOW_VISUAL_PULL_2.get());
+            };
+        }
+        return ItemStack.EMPTY;
     }
 }
