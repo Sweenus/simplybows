@@ -16,15 +16,18 @@ import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.sweenus.simplybows.registry.EntityRegistry;
+import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.world.EarthSpikeFieldManager;
 
 public class EarthArrowEntity extends ArrowEntity {
 
     private static final String EARTH_VISUAL_TAG = "simplybows_earth_spike_visual";
+    private final BowUpgradeData upgrades;
     private boolean spawnedField;
 
     public EarthArrowEntity(EntityType<? extends EarthArrowEntity> type, World world) {
         super(type, world);
+        this.upgrades = BowUpgradeData.none();
     }
 
     public EarthArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
@@ -35,6 +38,7 @@ public class EarthArrowEntity extends ArrowEntity {
         this.prevX = owner.getX();
         this.prevY = owner.getEyeY() - 0.1;
         this.prevZ = owner.getZ();
+        this.upgrades = BowUpgradeData.from(weaponStack);
     }
 
     @Override
@@ -80,7 +84,7 @@ public class EarthArrowEntity extends ArrowEntity {
             return;
         }
         if (this.getWorld() instanceof ServerWorld serverWorld) {
-            EarthSpikeFieldManager.createOrReplaceField(serverWorld, pos, this.getOwner());
+            EarthSpikeFieldManager.createOrReplaceField(serverWorld, pos, this.getOwner(), this.upgrades);
             this.spawnedField = true;
         }
     }

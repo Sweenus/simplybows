@@ -2,6 +2,8 @@ package net.sweenus.simplybows.entity;
 
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.projectile.ArrowEntity;
 import net.minecraft.item.ItemStack;
@@ -16,6 +18,7 @@ import net.sweenus.simplybows.registry.EntityRegistry;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public class HomingArrowEntity extends ArrowEntity {
 
@@ -29,6 +32,9 @@ public class HomingArrowEntity extends ArrowEntity {
     private static final int SPEED_RAMP_TICKS = 40; // Ticks to ramp from START_SPEED to MAX_SPEED
     private LivingEntity target;
     private boolean initialSpreadApplied;
+    private boolean lockSingleTarget;
+    private boolean stackingSlowness;
+    private UUID lockedTargetUuid;
     public HomingArrowEntity(EntityType<? extends HomingArrowEntity> type, World world) {
         super(type, world);
     }
@@ -72,6 +78,12 @@ public class HomingArrowEntity extends ArrowEntity {
         }
 
         if (!this.getWorld().isClient()) {
+            if (this.lockSingleTarget && this.lockedTargetUuid != null && this.target == null && this.getWorld() instanceof ServerWorld serverWorld) {
+                net.minecraft.entity.Entity e = serverWorld.getEntity(this.lockedTargetUuid);
+                if (e instanceof LivingEntity living && living.isAlive()) {
+                    this.target = living;
+                }
+            }
             if (this.inGround) {
                 this.target = null;
                 return;
@@ -83,6 +95,10 @@ public class HomingArrowEntity extends ArrowEntity {
 
             // Locate a target if none exists
             if (target == null || !target.isAlive()) {
+                if (this.lockSingleTarget) {
+                    this.target = null;
+                    return;
+                }
                 target = findNearestHostileMob();
             }
 
@@ -241,6 +257,7 @@ public class HomingArrowEntity extends ArrowEntity {
         // Allow multiple fan arrows to damage in the same tick by clearing invulnerability frames.
         target.hurtTime = 0;
         target.timeUntilRegen = 0;
+        applyStackingSlow(target);
         if (this.getWorld() instanceof ServerWorld serverWorld) {
             spawnImpactParticles(serverWorld, target);
         }
@@ -250,6 +267,30 @@ public class HomingArrowEntity extends ArrowEntity {
 
     LivingEntity getTargetEntity() {
         return this.target;
+    }
+
+    public void setLockSingleTarget(boolean lockSingleTarget) {
+        this.lockSingleTarget = lockSingleTarget;
+    }
+
+    public void setLockedTargetUuid(UUID lockedTargetUuid) {
+        this.lockedTargetUuid = lockedTargetUuid;
+    }
+
+    public void setStackingSlowness(boolean stackingSlowness) {
+        this.stackingSlowness = stackingSlowness;
+    }
+
+    private void applyStackingSlow(LivingEntity target) {
+        if (!this.stackingSlowness) {
+            return;
+        }
+        int amplifier = 0;
+        StatusEffectInstance existing = target.getStatusEffect(StatusEffects.SLOWNESS);
+        if (existing != null) {
+            amplifier = Math.min(4, existing.getAmplifier() + 1);
+        }
+        target.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 80, amplifier), this.getOwner());
     }
 
     @Override

@@ -5,6 +5,7 @@ import dev.architectury.registry.registries.RegistrySupplier;
 import net.minecraft.item.Item;
 import net.minecraft.registry.RegistryKeys;
 import net.sweenus.simplybows.SimplyBows;
+import net.sweenus.simplybows.item.upgrade.BowUpgradeComponentItem;
 import net.sweenus.simplybows.item.unique.BeeBowItem;
 import net.sweenus.simplybows.item.unique.BlossomBowItem;
 import net.sweenus.simplybows.item.unique.BubbleBowItem;
@@ -12,6 +13,7 @@ import net.sweenus.simplybows.item.unique.EchoBowItem;
 import net.sweenus.simplybows.item.unique.EarthBowItem;
 import net.sweenus.simplybows.item.unique.IceBowItem;
 import net.sweenus.simplybows.item.unique.VineBowItem;
+import net.sweenus.simplybows.upgrade.RuneEtching;
 
 public class ItemRegistry {
 
@@ -46,6 +48,31 @@ public class ItemRegistry {
     ));
     public static final RegistrySupplier<Item> ECHO_BOW_VISUAL_PULL_2 = ITEM.register("echo_bow_visual_pull_2", () -> new Item(
             new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> ENCHANTED_BOW_STRING = ITEM.register("upgrades/enchanted_bow_string", () -> new BowUpgradeComponentItem(
+            new Item.Settings(),
+            BowUpgradeComponentItem.UpgradeKind.ENCHANTED_STRING,
+            RuneEtching.NONE
+    ));
+    public static final RegistrySupplier<Item> REINFORCED_BOW_FRAME = ITEM.register("upgrades/reinforced_bow_frame", () -> new BowUpgradeComponentItem(
+            new Item.Settings(),
+            BowUpgradeComponentItem.UpgradeKind.REINFORCED_FRAME,
+            RuneEtching.NONE
+    ));
+    public static final RegistrySupplier<Item> RUNE_ETCHING_PAIN = ITEM.register("upgrades/rune_etching_pain", () -> new BowUpgradeComponentItem(
+            new Item.Settings(),
+            BowUpgradeComponentItem.UpgradeKind.RUNE_ETCHING,
+            RuneEtching.PAIN
+    ));
+    public static final RegistrySupplier<Item> RUNE_ETCHING_GRACE = ITEM.register("upgrades/rune_etching_grace", () -> new BowUpgradeComponentItem(
+            new Item.Settings(),
+            BowUpgradeComponentItem.UpgradeKind.RUNE_ETCHING,
+            RuneEtching.GRACE
+    ));
+    public static final RegistrySupplier<Item> RUNE_ETCHING_BOUNTY = ITEM.register("upgrades/rune_etching_bounty", () -> new BowUpgradeComponentItem(
+            new Item.Settings(),
+            BowUpgradeComponentItem.UpgradeKind.RUNE_ETCHING,
+            RuneEtching.BOUNTY
     ));
 
 

@@ -36,13 +36,16 @@ public class VineFlowerVisualEntityRenderer extends EntityRenderer<VineFlowerVis
             case 2 -> Blocks.DANDELION.getDefaultState();
             case 3 -> Blocks.POPPY.getDefaultState();
             case 1 -> Blocks.FERN.getDefaultState();
+            case 4 -> Blocks.CHERRY_LOG.getDefaultState();
+            case 5 -> Blocks.CHERRY_LEAVES.getDefaultState();
             default -> Blocks.SHORT_GRASS.getDefaultState();
         };
 
         matrices.push();
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(entity.getYaw()));
         matrices.translate(-0.5, 0.0, -0.5);
-        matrices.scale(0.92F, Math.max(0.05F, heightScale), 0.92F);
+        float xzScale = entity.getFlowerType() == 4 ? 0.48F : 0.92F;
+        matrices.scale(xzScale, Math.max(0.05F, heightScale), xzScale);
         MinecraftClient.getInstance().getBlockRenderManager().renderBlockAsEntity(
                 state,
                 matrices,

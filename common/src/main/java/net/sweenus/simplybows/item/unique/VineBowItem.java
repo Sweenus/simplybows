@@ -8,6 +8,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
 import net.sweenus.simplybows.entity.VineArrowEntity;
+import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -22,7 +23,9 @@ public class VineBowItem extends SimplyBowItem {
     }
 
     public void performStoppedUsing(ServerWorld serverWorld, LivingEntity shooter, Hand hand, ItemStack stack, List<ItemStack> projectiles, float f, float g, boolean critical, @Nullable LivingEntity target) {
-        this.shootAll(serverWorld, shooter, hand, stack, projectiles, f * VINE_ARROW_SPEED_MULTIPLIER, VINE_ARROW_DIVERGENCE, critical, target);
+        BowUpgradeData upgrades = BowUpgradeData.from(stack);
+        float speed = (float) (f * VINE_ARROW_SPEED_MULTIPLIER * (1.0 + upgrades.stringLevel() * 0.05));
+        this.shootAll(serverWorld, shooter, hand, stack, projectiles, speed, VINE_ARROW_DIVERGENCE, critical, target);
     }
 
     @Override
@@ -32,8 +35,10 @@ public class VineBowItem extends SimplyBowItem {
             firedArrowStack = new ItemStack(Items.ARROW);
         }
 
+        BowUpgradeData upgrades = BowUpgradeData.from(weaponStack);
         VineArrowEntity arrowEntity = new VineArrowEntity(world, shooter, firedArrowStack, weaponStack);
-        arrowEntity.setDamage(1.5);
+        arrowEntity.setDamage(1.5 * upgrades.damageMultiplier());
+        //arrowEntity.setPunch(upgrades.bonusKnockback());
         arrowEntity.setCritical(critical);
         return arrowEntity;
     }

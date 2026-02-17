@@ -13,6 +13,7 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.world.VineFlowerFieldManager;
 
 public class VineArrowEntity extends ArrowEntity {
@@ -20,15 +21,18 @@ public class VineArrowEntity extends ArrowEntity {
     private static final double EXTRA_DRAG_XZ = 0.94;
     private static final double EXTRA_DRAG_Y = 0.90;
     private static final String FIELD_VISUAL_TAG = "simplybows_vine_field_visual";
+    private final BowUpgradeData upgrades;
     private boolean spawnedFlowerField;
 
     public VineArrowEntity(EntityType<? extends VineArrowEntity> type, World world) {
         super(type, world);
+        this.upgrades = BowUpgradeData.none();
     }
 
     public VineArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
         super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
         this.setOwner(owner);
+        this.upgrades = BowUpgradeData.from(weaponStack);
     }
 
     @Override
@@ -77,7 +81,7 @@ public class VineArrowEntity extends ArrowEntity {
         }
 
         if (this.getWorld() instanceof ServerWorld serverWorld) {
-            VineFlowerFieldManager.createOrReplaceField(serverWorld, hitPos, this.getOwner());
+            VineFlowerFieldManager.createOrReplaceField(serverWorld, hitPos, this.getOwner(), this.upgrades);
             this.spawnedFlowerField = true;
         }
     }

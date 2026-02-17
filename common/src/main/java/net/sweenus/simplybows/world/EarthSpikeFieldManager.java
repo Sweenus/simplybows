@@ -15,6 +15,8 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.sweenus.simplybows.entity.EarthSpikeVisualEntity;
+import net.sweenus.simplybows.upgrade.BowUpgradeData;
+import net.sweenus.simplybows.upgrade.RuneEtching;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,18 +33,32 @@ public final class EarthSpikeFieldManager {
     private static final double FIELD_RADIUS = 3.6;
     private static final double PATCH_VISUAL_RADIUS = 2.1;
     private static final int PATCH_VISUAL_POINTS = 20;
-    private static final float SPIKE_DAMAGE = 2.0F;
+    private static final float SPIKE_DAMAGE = 3.0F;
     private static final int GROUND_SCAN_UP = 4;
     private static final int GROUND_SCAN_DOWN = 16;
     private static final double SPIKE_SEGMENT_HEIGHT = 0.34;
     private static final double START_DEPTH = 3.2;
     private static final double BASE_GROUND_OFFSET = -0.18;
+    private static final int PAIN_STAR_RAYS = 8;
+    private static final double PAIN_WAVE_MAX_DISTANCE = 4.0;
+    private static final double PAIN_WAVE_STEP_DISTANCE = 0.8;
+    private static final int PAIN_WAVE_STEP_TICKS = 1;
+    private static final float PAIN_WAVE_DAMAGE_MULTIPLIER = 1.0F;
+    private static final double PAIN_WAVE_DAMAGE_RADIUS = 0.8;
+    private static final double STRING_RADIUS_BONUS_PER_LEVEL = 0.45;
+    private static final double STRING_WAVE_DISTANCE_BONUS_PER_LEVEL = 1.2;
+    private static final double BASE_UPWARD_KNOCKBACK = 0.4;
+    private static final double FRAME_UPWARD_KNOCKBACK_PER_LEVEL = 0.7;
     private static final Map<ServerWorld, List<ActiveSpikeField>> ACTIVE_FIELDS = new HashMap<>();
 
     private EarthSpikeFieldManager() {
     }
 
     public static void createOrReplaceField(ServerWorld world, Vec3d center, Entity owner) {
+        createOrReplaceField(world, center, owner, BowUpgradeData.none());
+    }
+
+    public static void createOrReplaceField(ServerWorld world, Vec3d center, Entity owner, BowUpgradeData upgrades) {
         List<ActiveSpikeField> fields = ACTIVE_FIELDS.computeIfAbsent(world, w -> new ArrayList<>());
         UUID ownerId = owner != null ? owner.getUuid() : null;
         if (ownerId != null) {
@@ -56,12 +72,17 @@ public final class EarthSpikeFieldManager {
         }
 
         long now = world.getTime();
-        List<SpikePoint> points = buildPatchPoints(world, center);
-        ActiveSpikeField field = new ActiveSpikeField(center, now, now + FIELD_DURATION_TICKS, ownerId);
+        FieldTuning tuning = buildTuning(upgrades);
+        List<SpikePoint> points = buildPatchPoints(world, center, tuning);
+        int painTravelTicks = tuning.outwardPainWaves() ? getPainWaveMaxSteps(tuning) * PAIN_WAVE_STEP_TICKS : 0;
+        ActiveSpikeField field = new ActiveSpikeField(center, now, now + FIELD_DURATION_TICKS + painTravelTicks, ownerId, tuning);
         spawnSpikeVisuals(world, field, points);
         fields.add(field);
 
-        applySpikeDamage(world, center);
+        applySpikeDamage(world, center, tuning.radius(), tuning.damage(), tuning.upwardKnockback());
+        if (tuning.outwardPainWaves()) {
+            initializePainWaves(field, now);
+        }
         world.playSound(null, center.x, center.y, center.z, SoundEvents.ENTITY_GENERIC_EXPLODE, SoundCategory.PLAYERS, 1.35F, 0.65F + world.random.nextFloat() * 0.1F);
         world.playSound(null, center.x, center.y, center.z, SoundEvents.BLOCK_POINTED_DRIPSTONE_DRIP_LAVA_INTO_CAULDRON, SoundCategory.PLAYERS, 1.0F, 0.75F + world.random.nextFloat() * 0.1F);
         spawnBurstParticles(world, center);
@@ -86,17 +107,21 @@ public final class EarthSpikeFieldManager {
         }
 
         for (ActiveSpikeField field : fields) {
+            tickPainWaves(world, field);
             animateField(world, field);
         }
     }
 
-    private static void applySpikeDamage(ServerWorld world, Vec3d center) {
-        Box box = Box.of(center, FIELD_RADIUS * 2.0, 3.5, FIELD_RADIUS * 2.0);
+    private static void applySpikeDamage(ServerWorld world, Vec3d center, double radius, float damage, double upwardKnockback) {
+        Box box = Box.of(center, radius * 2.0, 3.5, radius * 2.0);
         for (HostileEntity hostile : world.getEntitiesByClass(HostileEntity.class, box, LivingEntity::isAlive)) {
-            if (hostile.squaredDistanceTo(center) > FIELD_RADIUS * FIELD_RADIUS) {
+            if (hostile.squaredDistanceTo(center) > radius * radius) {
                 continue;
             }
-            hostile.damage(world.getDamageSources().magic(), SPIKE_DAMAGE);
+            boolean damaged = hostile.damage(world.getDamageSources().magic(), damage);
+            if (damaged) {
+                applyUpwardKnockback(hostile, upwardKnockback);
+            }
         }
     }
 
@@ -106,12 +131,12 @@ public final class EarthSpikeFieldManager {
         world.spawnParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, center.x, center.y + 0.05, center.z, 14, 1.0, 0.05, 1.0, 0.01);
     }
 
-    private static List<SpikePoint> buildPatchPoints(ServerWorld world, Vec3d center) {
+    private static List<SpikePoint> buildPatchPoints(ServerWorld world, Vec3d center, FieldTuning tuning) {
         List<SpikePoint> points = new ArrayList<>();
-        for (int i = 0; i < PATCH_VISUAL_POINTS; i++) {
-            double angle = ((Math.PI * 2.0) / PATCH_VISUAL_POINTS) * i;
+        for (int i = 0; i < tuning.points(); i++) {
+            double angle = ((Math.PI * 2.0) / tuning.points()) * i;
             double ringScale = (0.45 + ((i * 13) % 10) * 0.06);
-            double radius = PATCH_VISUAL_RADIUS * Math.min(1.0, ringScale);
+            double radius = tuning.visualRadius() * Math.min(1.0, ringScale);
             double x = center.x + Math.cos(angle) * radius;
             double z = center.z + Math.sin(angle) * radius;
             double y = findGroundTopY(world, x, z, center.y) + BASE_GROUND_OFFSET;
@@ -121,36 +146,118 @@ public final class EarthSpikeFieldManager {
         return points;
     }
 
+    private static FieldTuning buildTuning(BowUpgradeData upgrades) {
+        double sizeMultiplier = upgrades.sizeMultiplier();
+        float damage = (float) (SPIKE_DAMAGE * upgrades.damageMultiplier());
+        boolean painWaves = upgrades.runeEtching() == RuneEtching.PAIN;
+        double radius = FIELD_RADIUS * sizeMultiplier + upgrades.stringLevel() * STRING_RADIUS_BONUS_PER_LEVEL;
+        double visualRadius = PATCH_VISUAL_RADIUS * sizeMultiplier + upgrades.stringLevel() * (STRING_RADIUS_BONUS_PER_LEVEL * 0.45);
+        double painWaveDistance = PAIN_WAVE_MAX_DISTANCE + upgrades.stringLevel() * STRING_WAVE_DISTANCE_BONUS_PER_LEVEL;
+        double upwardKnockback = BASE_UPWARD_KNOCKBACK + upgrades.frameLevel() * FRAME_UPWARD_KNOCKBACK_PER_LEVEL;
+        return new FieldTuning(
+                radius,
+                visualRadius,
+                PATCH_VISUAL_POINTS + upgrades.stringLevel() * 5,
+                damage,
+                painWaves,
+                painWaveDistance,
+                upwardKnockback
+        );
+    }
+
     private static void spawnSpikeVisuals(ServerWorld world, ActiveSpikeField field, List<SpikePoint> points) {
         for (SpikePoint point : points) {
-            float targetHeight = (float) (point.heightSegments() * SPIKE_SEGMENT_HEIGHT);
-            EarthSpikeVisualEntity visual = new EarthSpikeVisualEntity(world, point.x(), point.y() - START_DEPTH, point.z(), targetHeight);
-            visual.addCommandTag("simplybows_earth_spike_visual");
-            world.spawnEntity(visual);
-            field.visuals.add(new SpikeVisual(visual.getUuid(), point.x(), point.y(), point.z()));
+            spawnSpikeVisual(world, field, point.x(), point.y(), point.z(), point.heightSegments(), world.getTime());
         }
     }
 
     private static void animateField(ServerWorld world, ActiveSpikeField field) {
-        long age = world.getTime() - field.spawnTick();
-        float scale = getHeightScale(age);
-        if (scale <= 0.01F) {
-            return;
-        }
-
-        for (SpikeVisual visual : field.visuals) {
+        field.visuals.removeIf(visual -> {
             Entity entity = world.getEntity(visual.id());
             if (!(entity instanceof EarthSpikeVisualEntity spikeVisual)) {
-                continue;
+                return true;
             }
+
+            long age = world.getTime() - visual.spawnTick();
+            if (age >= FIELD_DURATION_TICKS) {
+                spikeVisual.discard();
+                return true;
+            }
+
+            float scale = getHeightScale(age);
             spikeVisual.setHeightScale(scale);
             double yOffset = getVerticalOffset(age);
             spikeVisual.setPos(visual.baseX(), visual.baseY() + yOffset, visual.baseZ());
-        }
+            return false;
+        });
 
-        if (age % 2L == 0L) {
+        if ((world.getTime() - field.spawnTick()) % 2L == 0L) {
             world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.DRIPSTONE_BLOCK.getDefaultState()), field.center().x, field.center().y + 0.08, field.center().z, 4, 1.4, 0.1, 1.4, 0.0);
         }
+    }
+
+    private static void initializePainWaves(ActiveSpikeField field, long now) {
+        for (int i = 0; i < PAIN_STAR_RAYS; i++) {
+            double angle = ((Math.PI * 2.0) / PAIN_STAR_RAYS) * i;
+            Vec3d direction = new Vec3d(Math.cos(angle), 0.0, Math.sin(angle));
+            field.painWaves.add(new PainWaveState(direction, 1, now));
+        }
+    }
+
+    private static void tickPainWaves(ServerWorld world, ActiveSpikeField field) {
+        if (!field.tuning().outwardPainWaves() || field.painWaves.isEmpty()) {
+            return;
+        }
+
+        int maxSteps = getPainWaveMaxSteps(field.tuning());
+        field.painWaves.removeIf(wave -> {
+            if (world.getTime() < wave.nextSpawnTick()) {
+                return false;
+            }
+            if (wave.nextStep() > maxSteps) {
+                return true;
+            }
+
+            double distance = wave.nextStep() * PAIN_WAVE_STEP_DISTANCE;
+            Vec3d pos = field.center().add(wave.direction().multiply(distance));
+            double y = findGroundTopY(world, pos.x, pos.z, field.center().y) + BASE_GROUND_OFFSET;
+            int heightSegments = 2 + (wave.nextStep() % 4);
+            spawnSpikeVisual(world, field, pos.x, y, pos.z, heightSegments, world.getTime());
+            damageAtWaveStep(world, pos.x, y, pos.z, field.tuning().damage() * PAIN_WAVE_DAMAGE_MULTIPLIER, field.tuning().upwardKnockback());
+            world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.POINTED_DRIPSTONE.getDefaultState()), pos.x, y + 0.2, pos.z, 3, 0.1, 0.08, 0.1, 0.005);
+
+            wave.advance(PAIN_WAVE_STEP_TICKS);
+            return wave.nextStep() > maxSteps;
+        });
+    }
+
+    private static void spawnSpikeVisual(ServerWorld world, ActiveSpikeField field, double x, double y, double z, int heightSegments, long spawnTick) {
+        float targetHeight = (float) (heightSegments * SPIKE_SEGMENT_HEIGHT);
+        EarthSpikeVisualEntity visual = new EarthSpikeVisualEntity(world, x, y - START_DEPTH, z, targetHeight);
+        visual.addCommandTag("simplybows_earth_spike_visual");
+        world.spawnEntity(visual);
+        field.visuals.add(new SpikeVisual(visual.getUuid(), x, y, z, spawnTick));
+    }
+
+    private static void damageAtWaveStep(ServerWorld world, double x, double y, double z, float damage, double upwardKnockback) {
+        Box hitBox = Box.of(new Vec3d(x, y + 0.3, z), PAIN_WAVE_DAMAGE_RADIUS * 2.0, 2.0, PAIN_WAVE_DAMAGE_RADIUS * 2.0);
+        for (HostileEntity hostile : world.getEntitiesByClass(HostileEntity.class, hitBox, LivingEntity::isAlive)) {
+            boolean damaged = hostile.damage(world.getDamageSources().magic(), damage);
+            if (damaged) {
+                applyUpwardKnockback(hostile, upwardKnockback);
+            }
+        }
+    }
+
+    private static int getPainWaveMaxSteps(FieldTuning tuning) {
+        return Math.max(1, (int) Math.floor(tuning.painWaveDistance() / PAIN_WAVE_STEP_DISTANCE));
+    }
+
+    private static void applyUpwardKnockback(HostileEntity hostile, double upwardKnockback) {
+        if (upwardKnockback <= 0.0) {
+            return;
+        }
+        hostile.addVelocity(0.0, upwardKnockback, 0.0);
     }
 
     private static float getHeightScale(long age) {
@@ -227,13 +334,16 @@ public final class EarthSpikeFieldManager {
         private final long spawnTick;
         private final long expiryTick;
         private final UUID ownerId;
+        private final FieldTuning tuning;
         private final List<SpikeVisual> visuals = new ArrayList<>();
+        private final List<PainWaveState> painWaves = new ArrayList<>();
 
-        private ActiveSpikeField(Vec3d center, long spawnTick, long expiryTick, UUID ownerId) {
+        private ActiveSpikeField(Vec3d center, long spawnTick, long expiryTick, UUID ownerId, FieldTuning tuning) {
             this.center = center;
             this.spawnTick = spawnTick;
             this.expiryTick = expiryTick;
             this.ownerId = ownerId;
+            this.tuning = tuning;
         }
 
         private Vec3d center() {
@@ -251,8 +361,52 @@ public final class EarthSpikeFieldManager {
         private UUID ownerId() {
             return this.ownerId;
         }
+
+        private FieldTuning tuning() {
+            return this.tuning;
+        }
     }
 
-    private record SpikeVisual(UUID id, double baseX, double baseY, double baseZ) {
+    private record SpikeVisual(UUID id, double baseX, double baseY, double baseZ, long spawnTick) {
+    }
+
+    private static final class PainWaveState {
+        private final Vec3d direction;
+        private int nextStep;
+        private long nextSpawnTick;
+
+        private PainWaveState(Vec3d direction, int nextStep, long nextSpawnTick) {
+            this.direction = direction;
+            this.nextStep = nextStep;
+            this.nextSpawnTick = nextSpawnTick;
+        }
+
+        private Vec3d direction() {
+            return this.direction;
+        }
+
+        private int nextStep() {
+            return this.nextStep;
+        }
+
+        private long nextSpawnTick() {
+            return this.nextSpawnTick;
+        }
+
+        private void advance(int spawnIntervalTicks) {
+            this.nextStep++;
+            this.nextSpawnTick += spawnIntervalTicks;
+        }
+    }
+
+    private record FieldTuning(
+            double radius,
+            double visualRadius,
+            int points,
+            float damage,
+            boolean outwardPainWaves,
+            double painWaveDistance,
+            double upwardKnockback
+    ) {
     }
 }

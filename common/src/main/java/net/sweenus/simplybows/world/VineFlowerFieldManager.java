@@ -4,8 +4,11 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.tag.EntityTypeTags;
@@ -18,6 +21,8 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.sweenus.simplybows.entity.VineFlowerVisualEntity;
+import net.sweenus.simplybows.upgrade.BowUpgradeData;
+import net.sweenus.simplybows.upgrade.RuneEtching;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,6 +37,9 @@ public final class VineFlowerFieldManager {
     private static final double ATTRACTION_RADIUS = 14.0;
     private static final double PATCH_VISUAL_RADIUS = 2.35;
     private static final int PATCH_VISUAL_POINTS = 26;
+    private static final double STRING_FIELD_RADIUS_BONUS_PER_LEVEL = 1.0;
+    private static final double STRING_ATTRACTION_RADIUS_BONUS_PER_LEVEL = 2.2;
+    private static final double STRING_VISUAL_RADIUS_BONUS_PER_LEVEL = 0.85;
     private static final int GROWTH_POINTS_PER_TICK = 6;
     private static final int SPRING_ANIM_TICKS = 8;
     private static final double SPRING_START_OFFSET_Y = -0.62;
@@ -43,6 +51,9 @@ public final class VineFlowerFieldManager {
     private static final int FLOWER_TYPE_FERN = 1;
     private static final int FLOWER_TYPE_DANDELION = 2;
     private static final int FLOWER_TYPE_POPPY = 3;
+    private static final int FLOWER_TYPE_CHERRY_LOG = 4;
+    private static final int FLOWER_TYPE_CHERRY_LEAVES = 5;
+    private static final int MAX_VISUAL_POINTS = 180;
     private static final String FIELD_VISUAL_TAG = "simplybows_vine_field_visual";
     private static final Map<ServerWorld, List<ActiveFlowerField>> ACTIVE_FIELDS = new HashMap<>();
 
@@ -50,6 +61,10 @@ public final class VineFlowerFieldManager {
     }
 
     public static void createOrReplaceField(ServerWorld world, Vec3d center, Entity owner) {
+        createOrReplaceField(world, center, owner, BowUpgradeData.none());
+    }
+
+    public static void createOrReplaceField(ServerWorld world, Vec3d center, Entity owner, BowUpgradeData upgrades) {
         List<ActiveFlowerField> fields = ACTIVE_FIELDS.computeIfAbsent(world, w -> new ArrayList<>());
         UUID ownerId = owner != null ? owner.getUuid() : null;
         if (ownerId != null) {
@@ -63,14 +78,18 @@ public final class VineFlowerFieldManager {
         }
 
         long expiryTick = world.getTime() + FIELD_DURATION_TICKS;
-        List<FlowerPoint> pendingPoints = buildPatchPoints(world, center);
-        fields.add(new ActiveFlowerField(center, expiryTick, pendingPoints, ownerId));
+        FieldTuning tuning = buildTuning(upgrades);
+        List<FlowerPoint> pendingPoints = buildPatchPoints(world, center, tuning.visualPoints(), tuning.visualRadius());
+        if (tuning.cherryTreeVisual()) {
+            pendingPoints.addAll(buildCherryTreeVisualPoints(world, center));
+        }
+        fields.add(new ActiveFlowerField(center, expiryTick, pendingPoints, ownerId, tuning));
         playFieldCreationSound(world, center);
-        spawnBurstParticles(world, center);
+        spawnBurstParticles(world, center, tuning);
     }
 
     public static void createOrReplaceField(ServerWorld world, Vec3d center) {
-        createOrReplaceField(world, center, null);
+        createOrReplaceField(world, center, null, BowUpgradeData.none());
     }
 
     public static void tick(ServerWorld world) {
@@ -97,60 +116,87 @@ public final class VineFlowerFieldManager {
         for (ActiveFlowerField field : fields) {
             growFieldVisuals(world, field);
             animateFieldVisuals(world, field);
-            spawnAmbientParticles(world, field.center());
+            spawnAmbientParticles(world, field.center(), field.tuning());
 
             if (world.getTime() % 10L == 0L) {
-                attractPassiveMobs(world, field.center());
+                attractPassiveMobs(world, field.center(), field.tuning());
             }
 
-            if (world.getTime() % 20L == 0L) {
-                applyAuraEffects(world, field.center());
+            if (world.getTime() % field.tuning().auraIntervalTicks() == 0L) {
+                applyAuraEffects(world, field);
             }
         }
     }
 
-    private static void attractPassiveMobs(ServerWorld world, Vec3d center) {
-        Box box = Box.of(center, ATTRACTION_RADIUS * 2.0, 6.0, ATTRACTION_RADIUS * 2.0);
+    private static void attractPassiveMobs(ServerWorld world, Vec3d center, FieldTuning tuning) {
+        Box box = Box.of(center, tuning.attractionRadius() * 2.0, 6.0, tuning.attractionRadius() * 2.0);
         for (AnimalEntity animal : world.getEntitiesByClass(AnimalEntity.class, box, LivingEntity::isAlive)) {
-            if (animal.squaredDistanceTo(center) > ATTRACTION_RADIUS * ATTRACTION_RADIUS) {
+            if (animal.squaredDistanceTo(center) > tuning.attractionRadius() * tuning.attractionRadius()) {
                 continue;
             }
             animal.getNavigation().startMovingTo(center.x, center.y, center.z, 1.2);
         }
     }
 
-    private static void applyAuraEffects(ServerWorld world, Vec3d center) {
-        Box box = Box.of(center, FIELD_RADIUS * 2.0, 4.0, FIELD_RADIUS * 2.0);
+    private static void applyAuraEffects(ServerWorld world, ActiveFlowerField field) {
+        Vec3d center = field.center();
+        FieldTuning tuning = field.tuning();
+        Box box = Box.of(center, tuning.fieldRadius() * 2.0, 4.0, tuning.fieldRadius() * 2.0);
         for (LivingEntity entity : world.getEntitiesByClass(LivingEntity.class, box, LivingEntity::isAlive)) {
-            if (entity.squaredDistanceTo(center) > FIELD_RADIUS * FIELD_RADIUS) {
+            if (entity.squaredDistanceTo(center) > tuning.fieldRadius() * tuning.fieldRadius()) {
                 continue;
             }
 
             if (entity.getType().isIn(EntityTypeTags.UNDEAD)) {
-                entity.damage(world.getDamageSources().magic(), UNDEAD_DAMAGE);
+                if (tuning.undeadDamage() > 0.0F) {
+                    boolean died = dealAuraDamage(world, entity, tuning.undeadDamage());
+                    if (died && tuning.bountyLootChance() > 0.0) {
+                        trySpawnBountyLoot(entity, tuning.bountyLootChance());
+                    }
+                }
                 continue;
             }
 
             if (entity instanceof HostileEntity) {
+                if (tuning.damageHostiles() && tuning.hostileDamage() > 0.0F) {
+                    boolean died = dealAuraDamage(world, entity, tuning.hostileDamage());
+                    if (died && tuning.bountyLootChance() > 0.0) {
+                        trySpawnBountyLoot(entity, tuning.bountyLootChance());
+                    }
+                }
                 continue;
             }
 
-            if (entity.getHealth() < entity.getMaxHealth()) {
-                entity.heal(FRIENDLY_HEAL);
+            if (tuning.cleanseNegativeEffects()) {
+                cleanseNegativeEffects(entity);
+            }
+            if (tuning.healFriendlies() && entity.getHealth() < entity.getMaxHealth()) {
+                entity.heal(tuning.friendlyHeal());
             }
         }
     }
 
-    private static void spawnAmbientParticles(ServerWorld world, Vec3d center) {
+    private static void spawnAmbientParticles(ServerWorld world, Vec3d center, FieldTuning tuning) {
         world.spawnParticles(ParticleTypes.FALLING_SPORE_BLOSSOM, center.x, center.y + 0.35, center.z, 2, 1.6, 0.2, 1.6, 0.0);
         world.spawnParticles(ParticleTypes.COMPOSTER, center.x, center.y + 0.2, center.z, 2, 1.3, 0.1, 1.3, 0.0);
+        if (tuning.cherryTreeVisual() && world.getTime() % 2L == 0L) {
+            world.spawnParticles(ParticleTypes.CHERRY_LEAVES, center.x, center.y + 2.5, center.z, 2, 0.45, 0.6, 0.45, 0.0);
+            if (world.getTime() % 6L == 0L) {
+                world.spawnParticles(ParticleTypes.SPORE_BLOSSOM_AIR, center.x, center.y + 2.2, center.z, 1, 0.28, 0.4, 0.28, 0.0);
+            }
+        }
     }
 
-    private static void spawnBurstParticles(ServerWorld world, Vec3d center) {
+    private static void spawnBurstParticles(ServerWorld world, Vec3d center, FieldTuning tuning) {
         world.spawnParticles(ParticleTypes.COMPOSTER, center.x, center.y + 0.2, center.z, 10, 0.9, 0.15, 0.9, 0.0);
         world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.SHORT_GRASS.getDefaultState()), center.x, center.y + 0.1, center.z, 10, 0.9, 0.1, 0.9, 0.015);
         world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.DANDELION.getDefaultState()), center.x, center.y + 0.15, center.z, 4, 0.8, 0.12, 0.8, 0.015);
         world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.POPPY.getDefaultState()), center.x, center.y + 0.15, center.z, 4, 0.8, 0.12, 0.8, 0.015);
+        if (tuning.cherryTreeVisual()) {
+            world.spawnParticles(ParticleTypes.CHERRY_LEAVES, center.x, center.y + 1.5, center.z, 36, 0.9, 1.0, 0.9, 0.01);
+            world.spawnParticles(ParticleTypes.SPORE_BLOSSOM_AIR, center.x, center.y + 1.2, center.z, 20, 0.8, 0.8, 0.8, 0.0);
+            world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.CHERRY_LEAVES.getDefaultState()), center.x, center.y + 1.0, center.z, 16, 0.75, 0.6, 0.75, 0.01);
+        }
     }
 
     private static void playFieldCreationSound(ServerWorld world, Vec3d center) {
@@ -166,12 +212,12 @@ public final class VineFlowerFieldManager {
         );
     }
 
-    private static List<FlowerPoint> buildPatchPoints(ServerWorld world, Vec3d center) {
+    private static List<FlowerPoint> buildPatchPoints(ServerWorld world, Vec3d center, int pointCount, double visualRadius) {
         List<FlowerPoint> points = new ArrayList<>();
-        for (int i = 0; i < PATCH_VISUAL_POINTS; i++) {
-            double angle = ((Math.PI * 2.0) / PATCH_VISUAL_POINTS) * i;
+        for (int i = 0; i < pointCount; i++) {
+            double angle = ((Math.PI * 2.0) / pointCount) * i;
             double ringScale = (0.45 + ((i * 17) % 10) * 0.06);
-            double radius = PATCH_VISUAL_RADIUS * Math.min(1.0, ringScale);
+            double radius = visualRadius * Math.min(1.0, ringScale);
             double x = center.x + Math.cos(angle) * radius;
             double z = center.z + Math.sin(angle) * radius;
             double y = findGroundTopY(world, x, z, center.y) + 0.03;
@@ -189,6 +235,119 @@ public final class VineFlowerFieldManager {
             points.add(new FlowerPoint(x, y, z, flowerType));
         }
         return points;
+    }
+
+    private static FieldTuning buildTuning(BowUpgradeData upgrades) {
+        double sizeMultiplier = upgrades.sizeMultiplier();
+        float frameMultiplier = (float) upgrades.damageMultiplier();
+        int stringLevel = upgrades.stringLevel();
+        RuneEtching rune = upgrades.runeEtching();
+
+        float friendlyHeal = FRIENDLY_HEAL * frameMultiplier;
+        float hostileDamage = 0.0F;
+        float undeadDamage = UNDEAD_DAMAGE * frameMultiplier;
+        boolean healFriendlies = true;
+        boolean damageHostiles = false;
+        boolean cleanseNegative = false;
+        boolean cherryTreeVisual = false;
+        double bountyLootChance = 0.0;
+        int auraInterval = 20;
+
+        if (rune == RuneEtching.PAIN) {
+            healFriendlies = false;
+            damageHostiles = true;
+            hostileDamage = UNDEAD_DAMAGE * frameMultiplier;
+            auraInterval = 10;
+        } else if (rune == RuneEtching.GRACE) {
+            healFriendlies = true;
+            damageHostiles = false;
+            hostileDamage = 0.0F;
+            undeadDamage = 0.0F;
+            cleanseNegative = true;
+            cherryTreeVisual = true;
+        } else if (rune == RuneEtching.BOUNTY) {
+            bountyLootChance = 0.25;
+        }
+
+        double fieldRadius = FIELD_RADIUS * sizeMultiplier + stringLevel * STRING_FIELD_RADIUS_BONUS_PER_LEVEL;
+        double attractionRadius = ATTRACTION_RADIUS * sizeMultiplier + stringLevel * STRING_ATTRACTION_RADIUS_BONUS_PER_LEVEL;
+        double visualRadius = PATCH_VISUAL_RADIUS * sizeMultiplier + stringLevel * STRING_VISUAL_RADIUS_BONUS_PER_LEVEL;
+        double radiusRatio = visualRadius / PATCH_VISUAL_RADIUS;
+        int visualPoints = Math.min(
+                MAX_VISUAL_POINTS,
+                Math.max(
+                        PATCH_VISUAL_POINTS,
+                        (int) Math.round(PATCH_VISUAL_POINTS * radiusRatio * radiusRatio) + upgrades.stringLevel() * 10
+                )
+        );
+        return new FieldTuning(
+                fieldRadius,
+                attractionRadius,
+                visualRadius,
+                friendlyHeal,
+                hostileDamage,
+                undeadDamage,
+                healFriendlies,
+                damageHostiles,
+                cleanseNegative,
+                cherryTreeVisual,
+                bountyLootChance,
+                Math.max(5, auraInterval),
+                visualPoints
+        );
+    }
+
+    private static List<FlowerPoint> buildCherryTreeVisualPoints(ServerWorld world, Vec3d center) {
+        List<FlowerPoint> points = new ArrayList<>();
+        double baseY = findGroundTopY(world, center.x, center.z, center.y) + 0.03;
+
+        // Trunk
+        points.add(new FlowerPoint(center.x, baseY, center.z, FLOWER_TYPE_CHERRY_LOG));
+        points.add(new FlowerPoint(center.x, baseY + 1.0, center.z, FLOWER_TYPE_CHERRY_LOG));
+        points.add(new FlowerPoint(center.x, baseY + 2.0, center.z, FLOWER_TYPE_CHERRY_LOG));
+        // Add leaf coverage at top trunk space so the trunk cap blends into canopy.
+        points.add(new FlowerPoint(center.x, baseY + 2.0, center.z, FLOWER_TYPE_CHERRY_LEAVES));
+
+        // Canopy ring
+        for (int i = 0; i < 8; i++) {
+            double angle = ((Math.PI * 2.0) / 8.0) * i;
+            double x = center.x + Math.cos(angle) * 1.1;
+            double z = center.z + Math.sin(angle) * 1.1;
+            points.add(new FlowerPoint(x, baseY + 2.2, z, FLOWER_TYPE_CHERRY_LEAVES));
+        }
+
+        // Canopy top
+        points.add(new FlowerPoint(center.x, baseY + 3.0, center.z, FLOWER_TYPE_CHERRY_LEAVES));
+        points.add(new FlowerPoint(center.x + 0.55, baseY + 2.9, center.z, FLOWER_TYPE_CHERRY_LEAVES));
+        points.add(new FlowerPoint(center.x - 0.55, baseY + 2.9, center.z, FLOWER_TYPE_CHERRY_LEAVES));
+        points.add(new FlowerPoint(center.x, baseY + 2.9, center.z + 0.55, FLOWER_TYPE_CHERRY_LEAVES));
+        points.add(new FlowerPoint(center.x, baseY + 2.9, center.z - 0.55, FLOWER_TYPE_CHERRY_LEAVES));
+        return points;
+    }
+
+    private static boolean dealAuraDamage(ServerWorld world, LivingEntity entity, float damage) {
+        float before = entity.getHealth();
+        boolean damaged = entity.damage(world.getDamageSources().magic(), damage);
+        return damaged && before > 0.0F && !entity.isAlive();
+    }
+
+    private static void cleanseNegativeEffects(LivingEntity entity) {
+        List<StatusEffectInstance> toRemove = new ArrayList<>();
+        for (StatusEffectInstance instance : entity.getStatusEffects()) {
+            if (!instance.getEffectType().value().isBeneficial()) {
+                toRemove.add(instance);
+            }
+        }
+        for (StatusEffectInstance instance : toRemove) {
+            entity.removeStatusEffect(instance.getEffectType());
+        }
+    }
+
+    private static void trySpawnBountyLoot(LivingEntity entity, double chance) {
+        if (entity.getRandom().nextDouble() > chance) {
+            return;
+        }
+        entity.dropStack(new ItemStack(Items.EMERALD));
     }
 
     private static void growFieldVisuals(ServerWorld world, ActiveFlowerField field) {
@@ -240,7 +399,11 @@ public final class VineFlowerFieldManager {
 
     private static UUID spawnFlowerVisual(ServerWorld world, List<UUID> ids, double x, double y, double z, int flowerType) {
         VineFlowerVisualEntity visual = new VineFlowerVisualEntity(world, x, y + SPRING_START_OFFSET_Y, z, flowerType);
-        visual.setYaw(world.random.nextFloat() * 360.0F);
+        if (flowerType == FLOWER_TYPE_CHERRY_LOG) {
+            visual.setYaw(0.0F);
+        } else {
+            visual.setYaw(world.random.nextFloat() * 360.0F);
+        }
         visual.setHeightScale(0.0F);
         visual.addCommandTag(FIELD_VISUAL_TAG);
         if (!world.spawnEntity(visual)) {
@@ -255,6 +418,8 @@ public final class VineFlowerFieldManager {
             case FLOWER_TYPE_DANDELION -> Blocks.DANDELION.getDefaultState();
             case FLOWER_TYPE_POPPY -> Blocks.POPPY.getDefaultState();
             case FLOWER_TYPE_FERN -> Blocks.FERN.getDefaultState();
+            case FLOWER_TYPE_CHERRY_LOG -> Blocks.CHERRY_LOG.getDefaultState();
+            case FLOWER_TYPE_CHERRY_LEAVES -> Blocks.CHERRY_LEAVES.getDefaultState();
             default -> Blocks.SHORT_GRASS.getDefaultState();
         };
     }
@@ -301,15 +466,17 @@ public final class VineFlowerFieldManager {
         private final long expiryTick;
         private final List<FlowerPoint> pendingPoints;
         private final UUID ownerId;
+        private final FieldTuning tuning;
         private final List<UUID> displayIds = new ArrayList<>();
         private final List<SpringVisual> springVisuals = new ArrayList<>();
         private int spawnCursor;
 
-        private ActiveFlowerField(Vec3d center, long expiryTick, List<FlowerPoint> pendingPoints, UUID ownerId) {
+        private ActiveFlowerField(Vec3d center, long expiryTick, List<FlowerPoint> pendingPoints, UUID ownerId, FieldTuning tuning) {
             this.center = center;
             this.expiryTick = expiryTick;
             this.pendingPoints = pendingPoints;
             this.ownerId = ownerId;
+            this.tuning = tuning;
         }
 
         private Vec3d center() {
@@ -323,11 +490,32 @@ public final class VineFlowerFieldManager {
         private UUID ownerId() {
             return this.ownerId;
         }
+
+        private FieldTuning tuning() {
+            return this.tuning;
+        }
     }
 
     private record FlowerPoint(double x, double y, double z, int flowerType) {
     }
 
     private record SpringVisual(UUID id, double targetX, double targetY, double targetZ, long spawnTick) {
+    }
+
+    private record FieldTuning(
+            double fieldRadius,
+            double attractionRadius,
+            double visualRadius,
+            float friendlyHeal,
+            float hostileDamage,
+            float undeadDamage,
+            boolean healFriendlies,
+            boolean damageHostiles,
+            boolean cleanseNegativeEffects,
+            boolean cherryTreeVisual,
+            double bountyLootChance,
+            int auraIntervalTicks,
+            int visualPoints
+    ) {
     }
 }
