@@ -40,46 +40,68 @@ public final class VineFlowerFieldManager {
     private static final int GROUND_SCAN_UP = 5;
     private static final int GROUND_SCAN_DOWN = 18;
     private static final String FIELD_VISUAL_TAG = "simplybows_vine_field_visual";
-    private static final Map<ServerWorld, ActiveFlowerField> ACTIVE_FIELDS = new HashMap<>();
+    private static final Map<ServerWorld, List<ActiveFlowerField>> ACTIVE_FIELDS = new HashMap<>();
 
     private VineFlowerFieldManager() {
     }
 
-    public static void createOrReplaceField(ServerWorld world, Vec3d center) {
-        removeField(world, ACTIVE_FIELDS.remove(world));
+    public static void createOrReplaceField(ServerWorld world, Vec3d center, Entity owner) {
+        List<ActiveFlowerField> fields = ACTIVE_FIELDS.computeIfAbsent(world, w -> new ArrayList<>());
+        UUID ownerId = owner != null ? owner.getUuid() : null;
+        if (ownerId != null) {
+            fields.removeIf(field -> {
+                if (ownerId.equals(field.ownerId())) {
+                    removeField(world, field);
+                    return true;
+                }
+                return false;
+            });
+        }
 
         long expiryTick = world.getTime() + FIELD_DURATION_TICKS;
         List<FlowerPoint> pendingPoints = buildPatchPoints(world, center);
-        ACTIVE_FIELDS.put(world, new ActiveFlowerField(center, expiryTick, pendingPoints));
+        fields.add(new ActiveFlowerField(center, expiryTick, pendingPoints, ownerId));
         playFieldCreationSound(world, center);
         spawnBurstParticles(world, center);
     }
 
+    public static void createOrReplaceField(ServerWorld world, Vec3d center) {
+        createOrReplaceField(world, center, null);
+    }
+
     public static void tick(ServerWorld world) {
-        ActiveFlowerField field = ACTIVE_FIELDS.get(world);
-        if (field == null) {
+        List<ActiveFlowerField> fields = ACTIVE_FIELDS.get(world);
+        if (fields == null || fields.isEmpty()) {
             if (world.getTime() % 20L == 0L) {
                 purgeOrphanFieldVisuals(world);
             }
             return;
         }
 
-        if (world.getTime() >= field.expiryTick()) {
-            removeField(world, field);
+        fields.removeIf(field -> {
+            if (world.getTime() >= field.expiryTick()) {
+                removeField(world, field);
+                return true;
+            }
+            return false;
+        });
+        if (fields.isEmpty()) {
             ACTIVE_FIELDS.remove(world);
             return;
         }
 
-        growFieldVisuals(world, field);
-        animateFieldVisuals(world, field);
-        spawnAmbientParticles(world, field.center());
+        for (ActiveFlowerField field : fields) {
+            growFieldVisuals(world, field);
+            animateFieldVisuals(world, field);
+            spawnAmbientParticles(world, field.center());
 
-        if (world.getTime() % 10L == 0L) {
-            attractPassiveMobs(world, field.center());
-        }
+            if (world.getTime() % 10L == 0L) {
+                attractPassiveMobs(world, field.center());
+            }
 
-        if (world.getTime() % 20L == 0L) {
-            applyAuraEffects(world, field.center());
+            if (world.getTime() % 20L == 0L) {
+                applyAuraEffects(world, field.center());
+            }
         }
     }
 
@@ -273,14 +295,16 @@ public final class VineFlowerFieldManager {
         private final Vec3d center;
         private final long expiryTick;
         private final List<FlowerPoint> pendingPoints;
+        private final UUID ownerId;
         private final List<UUID> displayIds = new ArrayList<>();
         private final List<SpringVisual> springVisuals = new ArrayList<>();
         private int spawnCursor;
 
-        private ActiveFlowerField(Vec3d center, long expiryTick, List<FlowerPoint> pendingPoints) {
+        private ActiveFlowerField(Vec3d center, long expiryTick, List<FlowerPoint> pendingPoints, UUID ownerId) {
             this.center = center;
             this.expiryTick = expiryTick;
             this.pendingPoints = pendingPoints;
+            this.ownerId = ownerId;
         }
 
         private Vec3d center() {
@@ -289,6 +313,10 @@ public final class VineFlowerFieldManager {
 
         private long expiryTick() {
             return this.expiryTick;
+        }
+
+        private UUID ownerId() {
+            return this.ownerId;
         }
     }
 

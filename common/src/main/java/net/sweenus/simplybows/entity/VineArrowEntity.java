@@ -77,7 +77,7 @@ public class VineArrowEntity extends ArrowEntity {
         }
 
         if (this.getWorld() instanceof ServerWorld serverWorld) {
-            VineFlowerFieldManager.createOrReplaceField(serverWorld, hitPos);
+            VineFlowerFieldManager.createOrReplaceField(serverWorld, hitPos, this.getOwner());
             this.spawnedFlowerField = true;
         }
     }

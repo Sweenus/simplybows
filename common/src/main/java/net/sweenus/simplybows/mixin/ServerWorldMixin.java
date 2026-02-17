@@ -1,6 +1,7 @@
 package net.sweenus.simplybows.mixin;
 
 import net.minecraft.server.world.ServerWorld;
+import net.sweenus.simplybows.world.BlossomStormManager;
 import net.sweenus.simplybows.world.BubbleColumnFieldManager;
 import net.sweenus.simplybows.world.VineFlowerFieldManager;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,5 +19,6 @@ public abstract class ServerWorldMixin {
         ServerWorld world = (ServerWorld) (Object) this;
         VineFlowerFieldManager.tick(world);
         BubbleColumnFieldManager.tick(world);
+        BlossomStormManager.tick(world);
     }
 }

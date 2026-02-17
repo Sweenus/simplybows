@@ -6,6 +6,7 @@ import net.minecraft.item.Item;
 import net.minecraft.registry.RegistryKeys;
 import net.sweenus.simplybows.SimplyBows;
 import net.sweenus.simplybows.item.unique.BeeBowItem;
+import net.sweenus.simplybows.item.unique.BlossomBowItem;
 import net.sweenus.simplybows.item.unique.BubbleBowItem;
 import net.sweenus.simplybows.item.unique.IceBowItem;
 import net.sweenus.simplybows.item.unique.VineBowItem;
@@ -24,6 +25,9 @@ public class ItemRegistry {
             new Item.Settings()
     ));
     public static final RegistrySupplier<Item> BEE_BOW = ITEM.register("bee_bow/bee_bow", () -> new BeeBowItem(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> BLOSSOM_BOW = ITEM.register("blossom_bow/blossom_bow", () -> new BlossomBowItem(
             new Item.Settings()
     ));
 

@@ -53,7 +53,6 @@ public class BeeArrowEntity extends ArrowEntity {
             this.setPitch(this.getPitch() + pitchDelta * ROTATION_SMOOTHING);
 
             if (velocity.horizontalLengthSquared() > MIN_HORIZONTAL_SPEED_SQ_FOR_YAW) {
-                // Living-entity renderers expect mob-style yaw conventions.
                 float targetYaw = (float)(Math.atan2(velocity.z, velocity.x) * (180F / Math.PI)) - 90.0F;
                 float yawDelta = MathHelper.wrapDegrees(targetYaw - this.getYaw());
                 this.setYaw(this.getYaw() + yawDelta * ROTATION_SMOOTHING);
