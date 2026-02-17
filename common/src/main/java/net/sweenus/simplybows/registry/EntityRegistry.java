@@ -7,6 +7,7 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
+import net.sweenus.simplybows.entity.BeeArrowEntity;
 import net.sweenus.simplybows.SimplyBows;
 import net.sweenus.simplybows.entity.BubbleArrowEntity;
 import net.sweenus.simplybows.entity.HomingArrowEntity;
@@ -37,6 +38,11 @@ public class EntityRegistry {
             () -> EntityType.Builder.<BubbleArrowEntity>create(BubbleArrowEntity::new, SpawnGroup.MISC)
                     .dimensions(0.5F, 0.5F)
                     .build(SimplyBows.MOD_ID + ":bubble_arrow"));
+
+    public static final RegistrySupplier<EntityType<BeeArrowEntity>> BEE_ARROW = ENTITY_TYPES.register("bee_arrow",
+            () -> EntityType.Builder.<BeeArrowEntity>create(BeeArrowEntity::new, SpawnGroup.MISC)
+                    .dimensions(0.7F, 0.6F)
+                    .build(SimplyBows.MOD_ID + ":bee_arrow"));
 
     public static void registerEntities() {
         ENTITY_TYPES.register();

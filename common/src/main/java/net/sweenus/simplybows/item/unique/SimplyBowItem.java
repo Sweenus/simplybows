@@ -35,7 +35,7 @@ public class SimplyBowItem extends BowItem {
                     List<ItemStack> list = load(stack, itemStack, playerEntity);
                     if (world instanceof ServerWorld serverWorld) {
                         if (!list.isEmpty()) {
-                            playerEntity.sendMessage(Text.literal("Checking for abilities"), false);
+                            //playerEntity.sendMessage(Text.literal("Checking for abilities"), false);
                             performStoppedUsing(stack, world, user, remainingUseTicks, f, playerEntity, serverWorld, list);
                         }
                     }
@@ -55,7 +55,7 @@ public class SimplyBowItem extends BowItem {
 
     private void performStoppedUsing(ItemStack stack, World world, LivingEntity user, int remainingUseTicks, float f, PlayerEntity playerEntity, ServerWorld serverWorld, List<ItemStack> list) {
         Item item = stack.getItem();
-        playerEntity.sendMessage(Text.literal("Object is: " + item.getClass().getName()), false);
+        //playerEntity.sendMessage(Text.literal("Object is: " + item.getClass().getName()), false);
 
         switch (item) {
             case IceBowItem iceBowItem -> {
@@ -66,6 +66,9 @@ public class SimplyBowItem extends BowItem {
             }
             case BubbleBowItem bubbleBowItem -> {
                 bubbleBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, f == 1.0F, null);
+            }
+            case BeeBowItem beeBowItem -> {
+                beeBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, f == 1.0F, null);
             }
             case CrossbowItem crossbowItem -> {
                 playerEntity.sendMessage(Text.literal("You stopped using the Crossbow!"), false);
@@ -90,6 +93,9 @@ public class SimplyBowItem extends BowItem {
             }
             case BubbleBowItem bubbleBowItem -> {
                 bubbleBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, f == 1.0F, null);
+            }
+            case BeeBowItem beeBowItem -> {
+                beeBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, f == 1.0F, null);
             }
             case CrossbowItem crossbowItem -> {
                 playerEntity.sendMessage(Text.literal("You stopped using the Crossbow!"), false);
@@ -157,11 +163,6 @@ public class SimplyBowItem extends BowItem {
                     }
                 }
             }
-
-            // Debugging outputs
-            //System.out.println("Arrows fired: " + arrowsFired);
-            //System.out.println("Arrows consumed: " + arrowsConsumed);
-            //System.out.println("Extra arrows needed: " + additionalArrowsNeeded);
         }
     }
 

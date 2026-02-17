@@ -4,6 +4,7 @@ import dev.architectury.registry.client.level.entity.EntityRendererRegistry;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.render.entity.ArrowEntityRenderer;
+import net.sweenus.simplybows.client.renderer.BeeArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.HomingArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.HomingSpectralArrowEntityRenderer;
 import net.sweenus.simplybows.registry.EntityRegistry;
@@ -30,6 +31,7 @@ public final class SimplyBows {
             EntityRendererRegistry.register(EntityRegistry.HOMING_SPECTRAL_ARROW, HomingSpectralArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.VINE_ARROW, ArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.BUBBLE_ARROW, ArrowEntityRenderer::new);
+            EntityRendererRegistry.register(EntityRegistry.BEE_ARROW, BeeArrowEntityRenderer::new);
 
         }
     }
