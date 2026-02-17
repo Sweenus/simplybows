@@ -10,6 +10,8 @@ import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.tag.EntityTypeTags;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
@@ -29,6 +31,10 @@ public final class VineFlowerFieldManager {
     private static final double ATTRACTION_RADIUS = 14.0;
     private static final double PATCH_VISUAL_RADIUS = 2.35;
     private static final int PATCH_VISUAL_POINTS = 26;
+    private static final int GROWTH_POINTS_PER_TICK = 6;
+    private static final int SPRING_ANIM_TICKS = 8;
+    private static final double SPRING_START_OFFSET_Y = -0.62;
+    private static final float SPRING_MAX_TILT_DEGREES = 18.0F;
     private static final float FRIENDLY_HEAL = 2.0F;
     private static final float UNDEAD_DAMAGE = 3.0F;
     private static final int GROUND_SCAN_UP = 5;
@@ -43,8 +49,9 @@ public final class VineFlowerFieldManager {
         removeField(world, ACTIVE_FIELDS.remove(world));
 
         long expiryTick = world.getTime() + FIELD_DURATION_TICKS;
-        List<UUID> displayIds = spawnDisplayPatch(world, center);
-        ACTIVE_FIELDS.put(world, new ActiveFlowerField(center, expiryTick, displayIds));
+        List<FlowerPoint> pendingPoints = buildPatchPoints(world, center);
+        ACTIVE_FIELDS.put(world, new ActiveFlowerField(center, expiryTick, pendingPoints));
+        playFieldCreationSound(world, center);
         spawnBurstParticles(world, center);
     }
 
@@ -63,6 +70,8 @@ public final class VineFlowerFieldManager {
             return;
         }
 
+        growFieldVisuals(world, field);
+        animateFieldVisuals(world, field);
         spawnAmbientParticles(world, field.center());
 
         if (world.getTime() % 10L == 0L) {
@@ -118,8 +127,21 @@ public final class VineFlowerFieldManager {
         world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.POPPY.getDefaultState()), center.x, center.y + 0.15, center.z, 4, 0.8, 0.12, 0.8, 0.015);
     }
 
-    private static List<UUID> spawnDisplayPatch(ServerWorld world, Vec3d center) {
-        List<UUID> ids = new ArrayList<>();
+    private static void playFieldCreationSound(ServerWorld world, Vec3d center) {
+        world.playSound(
+                null,
+                center.x,
+                center.y,
+                center.z,
+                SoundEvents.BLOCK_GRASS_PLACE,
+                SoundCategory.BLOCKS,
+                0.9F,
+                0.95F + world.getRandom().nextFloat() * 0.2F
+        );
+    }
+
+    private static List<FlowerPoint> buildPatchPoints(ServerWorld world, Vec3d center) {
+        List<FlowerPoint> points = new ArrayList<>();
         for (int i = 0; i < PATCH_VISUAL_POINTS; i++) {
             double angle = ((Math.PI * 2.0) / PATCH_VISUAL_POINTS) * i;
             double ringScale = (0.45 + ((i * 17) % 10) * 0.06);
@@ -127,25 +149,74 @@ public final class VineFlowerFieldManager {
             double x = center.x + Math.cos(angle) * radius;
             double z = center.z + Math.sin(angle) * radius;
             double y = findGroundTopY(world, x, z, center.y) + 0.03;
+            net.minecraft.block.BlockState state;
 
             if (i % 4 == 0) {
-                spawnBlockDisplay(world, ids, x, y, z, Blocks.DANDELION.getDefaultState());
+                state = Blocks.DANDELION.getDefaultState();
             } else if (i % 5 == 0) {
-                spawnBlockDisplay(world, ids, x, y, z, Blocks.POPPY.getDefaultState());
+                state = Blocks.POPPY.getDefaultState();
             } else if (i % 3 == 0) {
-                spawnBlockDisplay(world, ids, x, y, z, Blocks.FERN.getDefaultState());
+                state = Blocks.FERN.getDefaultState();
             } else {
-                spawnBlockDisplay(world, ids, x, y, z, Blocks.SHORT_GRASS.getDefaultState());
+                state = Blocks.SHORT_GRASS.getDefaultState();
             }
+            points.add(new FlowerPoint(x, y, z, state));
         }
-        return ids;
+        return points;
     }
 
-    private static void spawnBlockDisplay(ServerWorld world, List<UUID> ids, double x, double y, double z, net.minecraft.block.BlockState state) {
+    private static void growFieldVisuals(ServerWorld world, ActiveFlowerField field) {
+        if (field.spawnCursor >= field.pendingPoints.size()) {
+            return;
+        }
+
+        int spawnCount = Math.min(GROWTH_POINTS_PER_TICK, field.pendingPoints.size() - field.spawnCursor);
+        for (int i = 0; i < spawnCount; i++) {
+            FlowerPoint point = field.pendingPoints.get(field.spawnCursor++);
+            UUID id = spawnBlockDisplay(world, field.displayIds, point.x, point.y, point.z, point.state);
+            if (id != null) {
+                float tilt = (world.random.nextFloat() * 2.0F - 1.0F) * SPRING_MAX_TILT_DEGREES;
+                field.springVisuals.add(new SpringVisual(id, point.x, point.y, point.z, world.getTime(), tilt));
+            }
+            // Brief upward burst so the patch feels like it's emerging from the ground.
+            world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, point.state), point.x, point.y - 0.08, point.z, 3, 0.08, 0.02, 0.08, 0.03);
+            world.spawnParticles(ParticleTypes.COMPOSTER, point.x, point.y + 0.04, point.z, 2, 0.06, 0.01, 0.06, 0.0);
+        }
+    }
+
+    private static void animateFieldVisuals(ServerWorld world, ActiveFlowerField field) {
+        if (field.springVisuals.isEmpty()) {
+            return;
+        }
+
+        field.springVisuals.removeIf(visual -> {
+            Entity entity = world.getEntity(visual.id());
+            if (!(entity instanceof FallingBlockEntity display)) {
+                return true;
+            }
+
+            long age = world.getTime() - visual.spawnTick();
+            if (age >= SPRING_ANIM_TICKS) {
+                display.setPos(visual.targetX(), visual.targetY(), visual.targetZ());
+                display.setPitch(0.0F);
+                return true;
+            }
+
+            float t = (float) age / (float) SPRING_ANIM_TICKS;
+            double riseOffset = SPRING_START_OFFSET_Y * (1.0 - t) * (1.0 - t);
+            double bounceOffset = Math.sin(t * Math.PI * 2.3) * 0.10 * (1.0 - t);
+            double y = visual.targetY() + riseOffset + bounceOffset;
+            display.setPos(visual.targetX(), y, visual.targetZ());
+            display.setPitch(visual.initialTilt() * (1.0F - t));
+            return false;
+        });
+    }
+
+    private static UUID spawnBlockDisplay(ServerWorld world, List<UUID> ids, double x, double y, double z, net.minecraft.block.BlockState state) {
         BlockPos pos = BlockPos.ofFloored(x, y, z);
         FallingBlockEntity display = FallingBlockEntity.spawnFromBlock(world, pos, state);
         if (display == null) {
-            return;
+            return null;
         }
         display.setFallingBlockPos(display.getBlockPos());
         display.setDestroyedOnLanding();
@@ -153,11 +224,12 @@ public final class VineFlowerFieldManager {
         display.setNoGravity(true);
         ((EntityAccessor) display).simplybows$setNoClip(true);
         display.setVelocity(0.0, 0.0, 0.0);
-        display.setPos(x, y, z);
+        display.setPos(x, y + SPRING_START_OFFSET_Y, z);
         display.setYaw(world.random.nextFloat() * 360.0F);
         display.setPitch(0.0F);
         display.addCommandTag(FIELD_VISUAL_TAG);
         ids.add(display.getUuid());
+        return display.getUuid();
     }
 
     private static double findGroundTopY(ServerWorld world, double x, double z, double centerY) {
@@ -181,7 +253,7 @@ public final class VineFlowerFieldManager {
             return;
         }
 
-        for (UUID id : field.displayIds()) {
+        for (UUID id : field.displayIds) {
             Entity entity = world.getEntity(id);
             if (entity != null) {
                 entity.discard();
@@ -197,6 +269,32 @@ public final class VineFlowerFieldManager {
         }
     }
 
-    private record ActiveFlowerField(Vec3d center, long expiryTick, List<UUID> displayIds) {
+    private static final class ActiveFlowerField {
+        private final Vec3d center;
+        private final long expiryTick;
+        private final List<FlowerPoint> pendingPoints;
+        private final List<UUID> displayIds = new ArrayList<>();
+        private final List<SpringVisual> springVisuals = new ArrayList<>();
+        private int spawnCursor;
+
+        private ActiveFlowerField(Vec3d center, long expiryTick, List<FlowerPoint> pendingPoints) {
+            this.center = center;
+            this.expiryTick = expiryTick;
+            this.pendingPoints = pendingPoints;
+        }
+
+        private Vec3d center() {
+            return this.center;
+        }
+
+        private long expiryTick() {
+            return this.expiryTick;
+        }
+    }
+
+    private record FlowerPoint(double x, double y, double z, net.minecraft.block.BlockState state) {
+    }
+
+    private record SpringVisual(UUID id, double targetX, double targetY, double targetZ, long spawnTick, float initialTilt) {
     }
 }

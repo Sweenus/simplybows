@@ -6,6 +6,8 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.ArrowEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.particle.BlockStateParticleEffect;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
@@ -33,6 +35,10 @@ public class VineArrowEntity extends ArrowEntity {
     public void tick() {
         super.tick();
 
+        if (this.getWorld() instanceof ServerWorld serverWorld && !this.inGround) {
+            spawnTrailParticles(serverWorld);
+        }
+
         if (!this.inGround) {
             Vec3d velocity = this.getVelocity();
             this.setVelocity(velocity.x * EXTRA_DRAG_XZ, velocity.y * EXTRA_DRAG_Y, velocity.z * EXTRA_DRAG_XZ);
@@ -41,12 +47,18 @@ public class VineArrowEntity extends ArrowEntity {
 
     @Override
     protected void onBlockHit(BlockHitResult blockHitResult) {
+        if (this.getWorld() instanceof ServerWorld serverWorld) {
+            spawnImpactParticles(serverWorld, blockHitResult.getPos());
+        }
         trySpawnFlowerField(blockHitResult.getPos());
         super.onBlockHit(blockHitResult);
     }
 
     @Override
     protected void onEntityHit(EntityHitResult entityHitResult) {
+        if (this.getWorld() instanceof ServerWorld serverWorld) {
+            spawnImpactParticles(serverWorld, entityHitResult.getPos());
+        }
         trySpawnFlowerField(entityHitResult.getPos());
         super.onEntityHit(entityHitResult);
     }
@@ -68,6 +80,19 @@ public class VineArrowEntity extends ArrowEntity {
             VineFlowerFieldManager.createOrReplaceField(serverWorld, hitPos);
             this.spawnedFlowerField = true;
         }
+    }
+
+    private void spawnTrailParticles(ServerWorld world) {
+        world.spawnParticles(ParticleTypes.FALLING_SPORE_BLOSSOM, this.getX(), this.getY() + 0.1, this.getZ(), 2, 0.05, 0.03, 0.05, 0.0);
+        if (this.age % 3 == 0) {
+            world.spawnParticles(ParticleTypes.COMPOSTER, this.getX(), this.getY() + 0.1, this.getZ(), 1, 0.04, 0.02, 0.04, 0.0);
+        }
+    }
+
+    private void spawnImpactParticles(ServerWorld world, Vec3d pos) {
+        world.spawnParticles(ParticleTypes.FALLING_SPORE_BLOSSOM, pos.x, pos.y + 0.2, pos.z, 12, 0.35, 0.15, 0.35, 0.0);
+        world.spawnParticles(ParticleTypes.COMPOSTER, pos.x, pos.y + 0.12, pos.z, 10, 0.3, 0.12, 0.3, 0.0);
+        world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, net.minecraft.block.Blocks.SHORT_GRASS.getDefaultState()), pos.x, pos.y + 0.1, pos.z, 8, 0.28, 0.08, 0.28, 0.01);
     }
 
     @Override
