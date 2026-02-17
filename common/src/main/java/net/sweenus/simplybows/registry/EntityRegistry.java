@@ -10,6 +10,7 @@ import net.minecraft.registry.RegistryKeys;
 import net.sweenus.simplybows.SimplyBows;
 import net.sweenus.simplybows.entity.HomingArrowEntity;
 import net.sweenus.simplybows.entity.HomingSpectralArrowEntity;
+import net.sweenus.simplybows.entity.VineArrowEntity;
 
 public class EntityRegistry {
 
@@ -26,6 +27,11 @@ public class EntityRegistry {
             () -> EntityType.Builder.<HomingSpectralArrowEntity>create(HomingSpectralArrowEntity::new, SpawnGroup.MISC)
                     .dimensions(0.5F, 0.5F)
                     .build(SimplyBows.MOD_ID + ":homing_spectral_arrow"));
+
+    public static final RegistrySupplier<EntityType<VineArrowEntity>> VINE_ARROW = ENTITY_TYPES.register("vine_arrow",
+            () -> EntityType.Builder.<VineArrowEntity>create(VineArrowEntity::new, SpawnGroup.MISC)
+                    .dimensions(0.5F, 0.5F)
+                    .build(SimplyBows.MOD_ID + ":vine_arrow"));
 
     public static void registerEntities() {
         ENTITY_TYPES.register(); // Finalize the entity registration
