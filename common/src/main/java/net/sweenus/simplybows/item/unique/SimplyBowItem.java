@@ -1,9 +1,12 @@
 package net.sweenus.simplybows.item.unique;
 import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.item.*;
+import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -21,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 public class SimplyBowItem extends BowItem {
+    private static final ThreadLocal<Boolean> FORCE_VANILLA_ARROW = ThreadLocal.withInitial(() -> false);
 
     public SimplyBowItem(Settings settings) {
         super(settings);
@@ -40,22 +44,34 @@ public class SimplyBowItem extends BowItem {
     @Override
     public void onStoppedUsing(ItemStack stack, World world, LivingEntity user, int remainingUseTicks) {
         if (user instanceof PlayerEntity playerEntity) {
-            ItemStack itemStack = playerEntity.getProjectileType(stack);
-            if (!itemStack.isEmpty()) {
-                int i = this.getMaxUseTime(stack, user) - remainingUseTicks;
-                float f = getPullProgress(i);
-                if (!((double)f < 0.1)) {
-                    List<ItemStack> list = load(stack, itemStack, playerEntity);
-                    if (world instanceof ServerWorld serverWorld) {
-                        if (!list.isEmpty()) {
-                            //playerEntity.sendMessage(Text.literal("Checking for abilities"), false);
-                            performStoppedUsing(stack, world, user, remainingUseTicks, f, playerEntity, serverWorld, list);
-                        }
-                    }
+            ItemStack projectileStack = playerEntity.getProjectileType(stack);
+            if (projectileStack.isEmpty() && playerEntity.getAbilities().creativeMode) {
+                projectileStack = new ItemStack(Items.ARROW);
+            }
+            if (projectileStack.isEmpty()) {
+                return;
+            }
+            boolean hasInfiniteAmmo = simplybows$hasInfiniteAmmo(playerEntity, stack, projectileStack);
 
-                    world.playSound((PlayerEntity)null, playerEntity.getX(), playerEntity.getY(), playerEntity.getZ(), SoundEvents.ENTITY_ARROW_SHOOT, SoundCategory.PLAYERS, 1.0F, 1.0F / (world.getRandom().nextFloat() * 0.4F + 1.2F) + f * 0.5F);
-                    playerEntity.incrementStat(Stats.USED.getOrCreateStat(this));
+            int i = this.getMaxUseTime(stack, user) - remainingUseTicks;
+            float f = getPullProgress(i);
+            if (!((double)f < 0.1)) {
+                List<ItemStack> list;
+                if (hasInfiniteAmmo) {
+                    ItemStack virtualProjectile = projectileStack.copy();
+                    virtualProjectile.setCount(1);
+                    list = List.of(virtualProjectile);
+                } else {
+                    list = load(stack, projectileStack, playerEntity);
                 }
+                if (world instanceof ServerWorld serverWorld) {
+                    if (!list.isEmpty()) {
+                        performStoppedUsing(stack, world, user, remainingUseTicks, f, playerEntity, serverWorld, list);
+                    }
+                }
+
+                world.playSound((PlayerEntity)null, playerEntity.getX(), playerEntity.getY(), playerEntity.getZ(), SoundEvents.ENTITY_ARROW_SHOOT, SoundCategory.PLAYERS, 1.0F, 1.0F / (world.getRandom().nextFloat() * 0.4F + 1.2F) + f * 0.5F);
+                playerEntity.incrementStat(Stats.USED.getOrCreateStat(this));
             }
         }
     }
@@ -72,10 +88,18 @@ public class SimplyBowItem extends BowItem {
 
         switch (item) {
             case IceBowItem iceBowItem -> {
-                iceBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, f == 1.0F, null);
+                if (f < 1.0F) {
+                    simplybows$shootVanillaArrow(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, false, null);
+                } else {
+                    iceBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, true, null);
+                }
             }
             case VineBowItem vineBowItem -> {
-                vineBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, f == 1.0F, null);
+                if (f < 1.0F) {
+                    simplybows$shootVanillaArrow(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, false, null);
+                } else {
+                    vineBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, true, null);
+                }
             }
             case BubbleBowItem bubbleBowItem -> {
                 bubbleBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, f == 1.0F, null);
@@ -84,10 +108,18 @@ public class SimplyBowItem extends BowItem {
                 beeBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, f == 1.0F, null);
             }
             case BlossomBowItem blossomBowItem -> {
-                blossomBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, f == 1.0F, null);
+                if (f < 1.0F) {
+                    simplybows$shootVanillaArrow(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, false, null);
+                } else {
+                    blossomBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, true, null);
+                }
             }
             case EarthBowItem earthBowItem -> {
-                earthBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, f == 1.0F, null);
+                if (f < 1.0F) {
+                    simplybows$shootVanillaArrow(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, false, null);
+                } else {
+                    earthBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, true, null);
+                }
             }
             case EchoBowItem echoBowItem -> {
                 echoBowItem.performStoppedUsing(serverWorld, playerEntity, playerEntity.getActiveHand(), stack, list, f * 3.0F, 1.0F, f == 1.0F, null);
@@ -148,13 +180,14 @@ public class SimplyBowItem extends BowItem {
         float i = 1.0F;
 
         if (shooter instanceof ServerPlayerEntity serverPlayerEntity) {
+            boolean hasInfiniteAmmo = simplybows$hasInfiniteAmmo(serverPlayerEntity, stack);
             // Get arrows from player inventory
             Map<ItemStack, Integer> arrowStacks = HelperMethods.findArrowStacks(serverPlayerEntity);
 
             int additionalArrowsNeeded = Math.max(0, quantity - 1) * projectiles.size();
 
             // Collect arrows from player inventory
-            List<ItemStack> usableArrows = HelperMethods.collectArrows(arrowStacks, additionalArrowsNeeded);
+            List<ItemStack> usableArrows = hasInfiniteAmmo ? List.of() : HelperMethods.collectArrows(arrowStacks, additionalArrowsNeeded);
 
             int arrowsConsumed = 0;
 
@@ -165,6 +198,9 @@ public class SimplyBowItem extends BowItem {
                     if (p == 0) {
                         // First shot for this projectile uses the arrow already consumed by Minecraft
                         arrowForProjectile = projectiles.get(j);
+                    } else if (hasInfiniteAmmo) {
+                        arrowForProjectile = projectiles.get(j).copy();
+                        arrowForProjectile.setCount(1);
                     } else if (arrowsConsumed < additionalArrowsNeeded && !usableArrows.isEmpty()) {
                         arrowForProjectile = HelperMethods.consumeNextArrow(usableArrows);
                         if (arrowForProjectile == null || arrowForProjectile.isEmpty()) {
@@ -194,6 +230,40 @@ public class SimplyBowItem extends BowItem {
                     }
                 }
             }
+        }
+    }
+
+    protected static boolean simplybows$isForcingVanillaArrow() {
+        return FORCE_VANILLA_ARROW.get();
+    }
+
+    protected boolean simplybows$hasInfiniteAmmo(PlayerEntity player, ItemStack bowStack) {
+        return simplybows$hasInfiniteAmmo(player, bowStack, player.getProjectileType(bowStack));
+    }
+
+    protected boolean simplybows$hasInfiniteAmmo(PlayerEntity player, ItemStack bowStack, ItemStack projectileStack) {
+        if (player.getAbilities().creativeMode) {
+            return true;
+        }
+        if (projectileStack == null || projectileStack.isEmpty() || !projectileStack.isOf(Items.ARROW)) {
+            return false;
+        }
+        Registry<net.minecraft.enchantment.Enchantment> enchantmentRegistry =
+                player.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+        return enchantmentRegistry
+                .getEntry(Enchantments.INFINITY)
+                .map(infinity -> EnchantmentHelper.getLevel(infinity, bowStack) > 0)
+                .orElse(false);
+    }
+
+    private void simplybows$shootVanillaArrow(ServerWorld world, LivingEntity shooter, Hand hand, ItemStack stack,
+                                              List<ItemStack> projectiles, float speed, float divergence, boolean critical,
+                                              @Nullable LivingEntity target) {
+        FORCE_VANILLA_ARROW.set(true);
+        try {
+            this.shootAll(world, shooter, hand, stack, projectiles, speed, divergence, critical, target);
+        } finally {
+            FORCE_VANILLA_ARROW.set(false);
         }
     }
 

@@ -44,6 +44,10 @@ public class BlossomBowItem extends SimplyBowItem {
 
     @Override
     protected ProjectileEntity createArrowEntity(World world, LivingEntity shooter, ItemStack weaponStack, ItemStack arrowStack, boolean critical) {
+        if (simplybows$isForcingVanillaArrow()) {
+            return super.createArrowEntity(world, shooter, weaponStack, arrowStack, critical);
+        }
+
         ItemStack firedArrowStack = arrowStack;
         if (firedArrowStack == null || firedArrowStack.isEmpty()) {
             firedArrowStack = new ItemStack(Items.ARROW);

@@ -3,9 +3,13 @@ package net.sweenus.simplybows.world;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.block.Blocks;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.BlockPos;
@@ -48,7 +52,15 @@ public final class EarthSpikeFieldManager {
     private static final double STRING_RADIUS_BONUS_PER_LEVEL = 0.45;
     private static final double STRING_WAVE_DISTANCE_BONUS_PER_LEVEL = 1.2;
     private static final double BASE_UPWARD_KNOCKBACK = 0.4;
-    private static final double FRAME_UPWARD_KNOCKBACK_PER_LEVEL = 0.7;
+    private static final double FRAME_UPWARD_KNOCKBACK_PER_LEVEL = 0.07;
+    private static final int GRACE_RESISTANCE_DURATION_TICKS = 100;
+    private static final int GRACE_SLOW_FALLING_DURATION_TICKS = 120;
+    private static final int BOUNTY_CENTER_BASE_HEIGHT_SEGMENTS = 14;
+    private static final int BOUNTY_CENTER_EXTRA_HEIGHT_PER_FRAME = 2;
+    private static final float BOUNTY_CENTER_DAMAGE_BASE_MULTIPLIER = 1.15F;
+    private static final float BOUNTY_CENTER_DAMAGE_PROXIMITY_MULTIPLIER = 2.0F;
+    private static final double BOUNTY_CENTER_KNOCKBACK_BASE_MULTIPLIER = 1.15;
+    private static final double BOUNTY_CENTER_KNOCKBACK_PROXIMITY_MULTIPLIER = 1.9;
     private static final String SPIKE_VISUAL_TAG = "simplybows_earth_spike_visual";
     private static final Map<ServerWorld, List<ActiveSpikeField>> ACTIVE_FIELDS = new HashMap<>();
 
@@ -78,9 +90,19 @@ public final class EarthSpikeFieldManager {
         int painTravelTicks = tuning.outwardPainWaves() ? getPainWaveMaxSteps(tuning) * PAIN_WAVE_STEP_TICKS : 0;
         ActiveSpikeField field = new ActiveSpikeField(center, now, now + FIELD_DURATION_TICKS + painTravelTicks, ownerId, tuning);
         spawnSpikeVisuals(world, field, points);
+        if (tuning.bountyCenterSpike()) {
+            spawnBountyCenterSpikeVisuals(world, field);
+        }
         fields.add(field);
 
-        applySpikeDamage(world, getOwnerEntity(world, ownerId), center, tuning.radius(), tuning.damage(), tuning.upwardKnockback());
+        LivingEntity ownerEntity = getOwnerEntity(world, ownerId);
+        applySpikeDamage(world, ownerEntity, center, tuning.radius(), tuning.damage(), tuning.upwardKnockback());
+        if (tuning.bountyCenterSpike()) {
+            applyBountyCenterImpact(world, ownerEntity, center, tuning);
+        }
+        if (tuning.graceSupport()) {
+            applyGraceAllySupport(world, ownerEntity, center, tuning);
+        }
         if (tuning.outwardPainWaves()) {
             initializePainWaves(field, now);
         }
@@ -134,6 +156,51 @@ public final class EarthSpikeFieldManager {
         }
     }
 
+    private static void applyBountyCenterImpact(ServerWorld world, LivingEntity owner, Vec3d center, FieldTuning tuning) {
+        double centerRadius = Math.max(1.6, tuning.radius() * 0.55);
+        Box centerBox = Box.of(center, centerRadius * 2.0, 4.0, centerRadius * 2.0);
+
+        for (LivingEntity candidate : world.getEntitiesByClass(
+                LivingEntity.class,
+                centerBox,
+                entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+        )) {
+            double dist = candidate.getPos().distanceTo(center);
+            if (dist > centerRadius) {
+                continue;
+            }
+
+            double proximity = 1.0 - MathHelper.clamp(dist / centerRadius, 0.0, 1.0);
+            float scaledDamage = tuning.damage() * (BOUNTY_CENTER_DAMAGE_BASE_MULTIPLIER + (float) (proximity * BOUNTY_CENTER_DAMAGE_PROXIMITY_MULTIPLIER));
+            boolean damaged = CombatTargeting.applyDamage(world, owner, candidate, scaledDamage, true);
+            if (damaged) {
+                double scaledKnockup = tuning.upwardKnockback() * (BOUNTY_CENTER_KNOCKBACK_BASE_MULTIPLIER + (proximity * BOUNTY_CENTER_KNOCKBACK_PROXIMITY_MULTIPLIER));
+                applyUpwardKnockback(candidate, scaledKnockup);
+            }
+        }
+    }
+
+    private static void applyGraceAllySupport(ServerWorld world, LivingEntity owner, Vec3d center, FieldTuning tuning) {
+        if (owner == null) {
+            return;
+        }
+
+        Box box = Box.of(center, tuning.radius() * 2.0, 3.5, tuning.radius() * 2.0);
+        for (LivingEntity candidate : world.getEntitiesByClass(
+                LivingEntity.class,
+                box,
+                entity -> entity.isAlive() && entity.squaredDistanceTo(center) <= tuning.radius() * tuning.radius()
+        )) {
+            if (!CombatTargeting.isFriendlyTo(candidate, owner)) {
+                continue;
+            }
+
+            applyUpwardKnockback(candidate, tuning.upwardKnockback());
+            candidate.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, GRACE_RESISTANCE_DURATION_TICKS, 0), owner);
+            candidate.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOW_FALLING, GRACE_SLOW_FALLING_DURATION_TICKS, 0), owner);
+        }
+    }
+
     private static void spawnBurstParticles(ServerWorld world, Vec3d center) {
         world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.DRIPSTONE_BLOCK.getDefaultState()), center.x, center.y + 0.12, center.z, 18, 1.1, 0.22, 1.1, 0.01);
         world.spawnParticles(ParticleTypes.POOF, center.x, center.y + 0.15, center.z, 8, 0.9, 0.12, 0.9, 0.01);
@@ -159,10 +226,13 @@ public final class EarthSpikeFieldManager {
         double sizeMultiplier = upgrades.sizeMultiplier();
         float damage = (float) (SPIKE_DAMAGE * upgrades.damageMultiplier());
         boolean painWaves = upgrades.runeEtching() == RuneEtching.PAIN;
+        boolean graceSupport = upgrades.runeEtching() == RuneEtching.GRACE;
+        boolean bountyCenterSpike = upgrades.runeEtching() == RuneEtching.BOUNTY;
         double radius = FIELD_RADIUS * sizeMultiplier + upgrades.stringLevel() * STRING_RADIUS_BONUS_PER_LEVEL;
         double visualRadius = PATCH_VISUAL_RADIUS * sizeMultiplier + upgrades.stringLevel() * (STRING_RADIUS_BONUS_PER_LEVEL * 0.45);
         double painWaveDistance = PAIN_WAVE_MAX_DISTANCE + upgrades.stringLevel() * STRING_WAVE_DISTANCE_BONUS_PER_LEVEL;
         double upwardKnockback = BASE_UPWARD_KNOCKBACK + upgrades.frameLevel() * FRAME_UPWARD_KNOCKBACK_PER_LEVEL;
+        int centerSpikeHeightSegments = BOUNTY_CENTER_BASE_HEIGHT_SEGMENTS + upgrades.frameLevel() * BOUNTY_CENTER_EXTRA_HEIGHT_PER_FRAME;
         return new FieldTuning(
                 radius,
                 visualRadius,
@@ -170,8 +240,29 @@ public final class EarthSpikeFieldManager {
                 damage,
                 painWaves,
                 painWaveDistance,
-                upwardKnockback
+                upwardKnockback,
+                graceSupport,
+                bountyCenterSpike,
+                centerSpikeHeightSegments
         );
+    }
+
+    private static void spawnBountyCenterSpikeVisuals(ServerWorld world, ActiveSpikeField field) {
+        double centerY = findGroundTopY(world, field.center().x, field.center().z, field.center().y) + BASE_GROUND_OFFSET;
+        int heightSegments = field.tuning().centerSpikeHeightSegments();
+
+        // Main center spike.
+        spawnSpikeVisual(world, field, field.center().x, centerY, field.center().z, heightSegments, world.getTime());
+
+        // Nearby ring spikes to make the center feel much wider.
+        double ringRadius = 0.7;
+        for (int i = 0; i < 6; i++) {
+            double angle = (Math.PI * 2.0 / 6.0) * i;
+            double x = field.center().x + Math.cos(angle) * ringRadius;
+            double z = field.center().z + Math.sin(angle) * ringRadius;
+            double y = findGroundTopY(world, x, z, field.center().y) + BASE_GROUND_OFFSET;
+            spawnSpikeVisual(world, field, x, y, z, Math.max(8, heightSegments - 5), world.getTime());
+        }
     }
 
     private static void spawnSpikeVisuals(ServerWorld world, ActiveSpikeField field, List<SpikePoint> points) {
@@ -281,6 +372,10 @@ public final class EarthSpikeFieldManager {
             return;
         }
         target.addVelocity(0.0, upwardKnockback, 0.0);
+        target.setOnGround(false);
+        if (target instanceof ServerPlayerEntity player) {
+            player.networkHandler.sendPacket(new EntityVelocityUpdateS2CPacket(player));
+        }
     }
 
     private static float getHeightScale(long age) {
@@ -437,7 +532,10 @@ public final class EarthSpikeFieldManager {
             float damage,
             boolean outwardPainWaves,
             double painWaveDistance,
-            double upwardKnockback
+            double upwardKnockback,
+            boolean graceSupport,
+            boolean bountyCenterSpike,
+            int centerSpikeHeightSegments
     ) {
     }
 }

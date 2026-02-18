@@ -74,7 +74,7 @@ public record BowUpgradeData(int stringLevel, int frameLevel, RuneEtching runeEt
     }
 
     public double damageMultiplier() {
-        return 1.0 + this.frameLevel * 0.25;
+        return 1.0 + this.frameLevel * 0.55;
     }
 
     public int bonusKnockback() {

@@ -88,9 +88,13 @@ public class IceBowItem extends SimplyBowItem {
 
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
-        int quantity = getArrowQuantity(BowUpgradeData.from(user.getStackInHand(hand)));
-        Map<ItemStack, Integer> arrowStacks = HelperMethods.findArrowStacks(user);
         ItemStack itemStack = user.getStackInHand(hand);
+        if (simplybows$hasInfiniteAmmo(user, itemStack, user.getProjectileType(itemStack))) {
+            //return super.use(world, user, hand);
+        }
+
+        int quantity = getArrowQuantity(BowUpgradeData.from(itemStack));
+        Map<ItemStack, Integer> arrowStacks = HelperMethods.findArrowStacks(user);
         for (Map.Entry<ItemStack, Integer> entry : arrowStacks.entrySet()) {
             ItemStack arrowStack = entry.getKey();
             int arrowCount = entry.getValue();
@@ -102,6 +106,10 @@ public class IceBowItem extends SimplyBowItem {
 
     @Override
     protected ProjectileEntity createArrowEntity(World world, LivingEntity shooter, ItemStack weaponStack, ItemStack arrowStack, boolean critical) {
+        if (simplybows$isForcingVanillaArrow()) {
+            return super.createArrowEntity(world, shooter, weaponStack, arrowStack, critical);
+        }
+
         double damageMultiplier = 1.0;
         boolean lockTarget = false;
         boolean stackSlow = false;

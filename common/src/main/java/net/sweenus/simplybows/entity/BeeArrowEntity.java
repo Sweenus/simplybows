@@ -15,6 +15,7 @@ import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.sweenus.simplybows.registry.EntityRegistry;
 
 public class BeeArrowEntity extends ArrowEntity {
 
@@ -29,7 +30,13 @@ public class BeeArrowEntity extends ArrowEntity {
     }
 
     public BeeArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
-        super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
+        super(EntityRegistry.BEE_ARROW.get(), world);
+        this.setStack(sanitizeArrowStack(arrowStack));
+        this.setOwner(owner);
+        this.setPosition(owner.getX(), owner.getEyeY() - 0.1, owner.getZ());
+        this.prevX = owner.getX();
+        this.prevY = owner.getEyeY() - 0.1;
+        this.prevZ = owner.getZ();
     }
 
     @Override
