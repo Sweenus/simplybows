@@ -5,6 +5,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.projectile.ArrowEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -15,6 +16,7 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -25,6 +27,8 @@ import net.sweenus.simplybows.util.CombatTargeting;
 import net.sweenus.simplybows.world.BeeGraceShieldManager;
 import net.sweenus.simplybows.world.BeeHiveSwarmManager;
 
+import java.util.List;
+
 public class BeeArrowEntity extends ArrowEntity {
 
     private static final int BASE_POISON_DURATION_TICKS = 60;
@@ -34,10 +38,15 @@ public class BeeArrowEntity extends ArrowEntity {
     private static final int STRING_LEVELS_PER_POISON_STEP = 2;
     private static final double MIN_HORIZONTAL_SPEED_SQ_FOR_YAW = 1.0E-4;
     private static final float ROTATION_SMOOTHING = 0.35F;
+    private static final double PAIN_HOMING_RADIUS = 10.0;
+    private static final int PAIN_HOMING_START_TICKS = 8;
+    private static final double PAIN_HOMING_ACCEL = 0.18;
+    private static final double PAIN_MAX_SPEED = 1.05;
     private static final String HIVE_VISUAL_TAG = "simplybows_bee_hive_visual";
     private final BowUpgradeData upgrades;
     private boolean spawnSoundPlayed;
     private boolean spawnedBountyHive;
+    private LivingEntity homingTarget;
 
     public BeeArrowEntity(EntityType<? extends BeeArrowEntity> type, World world) {
         super(type, world);
@@ -62,6 +71,10 @@ public class BeeArrowEntity extends ArrowEntity {
     @Override
     public void tick() {
         super.tick();
+
+        if (!this.getWorld().isClient() && this.upgrades.runeEtching() == RuneEtching.PAIN && !this.inGround) {
+            updatePainHoming();
+        }
 
         Vec3d velocity = this.getVelocity();
         if (velocity.lengthSquared() > 1.0E-6) {
@@ -89,6 +102,56 @@ public class BeeArrowEntity extends ArrowEntity {
             spawnPoofAndDiscard(serverWorld);
             return;
         }
+    }
+
+    private void updatePainHoming() {
+        if (this.age < PAIN_HOMING_START_TICKS) {
+            return;
+        }
+
+        if (this.homingTarget == null || !this.homingTarget.isAlive()) {
+            this.homingTarget = findNearestPainTarget();
+        }
+        if (this.homingTarget == null) {
+            return;
+        }
+
+        Vec3d targetPos = this.homingTarget.getPos().add(0.0, this.homingTarget.getStandingEyeHeight(), 0.0);
+        Vec3d direction = targetPos.subtract(this.getPos());
+        if (direction.lengthSquared() <= 1.0E-6) {
+            return;
+        }
+
+        Vec3d newVelocity = this.getVelocity().add(direction.normalize().multiply(PAIN_HOMING_ACCEL));
+        if (newVelocity.lengthSquared() > PAIN_MAX_SPEED * PAIN_MAX_SPEED) {
+            newVelocity = newVelocity.normalize().multiply(PAIN_MAX_SPEED);
+        }
+        this.setVelocity(newVelocity);
+        this.velocityDirty = true;
+    }
+
+    private LivingEntity findNearestPainTarget() {
+        if (!(this.getOwner() instanceof LivingEntity ownerLiving)) {
+            return null;
+        }
+
+        Box searchBox = this.getBoundingBox().expand(PAIN_HOMING_RADIUS);
+        List<LivingEntity> candidates = this.getWorld().getEntitiesByClass(LivingEntity.class, searchBox, entity ->
+                entity.isAlive()
+                        && entity != ownerLiving
+                        && (entity instanceof HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                        && CombatTargeting.checkFriendlyFire(entity, ownerLiving));
+
+        LivingEntity best = null;
+        double bestDist = Double.MAX_VALUE;
+        for (LivingEntity candidate : candidates) {
+            double dist = this.squaredDistanceTo(candidate);
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = candidate;
+            }
+        }
+        return best;
     }
 
     @Override

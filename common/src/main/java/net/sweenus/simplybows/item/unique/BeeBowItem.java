@@ -9,6 +9,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.world.World;
 import net.sweenus.simplybows.entity.BeeArrowEntity;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
+import net.sweenus.simplybows.upgrade.RuneEtching;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -28,7 +29,14 @@ public class BeeBowItem extends SimplyBowItem {
     }
 
     public void performStoppedUsing(ServerWorld serverWorld, LivingEntity shooter, Hand hand, ItemStack stack, List<ItemStack> projectiles, float f, float g, boolean critical, @Nullable LivingEntity target) {
-        this.shootAll(serverWorld, shooter, hand, stack, projectiles, f * BEE_ARROW_SPEED_MULTIPLIER, BEE_ARROW_DIVERGENCE, critical, target);
+        BowUpgradeData upgrades = BowUpgradeData.from(stack);
+        float speed = f * BEE_ARROW_SPEED_MULTIPLIER;
+        if (upgrades.runeEtching() == RuneEtching.PAIN) {
+            int quantity = Math.max(1, upgrades.stringLevel() + 1);
+            this.shootFan(this, serverWorld, shooter, hand, stack, projectiles, speed, BEE_ARROW_DIVERGENCE, critical, target, quantity);
+            return;
+        }
+        this.shootAll(serverWorld, shooter, hand, stack, projectiles, speed, BEE_ARROW_DIVERGENCE, critical, target);
     }
 
     @Override
