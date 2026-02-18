@@ -71,7 +71,6 @@ public class BowUpgradeComponentItem extends Item {
         tooltip.add(Text.literal(" "));
         tooltip.add(Text.translatable("tooltip.simplybows.section.component").setStyle(BowTooltipHelper.STYLE_SECTION));
         tooltip.add(Text.translatable(getComponentTooltipKey()).setStyle(BowTooltipHelper.STYLE_BODY));
-        tooltip.add(Text.translatable("tooltip.simplybows.upgrade_component.cap", BowUpgradeData.getMaxTotalUpgradeSlots()).setStyle(BowTooltipHelper.STYLE_DIM));
     }
 
     public BowUpgradeData applyTo(BowUpgradeData current) {

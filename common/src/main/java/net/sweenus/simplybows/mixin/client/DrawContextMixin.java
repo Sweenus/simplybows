@@ -430,6 +430,7 @@ public abstract class DrawContextMixin {
 
         // Draw background & border
         simplybows$drawGradientBackground(context, panelX, panelY, panelW, panelH, theme);
+        simplybows$drawAmbientBackgroundMotif(context, panelX, panelY, panelW, panelH, borderStyle);
         simplybows$drawDecorativeBorder(context, panelX, panelY, panelW, panelH, theme, borderStyle);
 
         int cursorY = panelY + PADDING;
@@ -665,6 +666,297 @@ public abstract class DrawContextMixin {
     }
 
     @Unique
+    private static void simplybows$drawAmbientBackgroundMotif(DrawContext context, int x, int y, int w, int h, int borderStyle) {
+        if (w < 40 || h < 40) {
+            return;
+        }
+
+        switch (borderStyle) {
+            case BORDER_STYLE_BLOSSOM -> {
+                long time = System.currentTimeMillis();
+                int minX = x + 6;
+                int maxX = x + w - 6;
+                int minY = y + 6;
+                int maxY = y + h - 6;
+                int spawnRange = Math.max(12, (maxX - minX) - 6);
+
+                for (int i = 0; i < 7; i++) {
+                    double fallSpeed = 0.010 + i * 0.0012;
+                    int travel = Math.max(10, maxY - minY);
+                    double fallProgress = (time * fallSpeed) + i * 19;
+                    int py = minY + (int) (fallProgress % travel);
+
+                    int lane = (i * 37 + i * i * 11) % spawnRange;
+                    double swayA = Math.sin((time * 0.0009) + i * 2.1) * (w * 0.22);
+                    double swayB = Math.sin((time * 0.0017) + i * 0.9) * 8.0;
+                    int baseX = minX + lane + (int) (swayA + swayB);
+                    int px = Math.max(minX, Math.min(maxX - 5, baseX));
+
+                    int coarseSpin = (int) (fallProgress / 26.0);
+                    int rotation = Math.floorMod(i * 3 + coarseSpin, 4);
+
+                    simplybows$drawRotatedBlossomPetal(context, px, py, rotation);
+                }
+            }
+            case BORDER_STYLE_ICE -> {
+                long time = System.currentTimeMillis();
+                int minX = x + 6;
+                int maxX = x + w - 6;
+                int minY = y + 6;
+                int maxY = y + h - 6;
+                int spawnRange = Math.max(12, (maxX - minX) - 6);
+
+                for (int i = 0; i < 8; i++) {
+                    double fallSpeed = 0.010 + i * 0.0010;
+                    int travel = Math.max(10, maxY - minY);
+                    double fallProgress = (time * fallSpeed) + i * 23;
+                    int py = minY + (int) (fallProgress % travel);
+
+                    int lane = (i * 41 + i * i * 7) % spawnRange;
+                    double swayA = Math.sin((time * 0.0010) + i * 1.6) * (w * 0.08);
+                    double swayB = Math.sin((time * 0.0021) + i * 0.8) * 2.0;
+                    int baseX = minX + lane + (int) (swayA + swayB);
+                    int px = Math.max(minX, Math.min(maxX - 4, baseX));
+                    int rotation = Math.floorMod(i + (int) (fallProgress / 36.0), 4);
+                    int sizeVariant = ((i * 17) + 5) % 3;
+
+                    simplybows$drawRotatedSnowflake(context, px, py, rotation, sizeVariant);
+                }
+            }
+            case BORDER_STYLE_VINE -> {
+                long time = System.currentTimeMillis();
+                int minX = x + 6;
+                int maxX = x + w - 6;
+                int minY = y + 6;
+                int maxY = y + h - 6;
+                int spawnRange = Math.max(12, (maxX - minX) - 6);
+
+                for (int i = 0; i < 6; i++) {
+                    double fallSpeed = 0.009 + i * 0.0011;
+                    int travel = Math.max(10, maxY - minY);
+                    double fallProgress = (time * fallSpeed) + i * 27;
+                    int py = minY + (int) (fallProgress % travel);
+
+                    int lane = (i * 43 + i * i * 13) % spawnRange;
+                    double swayA = Math.sin((time * 0.0011) + i * 2.0) * (w * 0.20);
+                    double swayB = Math.sin((time * 0.0024) + i * 1.3) * 7.0;
+                    int baseX = minX + lane + (int) (swayA + swayB);
+                    int px = Math.max(minX, Math.min(maxX - 5, baseX));
+                    int rotation = Math.floorMod(i * 2 + (int) (fallProgress / 30.0), 4);
+
+                    simplybows$drawRotatedVineLeaf(context, px, py, rotation);
+                }
+            }
+            case BORDER_STYLE_EARTH -> {
+                long time = System.currentTimeMillis();
+                int minX = x + 6;
+                int maxX = x + w - 6;
+                int minY = y + 6;
+                int maxY = y + h - 6;
+                int spawnRange = Math.max(10, maxX - minX - 1);
+
+                for (int i = 0; i < 16; i++) {
+                    int speedBand = (i * 13 + 5) % 6;
+                    double fallSpeed = 0.009 + speedBand * 0.0011 + i * 0.00015;
+                    int travel = Math.max(8, maxY - minY);
+                    double fallProgress = (time * fallSpeed) + i * 11;
+                    int py = minY + (int) (fallProgress % travel);
+
+                    int lane = (i * 29 + i * i * 5) % spawnRange;
+                    double drift = Math.sin((time * 0.0016) + i * 1.1) * 2.0;
+
+                    int sizeRoll = (i * 7 + 3) % 10;
+                    int size = sizeRoll < 6 ? 1 : 2;
+                    if (sizeRoll == 9) {
+                        size = 3;
+                    }
+                    int px = Math.max(minX, Math.min(maxX - size, minX + lane + (int) drift));
+                    int cA = ((i + ((int) fallProgress / 24)) & 1) == 0 ? 0x1CB08C66 : 0x168A6A4B;
+                    int cB = 0x126E583F;
+
+                    if (size == 1) {
+                        context.fill(px, py, px + 1, py + 1, cA);
+                    } else if (size == 2) {
+                        context.fill(px, py, px + 2, py + 2, cA);
+                        context.fill(px + 1, py, px + 2, py + 1, cB);
+                    } else {
+                        context.fill(px, py, px + 3, py + 2, cA);
+                        context.fill(px + 1, py + 1, px + 3, py + 2, cB);
+                    }
+                }
+            }
+            case BORDER_STYLE_BUBBLE -> {
+                long time = System.currentTimeMillis();
+                int minX = x + 6;
+                int maxX = x + w - 6;
+                int minY = y + 6;
+                int maxY = y + h - 6;
+                int spawnRange = Math.max(12, (maxX - minX) - 5);
+
+                for (int i = 0; i < 8; i++) {
+                    // Original baseline speed with tiny fixed per-particle variance.
+                    int speedSeed = ((i * 17) + 3) % 5; // 0..4
+                    double speedOffset = (speedSeed - 2) * 0.00008; // -0.00016 .. +0.00016
+                    double riseSpeed = (0.008 + i * 0.0009) + speedOffset;
+                    int travel = Math.max(10, maxY - minY);
+                    double riseProgress = (time * riseSpeed) + i * 21;
+                    int py = maxY - (int) (riseProgress % travel);
+
+                    int lane = (i * 31 + i * i * 9) % spawnRange;
+                    double wobble = Math.sin((time * 0.0015) + i * 1.4) * 6.0;
+                    int px = Math.max(minX, Math.min(maxX - 4, minX + lane + (int) wobble));
+
+                    context.fill(px, py, px + 2, py + 2, 0x148EE7F8);
+                    context.fill(px + 1, py + 1, px + 4, py + 4, 0x0EC8F7FF);
+                    context.fill(px + 1, py, px + 2, py + 1, 0x1AF2FDFF);
+                }
+            }
+            case BORDER_STYLE_BEE -> {
+                long time = System.currentTimeMillis();
+                int minX = x + 6;
+                int maxX = x + w - 6;
+                int minY = y + 6;
+                int maxY = y + h - 6;
+                int spanX = Math.max(10, maxX - minX - 2);
+                int spanY = Math.max(10, maxY - minY - 2);
+
+                for (int i = 0; i < 7; i++) {
+                    int baseX = minX + ((i * 47 + i * i * 7) % spanX);
+                    int baseY = minY + ((i * 29 + i * i * 5) % spanY);
+                    int px = baseX + (int) (Math.sin((time * 0.0030) + i * 1.8) * 5.0);
+                    int py = baseY + (int) (Math.sin((time * 0.0024) + i * 1.2) * 3.0);
+                    px = Math.max(minX, Math.min(maxX - 2, px));
+                    py = Math.max(minY, Math.min(maxY - 2, py));
+
+                    context.fill(px, py, px + 1, py + 1, 0x20F2C74A);
+                    context.fill(px + 1, py, px + 2, py + 1, 0x167A5A22);
+                }
+            }
+            case BORDER_STYLE_ECHO -> {
+                long time = System.currentTimeMillis();
+                int minX = x + 6;
+                int maxX = x + w - 6;
+                int minY = y + 6;
+                int maxY = y + h - 6;
+                int spanX = Math.max(10, maxX - minX - 3);
+                int spanY = Math.max(10, maxY - minY - 3);
+
+                for (int i = 0; i < 7; i++) {
+                    int laneX = minX + ((i * 37 + i * i * 9) % spanX);
+                    int laneY = minY + ((i * 23 + i * i * 11) % spanY);
+                    int px = laneX + (int) (Math.sin((time * 0.0019) + i * 1.5) * 7.0);
+                    int py = laneY + (int) (Math.sin((time * 0.0022) + i * 1.1) * 4.0);
+                    px = Math.max(minX, Math.min(maxX - 3, px));
+                    py = Math.max(minY, Math.min(maxY - 3, py));
+
+                    int pulse = (((int) (time / 240L) + i) & 1);
+                    int runeA = pulse == 0 ? 0x18B59AFF : 0x12B59AFF;
+                    int runeB = pulse == 0 ? 0x167C67D9 : 0x107C67D9;
+
+                    context.fill(px, py + 1, px + 3, py + 2, runeA);
+                    context.fill(px + 1, py, px + 2, py + 3, runeB);
+                }
+            }
+            default -> {
+            }
+        }
+    }
+
+    @Unique
+    private static void simplybows$drawRotatedBlossomPetal(DrawContext context, int x, int y, int rotation) {
+        int petalA = 0x14F3B1D2;
+        int petalB = 0x10E38BB8;
+        int petalC = 0x0CF6C6DE;
+        int core = 0x16FFF4BE;
+
+        switch (rotation) {
+            case 1 -> {
+                context.fill(x + 1, y, x + 3, y + 4, petalA);
+                context.fill(x, y + 1, x + 2, y + 5, petalB);
+                context.fill(x + 2, y, x + 4, y + 3, petalC);
+                context.fill(x + 1, y + 2, x + 2, y + 3, core);
+            }
+            case 2 -> {
+                context.fill(x + 1, y, x + 5, y + 2, petalA);
+                context.fill(x, y + 1, x + 4, y + 3, petalB);
+                context.fill(x + 2, y + 2, x + 5, y + 4, petalC);
+                context.fill(x + 2, y + 1, x + 3, y + 2, core);
+            }
+            case 3 -> {
+                context.fill(x + 2, y, x + 4, y + 4, petalA);
+                context.fill(x + 1, y + 1, x + 3, y + 5, petalB);
+                context.fill(x, y + 1, x + 3, y + 3, petalC);
+                context.fill(x + 2, y + 2, x + 3, y + 3, core);
+            }
+            default -> {
+                context.fill(x, y, x + 4, y + 2, petalA);
+                context.fill(x + 1, y + 1, x + 5, y + 3, petalB);
+                context.fill(x, y + 2, x + 3, y + 4, petalC);
+                context.fill(x + 2, y + 1, x + 3, y + 2, core);
+            }
+        }
+    }
+
+    @Unique
+    private static void simplybows$drawRotatedSnowflake(DrawContext context, int x, int y, int rotation, int sizeVariant) {
+        int outer = 0x12D8F2FF;
+        int inner = 0x18E7F8FF;
+        int core = 0x20FFFFFF;
+
+        if ((sizeVariant & 1) == 0) {
+            // 3x3 soft round mote
+            context.fill(x + 1, y, x + 2, y + 1, outer);
+            context.fill(x, y + 1, x + 3, y + 2, inner);
+            context.fill(x + 1, y + 2, x + 2, y + 3, outer);
+            if ((rotation & 1) == 0) {
+                context.fill(x + 1, y + 1, x + 2, y + 2, core);
+            } else {
+                context.fill(x + 1, y + 1, x + 2, y + 2, 0x18FFFFFF);
+            }
+        } else {
+            // 4x4 soft round mote
+            context.fill(x + 1, y, x + 3, y + 1, outer);
+            context.fill(x, y + 1, x + 4, y + 3, inner);
+            context.fill(x + 1, y + 3, x + 3, y + 4, outer);
+            if ((rotation & 1) == 0) {
+                context.fill(x + 1, y + 1, x + 3, y + 3, core);
+            } else {
+                context.fill(x + 1, y + 1, x + 3, y + 3, 0x18FFFFFF);
+            }
+        }
+    }
+
+    @Unique
+    private static void simplybows$drawRotatedVineLeaf(DrawContext context, int x, int y, int rotation) {
+        int leafA = 0x1A84C47E;
+        int leafB = 0x1470B16A;
+        int vein = 0x1A3F7E45;
+
+        switch (rotation) {
+            case 1 -> {
+                context.fill(x + 1, y, x + 3, y + 4, leafA);
+                context.fill(x, y + 1, x + 2, y + 5, leafB);
+                context.fill(x + 1, y + 1, x + 2, y + 4, vein);
+            }
+            case 2 -> {
+                context.fill(x + 1, y, x + 5, y + 2, leafA);
+                context.fill(x, y + 1, x + 4, y + 3, leafB);
+                context.fill(x + 1, y + 1, x + 4, y + 2, vein);
+            }
+            case 3 -> {
+                context.fill(x + 2, y, x + 4, y + 4, leafA);
+                context.fill(x + 1, y + 1, x + 3, y + 5, leafB);
+                context.fill(x + 2, y + 1, x + 3, y + 4, vein);
+            }
+            default -> {
+                context.fill(x, y, x + 4, y + 2, leafA);
+                context.fill(x + 1, y + 1, x + 5, y + 3, leafB);
+                context.fill(x + 1, y + 1, x + 4, y + 2, vein);
+            }
+        }
+    }
+
+    @Unique
     private static void simplybows$drawBorderPattern(DrawContext context, int x, int y, int w, int h, TooltipTheme theme, int borderStyle) {
         switch (borderStyle) {
             case BORDER_STYLE_VINE -> {
@@ -849,7 +1141,7 @@ public abstract class DrawContextMixin {
     private static int simplybows$drawBadge(DrawContext context, TextRenderer tr, String label, int x, int y, TooltipTheme theme) {
         int textW = tr.getWidth(label);
         int badgePadH = 3;
-        int badgeH = tr.fontHeight + 1;
+        int badgeH = tr.fontHeight;
 
         int badgeW = textW + badgePadH * 2;
 
