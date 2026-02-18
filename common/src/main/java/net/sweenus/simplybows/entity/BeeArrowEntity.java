@@ -2,6 +2,7 @@ package net.sweenus.simplybows.entity;
 
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.projectile.ArrowEntity;
@@ -9,27 +10,45 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.sweenus.simplybows.registry.EntityRegistry;
+import net.sweenus.simplybows.upgrade.BowUpgradeData;
+import net.sweenus.simplybows.upgrade.RuneEtching;
+import net.sweenus.simplybows.util.CombatTargeting;
+import net.sweenus.simplybows.world.BeeGraceShieldManager;
+import net.sweenus.simplybows.world.BeeHiveSwarmManager;
 
 public class BeeArrowEntity extends ArrowEntity {
 
-    private static final int POISON_DURATION_TICKS = 80;
-    private static final int POISON_AMPLIFIER = 0;
+    private static final int BASE_POISON_DURATION_TICKS = 60;
+    private static final int STRING_POISON_DURATION_BONUS_TICKS = 20;
+    private static final int MAX_POISON_LEVELS = 5;
+    private static final int MAX_POISON_AMPLIFIER = MAX_POISON_LEVELS - 1;
+    private static final int STRING_LEVELS_PER_POISON_STEP = 2;
     private static final double MIN_HORIZONTAL_SPEED_SQ_FOR_YAW = 1.0E-4;
     private static final float ROTATION_SMOOTHING = 0.35F;
+    private static final String HIVE_VISUAL_TAG = "simplybows_bee_hive_visual";
+    private final BowUpgradeData upgrades;
     private boolean spawnSoundPlayed;
+    private boolean spawnedBountyHive;
 
     public BeeArrowEntity(EntityType<? extends BeeArrowEntity> type, World world) {
         super(type, world);
+        this.upgrades = BowUpgradeData.none();
     }
 
     public BeeArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
+        this(world, owner, arrowStack, BowUpgradeData.from(weaponStack));
+    }
+
+    public BeeArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, BowUpgradeData upgrades) {
         super(EntityRegistry.BEE_ARROW.get(), world);
         this.setStack(sanitizeArrowStack(arrowStack));
         this.setOwner(owner);
@@ -37,6 +56,7 @@ public class BeeArrowEntity extends ArrowEntity {
         this.prevX = owner.getX();
         this.prevY = owner.getEyeY() - 0.1;
         this.prevZ = owner.getZ();
+        this.upgrades = upgrades == null ? BowUpgradeData.none() : upgrades;
     }
 
     @Override
@@ -73,6 +93,17 @@ public class BeeArrowEntity extends ArrowEntity {
 
     @Override
     protected void onEntityHit(EntityHitResult entityHitResult) {
+        if (entityHitResult.getEntity() instanceof LivingEntity livingEntity && shouldIgnoreGraceDamage(livingEntity)) {
+            tryApplyGraceShield(entityHitResult.getPos());
+            if (this.getWorld() instanceof ServerWorld serverWorld) {
+                serverWorld.playSound(null, livingEntity.getX(), livingEntity.getY(), livingEntity.getZ(), SoundEvents.ENTITY_BEE_HURT, SoundCategory.PLAYERS, 0.8F, 1.0F + this.random.nextFloat() * 0.2F);
+                spawnPoofAndDiscard(serverWorld);
+            } else {
+                this.discard();
+            }
+            return;
+        }
+
         if (entityHitResult.getEntity() instanceof LivingEntity living) {
             living.hurtTime = 0;
             living.timeUntilRegen = 0;
@@ -87,14 +118,83 @@ public class BeeArrowEntity extends ArrowEntity {
             return;
         }
 
-        livingEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.POISON, POISON_DURATION_TICKS, POISON_AMPLIFIER), this.getOwner());
+        tryApplyGraceShield(entityHitResult.getPos());
+
+        if (!isFriendlyToOwner(livingEntity)) {
+            applyStackingPoison(livingEntity);
+        }
+        trySpawnBountyHive(entityHitResult.getPos());
 
         if (this.getWorld() instanceof ServerWorld serverWorld) {
-            serverWorld.playSound(null, livingEntity.getX(), livingEntity.getY(), livingEntity.getZ(), SoundEvents.ENTITY_BEE_STING, SoundCategory.PLAYERS, 0.9F, 0.95F + this.random.nextFloat() * 0.2F);
+            serverWorld.playSound(null, livingEntity.getX(), livingEntity.getY(), livingEntity.getZ(), SoundEvents.ENTITY_BEE_HURT, SoundCategory.PLAYERS, 0.9F, 0.95F + this.random.nextFloat() * 0.2F);
             serverWorld.spawnParticles(ParticleTypes.POOF, livingEntity.getX(), livingEntity.getBodyY(0.5), livingEntity.getZ(), 10, 0.15, 0.12, 0.15, 0.02);
             serverWorld.spawnParticles(ParticleTypes.FALLING_HONEY, livingEntity.getX(), livingEntity.getBodyY(0.5), livingEntity.getZ(), 8, 0.2, 0.2, 0.2, 0.0);
             serverWorld.spawnParticles(ParticleTypes.CRIT, livingEntity.getX(), livingEntity.getBodyY(0.5), livingEntity.getZ(), 6, 0.15, 0.15, 0.15, 0.02);
         }
+    }
+
+    @Override
+    protected void onBlockHit(BlockHitResult blockHitResult) {
+        super.onBlockHit(blockHitResult);
+        tryApplyGraceShield(blockHitResult.getPos());
+        trySpawnBountyHive(blockHitResult.getPos());
+    }
+
+    @Override
+    public boolean canHit(net.minecraft.entity.Entity entity) {
+        if (entity.getCommandTags().contains(HIVE_VISUAL_TAG) || entity.getCommandTags().contains(BeeGraceShieldManager.GRACE_VISUAL_TAG)) {
+            return false;
+        }
+        return super.canHit(entity);
+    }
+
+    private void trySpawnBountyHive(Vec3d hitPos) {
+        if (this.spawnedBountyHive || this.upgrades.runeEtching() != RuneEtching.BOUNTY) {
+            return;
+        }
+        if (!(this.getWorld() instanceof ServerWorld serverWorld)) {
+            return;
+        }
+        if (!(this.getOwner() instanceof LivingEntity ownerLiving)) {
+            return;
+        }
+        BeeHiveSwarmManager.createHive(serverWorld, hitPos, ownerLiving, this.upgrades);
+        this.spawnedBountyHive = true;
+    }
+
+    private void applyStackingPoison(LivingEntity target) {
+        int poisonStep = 1 + (this.upgrades.stringLevel() / STRING_LEVELS_PER_POISON_STEP);
+        int amplifier = Math.min(MAX_POISON_AMPLIFIER, poisonStep - 1);
+        StatusEffectInstance existing = target.getStatusEffect(StatusEffects.POISON);
+        if (existing != null) {
+            amplifier = Math.min(MAX_POISON_AMPLIFIER, existing.getAmplifier() + poisonStep);
+        }
+        int duration = BASE_POISON_DURATION_TICKS + this.upgrades.stringLevel() * STRING_POISON_DURATION_BONUS_TICKS;
+        target.addStatusEffect(new StatusEffectInstance(StatusEffects.POISON, duration, amplifier), this.getOwner());
+    }
+
+    private void tryApplyGraceShield(Vec3d hitPos) {
+        if (this.upgrades.runeEtching() != RuneEtching.GRACE) {
+            return;
+        }
+        if (!(this.getWorld() instanceof ServerWorld serverWorld)) {
+            return;
+        }
+        if (!(this.getOwner() instanceof LivingEntity ownerLiving)) {
+            return;
+        }
+        BeeGraceShieldManager.tryApplyFromImpact(serverWorld, hitPos, ownerLiving, this.upgrades);
+    }
+
+    private boolean isFriendlyToOwner(LivingEntity entity) {
+        if (!(this.getOwner() instanceof LivingEntity ownerLiving)) {
+            return false;
+        }
+        return CombatTargeting.isFriendlyTo(entity, ownerLiving);
+    }
+
+    private boolean shouldIgnoreGraceDamage(LivingEntity livingEntity) {
+        return this.upgrades.runeEtching() == RuneEtching.GRACE && livingEntity instanceof VillagerEntity;
     }
 
     private void spawnPoofAndDiscard(ServerWorld world) {
@@ -106,6 +206,11 @@ public class BeeArrowEntity extends ArrowEntity {
     @Override
     protected ItemStack getDefaultItemStack() {
         return new ItemStack(Items.ARROW);
+    }
+
+    @Override
+    protected SoundEvent getHitSound() {
+        return SoundEvents.ENTITY_BEE_HURT;
     }
 
     private static ItemStack sanitizeArrowStack(ItemStack arrowStack) {

@@ -617,6 +617,9 @@ public abstract class DrawContextMixin {
     @Unique
     private static String simplybows$getRuneEffectKey(String bowKey, RuneEtching rune) {
         return switch (bowKey) {
+            case "bee" -> rune == RuneEtching.BOUNTY
+                    ? "tooltip.simplybows.bow.bee.rune." + rune.id()
+                    : "tooltip.simplybows.bow.generic.rune." + rune.id();
             case "vine", "earth", "ice", "echo" -> "tooltip.simplybows.bow." + bowKey + ".rune." + rune.id();
             default -> "tooltip.simplybows.bow.generic.rune." + rune.id();
         };

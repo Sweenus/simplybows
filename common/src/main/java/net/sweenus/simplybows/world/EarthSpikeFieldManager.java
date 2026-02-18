@@ -52,9 +52,9 @@ public final class EarthSpikeFieldManager {
     private static final double STRING_RADIUS_BONUS_PER_LEVEL = 0.45;
     private static final double STRING_WAVE_DISTANCE_BONUS_PER_LEVEL = 1.2;
     private static final double BASE_UPWARD_KNOCKBACK = 0.4;
-    private static final double FRAME_UPWARD_KNOCKBACK_PER_LEVEL = 0.07;
-    private static final int GRACE_RESISTANCE_DURATION_TICKS = 100;
-    private static final int GRACE_SLOW_FALLING_DURATION_TICKS = 120;
+    private static final double FRAME_UPWARD_KNOCKBACK_PER_LEVEL = 0.10;
+    private static final int GRACE_RESISTANCE_DURATION_TICKS = 200;
+    private static final int GRACE_SLOW_FALLING_DURATION_TICKS = 160;
     private static final int BOUNTY_CENTER_BASE_HEIGHT_SEGMENTS = 14;
     private static final int BOUNTY_CENTER_EXTRA_HEIGHT_PER_FRAME = 2;
     private static final float BOUNTY_CENTER_DAMAGE_BASE_MULTIPLIER = 1.15F;

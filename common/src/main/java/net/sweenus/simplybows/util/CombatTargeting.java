@@ -4,6 +4,8 @@ import dev.architectury.platform.Platform;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.Tameable;
+import net.minecraft.entity.mob.HostileEntity;
+import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.Registries;
 import net.minecraft.scoreboard.AbstractTeam;
@@ -41,6 +43,9 @@ public final class CombatTargeting {
         }
         if (isTargetWhitelisted(livingEntity)) {
             return true;
+        }
+        if (livingEntity instanceof VillagerEntity && !(attackingEntity instanceof HostileEntity)) {
+            return false;
         }
 
         AbstractTeam attackerTeam = attackingEntity.getScoreboardTeam();

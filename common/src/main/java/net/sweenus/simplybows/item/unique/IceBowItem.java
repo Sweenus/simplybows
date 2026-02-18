@@ -29,6 +29,8 @@ import java.util.UUID;
 
 public class IceBowItem extends SimplyBowItem {
     private static final int BASE_QUANTITY = 3;
+    private static final double PAIN_TARGET_HORIZONTAL_RANGE = 48.0;
+    private static final double PAIN_TARGET_VERTICAL_RANGE = 16.0;
     private static final String NBT_DAMAGE_MULTIPLIER = "simplybows_ice_damage_multiplier";
     private static final String NBT_LOCK_TARGET = "simplybows_ice_lock_target";
     private static final String NBT_SLOW_STACK = "simplybows_ice_stacking_slow";
@@ -71,7 +73,9 @@ public class IceBowItem extends SimplyBowItem {
 
         NbtCompound customData = getOrCreateCustomData(stack);
         customData.putDouble(NBT_DAMAGE_MULTIPLIER, damageMultiplier);
-        customData.putBoolean(NBT_LOCK_TARGET, rune == RuneEtching.PAIN);
+        // Only hard-lock when pain mode found a concrete target.
+        // If no target is found, keep normal homing fallback behavior.
+        customData.putBoolean(NBT_LOCK_TARGET, rune == RuneEtching.PAIN && painTarget != null);
         customData.putBoolean(NBT_SLOW_STACK, rune == RuneEtching.GRACE);
         if (painTarget != null) {
             customData.putUuid(NBT_TARGET_UUID, painTarget.getUuid());
@@ -164,8 +168,12 @@ public class IceBowItem extends SimplyBowItem {
     }
 
     private LivingEntity findNearestHostile(ServerWorld world, PlayerEntity player) {
-        List<LivingEntity> hostiles = world.getEntitiesByClass(LivingEntity.class, player.getBoundingBox().expand(18.0, 8.0, 18.0), entity ->
-                entity instanceof net.minecraft.entity.mob.HostileEntity && entity.isAlive());
+        List<LivingEntity> hostiles = world.getEntitiesByClass(
+                LivingEntity.class,
+                player.getBoundingBox().expand(PAIN_TARGET_HORIZONTAL_RANGE, PAIN_TARGET_VERTICAL_RANGE, PAIN_TARGET_HORIZONTAL_RANGE),
+                entity -> entity.isAlive()
+                        && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+        );
         LivingEntity best = null;
         double bestDist = Double.MAX_VALUE;
         for (LivingEntity hostile : hostiles) {

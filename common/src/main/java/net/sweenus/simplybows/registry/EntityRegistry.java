@@ -8,6 +8,8 @@ import net.minecraft.entity.SpawnGroup;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
 import net.sweenus.simplybows.entity.BeeArrowEntity;
+import net.sweenus.simplybows.entity.BeeGraceVisualEntity;
+import net.sweenus.simplybows.entity.BeeHiveVisualEntity;
 import net.sweenus.simplybows.entity.BlossomArrowEntity;
 import net.sweenus.simplybows.SimplyBows;
 import net.sweenus.simplybows.entity.BubbleArrowEntity;
@@ -81,6 +83,18 @@ public class EntityRegistry {
             () -> EntityType.Builder.<VineFlowerVisualEntity>create(VineFlowerVisualEntity::new, SpawnGroup.MISC)
                     .dimensions(0.8F, 1.2F)
                     .build(SimplyBows.MOD_ID + ":vine_flower_visual"));
+
+    public static final RegistrySupplier<EntityType<BeeHiveVisualEntity>> BEE_HIVE_VISUAL = ENTITY_TYPES.register("bee_hive_visual",
+            () -> EntityType.Builder.<BeeHiveVisualEntity>create(BeeHiveVisualEntity::new, SpawnGroup.MISC)
+                    .dimensions(1.0F, 1.0F)
+                    .build(SimplyBows.MOD_ID + ":bee_hive_visual"));
+
+    public static final RegistrySupplier<EntityType<BeeGraceVisualEntity>> BEE_GRACE_VISUAL = ENTITY_TYPES.register("bee_grace_visual",
+            () -> EntityType.Builder.<BeeGraceVisualEntity>create(BeeGraceVisualEntity::new, SpawnGroup.MISC)
+                    .dimensions(0.5F, 0.5F)
+                    .maxTrackingRange(64)
+                    .trackingTickInterval(1)
+                    .build(SimplyBows.MOD_ID + ":bee_grace_visual"));
 
     public static void registerEntities() {
         ENTITY_TYPES.register();

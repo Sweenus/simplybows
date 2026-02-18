@@ -8,6 +8,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
 import net.sweenus.simplybows.entity.BeeArrowEntity;
+import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -37,8 +38,9 @@ public class BeeBowItem extends SimplyBowItem {
             firedArrowStack = new ItemStack(Items.ARROW);
         }
 
+        BowUpgradeData upgrades = BowUpgradeData.from(weaponStack);
         BeeArrowEntity arrowEntity = new BeeArrowEntity(world, shooter, firedArrowStack, weaponStack);
-        arrowEntity.setDamage(2.0);
+        arrowEntity.setDamage(2.0 * upgrades.damageMultiplier());
         arrowEntity.setCritical(critical);
         return arrowEntity;
     }

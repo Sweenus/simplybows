@@ -9,6 +9,7 @@
   "mixins": [
     "AnvilScreenHandlerMixin",
     "EntityAccessor",
+    "LivingEntityMixin",
     "ServerPlayerEntityMixin",
     "ServerWorldMixin"
   ],

@@ -4,13 +4,19 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.loot.LootTable;
+import net.minecraft.loot.context.LootContextParameterSet;
+import net.minecraft.loot.context.LootContextParameters;
+import net.minecraft.loot.context.LootContextTypes;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.tag.EntityTypeTags;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
@@ -19,6 +25,7 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.GameRules;
 import net.sweenus.simplybows.entity.VineFlowerVisualEntity;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
@@ -43,7 +50,7 @@ public final class VineFlowerFieldManager {
     private static final int GROWTH_POINTS_PER_TICK = 6;
     private static final int SPRING_ANIM_TICKS = 8;
     private static final double SPRING_START_OFFSET_Y = -0.62;
-    private static final float FRIENDLY_HEAL = 2.0F;
+    private static final float FRIENDLY_HEAL = 1.0F;
     private static final float HOSTILE_DAMAGE = 2.0F;
     private static final float UNDEAD_BONUS_DAMAGE = 0.6F;
     private static final int GROUND_SCAN_UP = 5;
@@ -160,7 +167,7 @@ public final class VineFlowerFieldManager {
                     }
                     boolean died = dealAuraDamage(world, owner, entity, damage);
                     if (died && tuning.bountyLootChance() > 0.0) {
-                        trySpawnBountyLoot(entity, tuning.bountyLootChance());
+                        trySpawnBountyLoot(world, entity, owner, tuning.bountyLootChance());
                     }
                 }
                 continue;
@@ -407,11 +414,54 @@ public final class VineFlowerFieldManager {
         return true;
     }
 
-    private static void trySpawnBountyLoot(LivingEntity entity, double chance) {
+    private static void trySpawnBountyLoot(ServerWorld world, LivingEntity entity, LivingEntity owner, double chance) {
+        if (!world.getGameRules().getBoolean(GameRules.DO_MOB_LOOT)) {
+            return;
+        }
         if (entity.getRandom().nextDouble() > chance) {
             return;
         }
-        entity.dropStack(new ItemStack(Items.EMERALD));
+
+        RegistryKey<LootTable> lootTableKey = entity.getLootTable();
+        LootTable lootTable = world.getServer().getReloadableRegistries().getLootTable(lootTableKey);
+        DamageSource damageSource = createBountyDamageSource(world, owner);
+
+        LootContextParameterSet.Builder builder = new LootContextParameterSet.Builder(world)
+                .add(LootContextParameters.THIS_ENTITY, entity)
+                .add(LootContextParameters.ORIGIN, entity.getPos())
+                .add(LootContextParameters.DAMAGE_SOURCE, damageSource)
+                .addOptional(LootContextParameters.ATTACKING_ENTITY, damageSource.getAttacker())
+                .addOptional(LootContextParameters.DIRECT_ATTACKING_ENTITY, damageSource.getSource());
+
+        if (owner instanceof ServerPlayerEntity playerOwner) {
+            builder = builder.add(LootContextParameters.LAST_DAMAGE_PLAYER, playerOwner).luck(playerOwner.getLuck());
+        }
+
+        LootContextParameterSet lootContext = builder.build(LootContextTypes.ENTITY);
+        List<ItemStack> generatedLoot = lootTable.generateLoot(lootContext, entity.getLootTableSeed() ^ world.getRandom().nextLong());
+        if (generatedLoot.isEmpty()) {
+            return;
+        }
+
+        List<ItemStack> nonEmptyLoot = generatedLoot.stream()
+                .filter(stack -> stack != null && !stack.isEmpty())
+                .toList();
+        if (nonEmptyLoot.isEmpty()) {
+            return;
+        }
+
+        ItemStack extraDrop = nonEmptyLoot.get(world.getRandom().nextInt(nonEmptyLoot.size())).copy();
+        entity.dropStack(extraDrop);
+    }
+
+    private static DamageSource createBountyDamageSource(ServerWorld world, LivingEntity owner) {
+        if (owner instanceof ServerPlayerEntity playerOwner) {
+            return world.getDamageSources().playerAttack(playerOwner);
+        }
+        if (owner != null) {
+            return world.getDamageSources().mobAttack(owner);
+        }
+        return world.getDamageSources().magic();
     }
 
     private static void growFieldVisuals(ServerWorld world, ActiveFlowerField field) {

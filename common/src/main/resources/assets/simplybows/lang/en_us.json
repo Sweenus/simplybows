@@ -47,7 +47,7 @@
   "tooltip.simplybows.rune.none": "None",
   "tooltip.simplybows.rune.none_effect": "  \u25e6 No rune etched.",
 
-  "tooltip.simplybows.bow.vine.ability": "Fires an arrow that cultivates a flower field that heals allies and harms enemies.",
+  "tooltip.simplybows.bow.vine.ability": "Fires an arrow that cultivates a flower field, healing allies and harming enemies.",
   "tooltip.simplybows.bow.ice.ability": "Fires a fan of homing frost arrows.",
   "tooltip.simplybows.bow.bubble.ability": "Fires arrows unaffected by water drag, and create short-lived bubble columns.",
   "tooltip.simplybows.bow.bee.ability": "Fires bees that inflict poison.",
@@ -65,6 +65,8 @@
   "tooltip.simplybows.bow.echo.frame_effect": "  \u25e6 - Fire-rate, + Range.",
   "tooltip.simplybows.bow.ice.string_effect": "  \u25e6 + Arrow count.",
   "tooltip.simplybows.bow.ice.frame_effect": "  \u25e6 + Arrow damage.",
+  "tooltip.simplybows.bow.bee.string_effect": "  \u25e6 + Poison.",
+  "tooltip.simplybows.bow.bee.frame_effect": "  \u25e6 + Bee damage.",
 
   "tooltip.simplybows.bow.generic.rune.pain": "  Alters the behavior of a unique bow ability.",
   "tooltip.simplybows.bow.generic.rune.grace": "  Alters the behavior of a unique bow ability.",
@@ -78,6 +80,8 @@
   "tooltip.simplybows.bow.ice.rune.pain": "  Arrows focus on a single target and deal more damage.",
   "tooltip.simplybows.bow.ice.rune.grace": "  Arrows apply stacking slowness on hit.",
   "tooltip.simplybows.bow.ice.rune.bounty": "  Fires additional arrows, but arrows deal less damage.",
+  "tooltip.simplybows.bow.bee.rune.grace": "  Shooting at allies will summon bees that orbit them, blocking the next incoming hit.",
+  "tooltip.simplybows.bow.bee.rune.bounty": "  Bees create a temporary beehive on impact that sends extra bees to attack nearby hostiles.",
   "tooltip.simplybows.bow.echo.rune.pain": "  WIP",
   "tooltip.simplybows.bow.echo.rune.grace": "  WIP",
   "tooltip.simplybows.bow.echo.rune.bounty": "One of the magical bows will now mirror your off-hand bow.",

@@ -2,6 +2,8 @@ package net.sweenus.simplybows.mixin;
 
 import net.minecraft.server.world.ServerWorld;
 import net.sweenus.simplybows.world.BlossomStormManager;
+import net.sweenus.simplybows.world.BeeGraceShieldManager;
+import net.sweenus.simplybows.world.BeeHiveSwarmManager;
 import net.sweenus.simplybows.world.BubbleColumnFieldManager;
 import net.sweenus.simplybows.world.EarthSpikeFieldManager;
 import net.sweenus.simplybows.world.EchoShoulderBowManager;
@@ -23,6 +25,8 @@ public abstract class ServerWorldMixin {
         BubbleColumnFieldManager.tick(world);
         BlossomStormManager.tick(world);
         EarthSpikeFieldManager.tick(world);
+        BeeHiveSwarmManager.tick(world);
+        BeeGraceShieldManager.tick(world);
         EchoShoulderBowManager.tickWorld(world);
     }
 }

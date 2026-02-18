@@ -92,6 +92,7 @@ public final class BowTooltipHelper {
     private static String getRuneEffectKey(String bowKey, RuneEtching rune) {
         String special = "tooltip.simplybows.bow." + bowKey + ".rune." + rune.id();
         return switch (bowKey) {
+            case "bee" -> (rune == RuneEtching.BOUNTY || rune == RuneEtching.GRACE) ? special : "tooltip.simplybows.bow.generic.rune." + rune.id();
             case "vine", "earth", "ice", "echo" -> special;
             default -> "tooltip.simplybows.bow.generic.rune." + rune.id();
         };
