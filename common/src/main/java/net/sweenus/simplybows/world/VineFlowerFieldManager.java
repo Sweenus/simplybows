@@ -5,7 +5,6 @@ import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -45,7 +44,8 @@ public final class VineFlowerFieldManager {
     private static final int SPRING_ANIM_TICKS = 8;
     private static final double SPRING_START_OFFSET_Y = -0.62;
     private static final float FRIENDLY_HEAL = 2.0F;
-    private static final float UNDEAD_DAMAGE = 3.0F;
+    private static final float HOSTILE_DAMAGE = 2.0F;
+    private static final float UNDEAD_BONUS_DAMAGE = 0.6F;
     private static final int GROUND_SCAN_UP = 5;
     private static final int GROUND_SCAN_DOWN = 18;
     private static final int FLOWER_TYPE_SHORT_GRASS = 0;
@@ -55,6 +55,8 @@ public final class VineFlowerFieldManager {
     private static final int FLOWER_TYPE_CHERRY_LOG = 4;
     private static final int FLOWER_TYPE_CHERRY_LEAVES = 5;
     private static final int MAX_VISUAL_POINTS = 180;
+    private static final int FIELD_PULSE_INTERVAL_TICKS = 24;
+    private static final int FIELD_PULSE_CUTOFF_TICKS = 80;
     private static final String FIELD_VISUAL_TAG = "simplybows_vine_field_visual";
     private static final Map<ServerWorld, List<ActiveFlowerField>> ACTIVE_FIELDS = new HashMap<>();
 
@@ -118,6 +120,7 @@ public final class VineFlowerFieldManager {
             growFieldVisuals(world, field);
             animateFieldVisuals(world, field);
             spawnAmbientParticles(world, field.center(), field.tuning());
+            playFieldPulseSound(world, field);
 
             if (world.getTime() % 10L == 0L) {
                 attractPassiveMobs(world, field.center(), field.tuning());
@@ -149,19 +152,13 @@ public final class VineFlowerFieldManager {
                 continue;
             }
 
-            if (entity.getType().isIn(EntityTypeTags.UNDEAD)) {
-                if (tuning.undeadDamage() > 0.0F) {
-                    boolean died = dealAuraDamage(world, owner, entity, tuning.undeadDamage());
-                    if (died && tuning.bountyLootChance() > 0.0) {
-                        trySpawnBountyLoot(entity, tuning.bountyLootChance());
-                    }
-                }
-                continue;
-            }
-
-            if (entity instanceof HostileEntity) {
+            if (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity)) {
                 if (tuning.damageHostiles() && tuning.hostileDamage() > 0.0F) {
-                    boolean died = dealAuraDamage(world, owner, entity, tuning.hostileDamage());
+                    float damage = tuning.hostileDamage();
+                    if (entity.getType().isIn(EntityTypeTags.UNDEAD)) {
+                        damage += tuning.undeadBonusDamage();
+                    }
+                    boolean died = dealAuraDamage(world, owner, entity, damage);
                     if (died && tuning.bountyLootChance() > 0.0) {
                         trySpawnBountyLoot(entity, tuning.bountyLootChance());
                     }
@@ -170,7 +167,18 @@ public final class VineFlowerFieldManager {
             }
 
             if (tuning.cleanseNegativeEffects()) {
-                cleanseNegativeEffects(entity);
+                if (cleanseNegativeEffects(entity)) {
+                    world.playSound(
+                            null,
+                            entity.getX(),
+                            entity.getBodyY(0.5),
+                            entity.getZ(),
+                            SoundEvents.BLOCK_AMETHYST_CLUSTER_HIT,
+                            SoundCategory.PLAYERS,
+                            0.75F,
+                            1.35F + world.getRandom().nextFloat() * 0.15F
+                    );
+                }
             }
             if (tuning.healFriendlies() && entity.getHealth() < entity.getMaxHealth()) {
                 CombatTargeting.applyHealing(owner, entity, tuning.friendlyHeal());
@@ -181,12 +189,55 @@ public final class VineFlowerFieldManager {
     private static void spawnAmbientParticles(ServerWorld world, Vec3d center, FieldTuning tuning) {
         world.spawnParticles(ParticleTypes.FALLING_SPORE_BLOSSOM, center.x, center.y + 0.35, center.z, 2, 1.6, 0.2, 1.6, 0.0);
         world.spawnParticles(ParticleTypes.COMPOSTER, center.x, center.y + 0.2, center.z, 2, 1.3, 0.1, 1.3, 0.0);
+        spawnGlitterParticles(world, center, tuning);
         if (tuning.cherryTreeVisual() && world.getTime() % 2L == 0L) {
             world.spawnParticles(ParticleTypes.CHERRY_LEAVES, center.x, center.y + 2.5, center.z, 2, 0.45, 0.6, 0.45, 0.0);
             if (world.getTime() % 6L == 0L) {
                 world.spawnParticles(ParticleTypes.SPORE_BLOSSOM_AIR, center.x, center.y + 2.2, center.z, 1, 0.28, 0.4, 0.28, 0.0);
             }
         }
+    }
+
+    private static void spawnGlitterParticles(ServerWorld world, Vec3d center, FieldTuning tuning) {
+        if (world.getTime() % 3L != 0L) {
+            return;
+        }
+        int count = world.random.nextInt(2) + 1;
+        double radius = tuning.fieldRadius() * 0.92;
+        for (int i = 0; i < count; i++) {
+            double angle = world.random.nextDouble() * Math.PI * 2.0;
+            double dist = Math.sqrt(world.random.nextDouble()) * radius;
+            double x = center.x + Math.cos(angle) * dist;
+            double z = center.z + Math.sin(angle) * dist;
+            double y = center.y + 0.45 + world.random.nextDouble() * 0.55;
+
+            world.spawnParticles(ParticleTypes.END_ROD, x, y, z, 1, 0.0, 0.0, 0.0, 0.01);
+            if (world.random.nextFloat() < 0.35F) {
+                world.spawnParticles(ParticleTypes.ENCHANT, x, y + 0.04, z, 1, 0.0, 0.05, 0.0, 0.01);
+            }
+        }
+    }
+
+    private static void playFieldPulseSound(ServerWorld world, ActiveFlowerField field) {
+        if (world.getTime() >= field.expiryTick() - FIELD_PULSE_CUTOFF_TICKS) {
+            return;
+        }
+        if (world.getTime() % FIELD_PULSE_INTERVAL_TICKS != 0L) {
+            return;
+        }
+        Vec3d center = field.center();
+        float phase = (float) Math.sin((double) world.getTime() * 0.08);
+        float pitch = 0.6F + phase * 0.15F + world.getRandom().nextFloat() * 0.06F;
+        world.playSound(
+                null,
+                center.x,
+                center.y + 0.25,
+                center.z,
+                SoundEvents.BLOCK_BEACON_AMBIENT,
+                SoundCategory.PLAYERS,
+                0.90F,
+                pitch
+        );
     }
 
     private static void spawnBurstParticles(ServerWorld world, Vec3d center, FieldTuning tuning) {
@@ -246,10 +297,10 @@ public final class VineFlowerFieldManager {
         RuneEtching rune = upgrades.runeEtching();
 
         float friendlyHeal = FRIENDLY_HEAL * frameMultiplier;
-        float hostileDamage = 0.0F;
-        float undeadDamage = UNDEAD_DAMAGE * frameMultiplier;
+        float hostileDamage = HOSTILE_DAMAGE * frameMultiplier;
+        float undeadBonusDamage = UNDEAD_BONUS_DAMAGE * frameMultiplier;
         boolean healFriendlies = true;
-        boolean damageHostiles = false;
+        boolean damageHostiles = true;
         boolean cleanseNegative = false;
         boolean cherryTreeVisual = false;
         double bountyLootChance = 0.0;
@@ -258,13 +309,12 @@ public final class VineFlowerFieldManager {
         if (rune == RuneEtching.PAIN) {
             healFriendlies = false;
             damageHostiles = true;
-            hostileDamage = UNDEAD_DAMAGE * frameMultiplier;
             auraInterval = 10;
         } else if (rune == RuneEtching.GRACE) {
             healFriendlies = true;
             damageHostiles = false;
             hostileDamage = 0.0F;
-            undeadDamage = 0.0F;
+            undeadBonusDamage = 0.0F;
             cleanseNegative = true;
             cherryTreeVisual = true;
         } else if (rune == RuneEtching.BOUNTY) {
@@ -288,7 +338,7 @@ public final class VineFlowerFieldManager {
                 visualRadius,
                 friendlyHeal,
                 hostileDamage,
-                undeadDamage,
+                undeadBonusDamage,
                 healFriendlies,
                 damageHostiles,
                 cleanseNegative,
@@ -341,16 +391,20 @@ public final class VineFlowerFieldManager {
         return entity instanceof LivingEntity living ? living : null;
     }
 
-    private static void cleanseNegativeEffects(LivingEntity entity) {
+    private static boolean cleanseNegativeEffects(LivingEntity entity) {
         List<StatusEffectInstance> toRemove = new ArrayList<>();
         for (StatusEffectInstance instance : entity.getStatusEffects()) {
             if (!instance.getEffectType().value().isBeneficial()) {
                 toRemove.add(instance);
             }
         }
+        if (toRemove.isEmpty()) {
+            return false;
+        }
         for (StatusEffectInstance instance : toRemove) {
             entity.removeStatusEffect(instance.getEffectType());
         }
+        return true;
     }
 
     private static void trySpawnBountyLoot(LivingEntity entity, double chance) {
@@ -518,7 +572,7 @@ public final class VineFlowerFieldManager {
             double visualRadius,
             float friendlyHeal,
             float hostileDamage,
-            float undeadDamage,
+            float undeadBonusDamage,
             boolean healFriendlies,
             boolean damageHostiles,
             boolean cleanseNegativeEffects,

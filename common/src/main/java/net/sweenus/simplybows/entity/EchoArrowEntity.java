@@ -12,7 +12,6 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.world.World;
-import net.sweenus.simplybows.registry.EntityRegistry;
 
 public class EchoArrowEntity extends ArrowEntity {
 
@@ -21,13 +20,7 @@ public class EchoArrowEntity extends ArrowEntity {
     }
 
     public EchoArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
-        super(EntityRegistry.ECHO_ARROW.get(), world);
-        this.setStack(sanitizeArrowStack(arrowStack));
-        this.setOwner(owner);
-        this.setPosition(owner.getX(), owner.getEyeY() - 0.1, owner.getZ());
-        this.prevX = owner.getX();
-        this.prevY = owner.getEyeY() - 0.1;
-        this.prevZ = owner.getZ();
+        super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
     }
 
     @Override
@@ -40,7 +33,15 @@ public class EchoArrowEntity extends ArrowEntity {
 
     @Override
     protected void onEntityHit(EntityHitResult entityHitResult) {
+        if (entityHitResult.getEntity() instanceof LivingEntity living) {
+            living.hurtTime = 0;
+            living.timeUntilRegen = 0;
+        }
         super.onEntityHit(entityHitResult);
+        if (entityHitResult.getEntity() instanceof LivingEntity living) {
+            living.hurtTime = 0;
+            living.timeUntilRegen = 0;
+        }
         if (this.getWorld() instanceof ServerWorld serverWorld) {
             serverWorld.spawnParticles(ParticleTypes.ENCHANT, entityHitResult.getPos().x, entityHitResult.getPos().y + 0.1, entityHitResult.getPos().z, 10, 0.15, 0.15, 0.15, 0.0);
             serverWorld.playSound(null, entityHitResult.getPos().x, entityHitResult.getPos().y, entityHitResult.getPos().z, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.PLAYERS, 0.5F, 1.25F);

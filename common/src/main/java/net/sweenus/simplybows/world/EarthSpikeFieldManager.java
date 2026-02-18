@@ -49,6 +49,7 @@ public final class EarthSpikeFieldManager {
     private static final double STRING_WAVE_DISTANCE_BONUS_PER_LEVEL = 1.2;
     private static final double BASE_UPWARD_KNOCKBACK = 0.4;
     private static final double FRAME_UPWARD_KNOCKBACK_PER_LEVEL = 0.7;
+    private static final String SPIKE_VISUAL_TAG = "simplybows_earth_spike_visual";
     private static final Map<ServerWorld, List<ActiveSpikeField>> ACTIVE_FIELDS = new HashMap<>();
 
     private EarthSpikeFieldManager() {
@@ -91,6 +92,9 @@ public final class EarthSpikeFieldManager {
     public static void tick(ServerWorld world) {
         List<ActiveSpikeField> fields = ACTIVE_FIELDS.get(world);
         if (fields == null || fields.isEmpty()) {
+            if (world.getTime() % 20L == 0L) {
+                purgeOrphanSpikeVisuals(world);
+            }
             return;
         }
 
@@ -103,6 +107,7 @@ public final class EarthSpikeFieldManager {
         });
         if (fields.isEmpty()) {
             ACTIVE_FIELDS.remove(world);
+            purgeOrphanSpikeVisuals(world);
             return;
         }
 
@@ -229,6 +234,8 @@ public final class EarthSpikeFieldManager {
             spawnSpikeVisual(world, field, pos.x, y, pos.z, heightSegments, world.getTime());
             damageAtWaveStep(world, getOwnerEntity(world, field.ownerId()), pos.x, y, pos.z, field.tuning().damage() * PAIN_WAVE_DAMAGE_MULTIPLIER, field.tuning().upwardKnockback());
             world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.POINTED_DRIPSTONE.getDefaultState()), pos.x, y + 0.2, pos.z, 3, 0.1, 0.08, 0.1, 0.005);
+            world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.DRIPSTONE_BLOCK.getDefaultState()), pos.x, y + 0.15, pos.z, 5, 0.16, 0.08, 0.16, 0.01);
+            world.playSound(null, pos.x, y, pos.z, SoundEvents.BLOCK_POINTED_DRIPSTONE_LAND, SoundCategory.PLAYERS, 0.45F, 1.05F + world.random.nextFloat() * 0.15F);
 
             wave.advance(PAIN_WAVE_STEP_TICKS);
             return wave.nextStep() > maxSteps;
@@ -238,7 +245,7 @@ public final class EarthSpikeFieldManager {
     private static void spawnSpikeVisual(ServerWorld world, ActiveSpikeField field, double x, double y, double z, int heightSegments, long spawnTick) {
         float targetHeight = (float) (heightSegments * SPIKE_SEGMENT_HEIGHT);
         EarthSpikeVisualEntity visual = new EarthSpikeVisualEntity(world, x, y - START_DEPTH, z, targetHeight);
-        visual.addCommandTag("simplybows_earth_spike_visual");
+        visual.addCommandTag(SPIKE_VISUAL_TAG);
         world.spawnEntity(visual);
         field.visuals.add(new SpikeVisual(visual.getUuid(), x, y, z, spawnTick));
     }
@@ -340,6 +347,14 @@ public final class EarthSpikeFieldManager {
         for (SpikeVisual visual : field.visuals) {
             Entity entity = world.getEntity(visual.id());
             if (entity != null) {
+                entity.discard();
+            }
+        }
+    }
+
+    private static void purgeOrphanSpikeVisuals(ServerWorld world) {
+        for (Entity entity : world.iterateEntities()) {
+            if (entity instanceof EarthSpikeVisualEntity && entity.getCommandTags().contains(SPIKE_VISUAL_TAG)) {
                 entity.discard();
             }
         }

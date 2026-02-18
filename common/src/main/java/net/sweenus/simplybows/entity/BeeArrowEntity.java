@@ -15,7 +15,6 @@ import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import net.sweenus.simplybows.registry.EntityRegistry;
 
 public class BeeArrowEntity extends ArrowEntity {
 
@@ -30,13 +29,7 @@ public class BeeArrowEntity extends ArrowEntity {
     }
 
     public BeeArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
-        super(EntityRegistry.BEE_ARROW.get(), world);
-        this.setStack(sanitizeArrowStack(arrowStack));
-        this.setOwner(owner);
-        this.setPosition(owner.getX(), owner.getEyeY() - 0.1, owner.getZ());
-        this.prevX = owner.getX();
-        this.prevY = owner.getEyeY() - 0.1;
-        this.prevZ = owner.getZ();
+        super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
     }
 
     @Override
@@ -73,7 +66,15 @@ public class BeeArrowEntity extends ArrowEntity {
 
     @Override
     protected void onEntityHit(EntityHitResult entityHitResult) {
+        if (entityHitResult.getEntity() instanceof LivingEntity living) {
+            living.hurtTime = 0;
+            living.timeUntilRegen = 0;
+        }
         super.onEntityHit(entityHitResult);
+        if (entityHitResult.getEntity() instanceof LivingEntity living) {
+            living.hurtTime = 0;
+            living.timeUntilRegen = 0;
+        }
 
         if (!(entityHitResult.getEntity() instanceof LivingEntity livingEntity)) {
             return;

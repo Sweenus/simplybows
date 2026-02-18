@@ -31,13 +31,7 @@ public class EarthArrowEntity extends ArrowEntity {
     }
 
     public EarthArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
-        super(EntityRegistry.EARTH_ARROW.get(), world);
-        this.setStack(sanitizeArrowStack(arrowStack));
-        this.setOwner(owner);
-        this.setPosition(owner.getX(), owner.getEyeY() - 0.1, owner.getZ());
-        this.prevX = owner.getX();
-        this.prevY = owner.getEyeY() - 0.1;
-        this.prevZ = owner.getZ();
+        super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
         this.upgrades = BowUpgradeData.from(weaponStack);
     }
 
@@ -51,7 +45,15 @@ public class EarthArrowEntity extends ArrowEntity {
 
     @Override
     protected void onEntityHit(EntityHitResult entityHitResult) {
+        if (entityHitResult.getEntity() instanceof LivingEntity living) {
+            living.hurtTime = 0;
+            living.timeUntilRegen = 0;
+        }
         super.onEntityHit(entityHitResult);
+        if (entityHitResult.getEntity() instanceof LivingEntity living) {
+            living.hurtTime = 0;
+            living.timeUntilRegen = 0;
+        }
         if (this.getWorld() instanceof ServerWorld serverWorld) {
             Vec3d pos = entityHitResult.getPos();
             serverWorld.playSound(null, pos.x, pos.y, pos.z, SoundEvents.BLOCK_POINTED_DRIPSTONE_LAND, SoundCategory.PLAYERS, 0.9F, 0.95F + this.random.nextFloat() * 0.2F);

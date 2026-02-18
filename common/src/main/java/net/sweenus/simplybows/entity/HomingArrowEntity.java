@@ -278,6 +278,8 @@ public class HomingArrowEntity extends ArrowEntity {
             spawnImpactParticles(serverWorld, target);
         }
         super.onHit(target);
+        target.hurtTime = 0;
+        target.timeUntilRegen = 0;
         // Handle any additional logic for when the arrow hits its target
     }
 

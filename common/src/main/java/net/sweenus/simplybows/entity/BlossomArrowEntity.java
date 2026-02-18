@@ -13,7 +13,6 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import net.sweenus.simplybows.registry.EntityRegistry;
 import net.sweenus.simplybows.world.BlossomStormManager;
 
 public class BlossomArrowEntity extends ArrowEntity {
@@ -25,13 +24,7 @@ public class BlossomArrowEntity extends ArrowEntity {
     }
 
     public BlossomArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
-        super(EntityRegistry.BLOSSOM_ARROW.get(), world);
-        this.setStack(sanitizeArrowStack(arrowStack));
-        this.setOwner(owner);
-        this.setPosition(owner.getX(), owner.getEyeY() - 0.1, owner.getZ());
-        this.prevX = owner.getX();
-        this.prevY = owner.getEyeY() - 0.1;
-        this.prevZ = owner.getZ();
+        super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
     }
 
     @Override
@@ -44,7 +37,15 @@ public class BlossomArrowEntity extends ArrowEntity {
 
     @Override
     protected void onEntityHit(EntityHitResult entityHitResult) {
+        if (entityHitResult.getEntity() instanceof LivingEntity living) {
+            living.hurtTime = 0;
+            living.timeUntilRegen = 0;
+        }
         super.onEntityHit(entityHitResult);
+        if (entityHitResult.getEntity() instanceof LivingEntity living) {
+            living.hurtTime = 0;
+            living.timeUntilRegen = 0;
+        }
         if (this.getWorld() instanceof ServerWorld serverWorld) {
             serverWorld.playSound(null, entityHitResult.getPos().x, entityHitResult.getPos().y, entityHitResult.getPos().z, SoundEvents.BLOCK_SPORE_BLOSSOM_PLACE, SoundCategory.PLAYERS, 0.85F, 1.0F + this.random.nextFloat() * 0.2F);
         }

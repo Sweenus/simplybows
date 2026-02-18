@@ -273,6 +273,8 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
             spawnImpactParticles(serverWorld, target);
         }
         super.onHit(target);
+        target.hurtTime = 0;
+        target.timeUntilRegen = 0;
     }
 
     LivingEntity getTargetEntity() {

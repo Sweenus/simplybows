@@ -60,11 +60,19 @@ public class VineArrowEntity extends ArrowEntity {
 
     @Override
     protected void onEntityHit(EntityHitResult entityHitResult) {
+        if (entityHitResult.getEntity() instanceof LivingEntity living) {
+            living.hurtTime = 0;
+            living.timeUntilRegen = 0;
+        }
         if (this.getWorld() instanceof ServerWorld serverWorld) {
             spawnImpactParticles(serverWorld, entityHitResult.getPos());
         }
         trySpawnFlowerField(entityHitResult.getPos());
         super.onEntityHit(entityHitResult);
+        if (entityHitResult.getEntity() instanceof LivingEntity living) {
+            living.hurtTime = 0;
+            living.timeUntilRegen = 0;
+        }
     }
 
     @Override
