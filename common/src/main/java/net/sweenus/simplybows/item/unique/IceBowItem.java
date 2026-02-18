@@ -19,6 +19,7 @@ import net.sweenus.simplybows.entity.HomingSpectralArrowEntity;
 import net.sweenus.simplybows.registry.ItemRegistry;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
+import net.sweenus.simplybows.util.CombatTargeting;
 import net.sweenus.simplybows.util.HelperMethods;
 import org.jetbrains.annotations.Nullable;
 
@@ -155,6 +156,9 @@ public class IceBowItem extends SimplyBowItem {
         LivingEntity best = null;
         double bestDist = Double.MAX_VALUE;
         for (LivingEntity hostile : hostiles) {
+            if (!CombatTargeting.checkFriendlyFire(hostile, player)) {
+                continue;
+            }
             double dist = hostile.squaredDistanceTo(player);
             if (dist < bestDist) {
                 bestDist = dist;

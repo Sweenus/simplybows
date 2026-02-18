@@ -2,13 +2,13 @@ package net.sweenus.simplybows.world;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
+import net.sweenus.simplybows.util.CombatTargeting;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,6 +32,10 @@ public final class BlossomStormManager {
     public static void createStorm(ServerWorld world, Vec3d startPos, LivingEntity directTarget, Entity owner) {
         List<ActiveStorm> existing = ACTIVE_STORMS.computeIfAbsent(world, w -> new ArrayList<>());
         UUID ownerId = owner != null ? owner.getUuid() : null;
+        if (directTarget != null && owner instanceof LivingEntity ownerLiving
+                && !CombatTargeting.checkFriendlyFire(directTarget, ownerLiving)) {
+            directTarget = null;
+        }
         if (ownerId != null) {
             existing.removeIf(storm -> ownerId.equals(storm.ownerId));
         }
@@ -76,7 +80,7 @@ public final class BlossomStormManager {
 
         if (now >= storm.nextDamageTick) {
             if (currentTarget != null && currentTarget.isAlive()) {
-                currentTarget.damage(world.getDamageSources().magic(), STORM_DAMAGE);
+                CombatTargeting.applyDamage(world, getLivingEntityNullable(world, storm.ownerId), currentTarget, STORM_DAMAGE, true);
             }
             storm.nextDamageTick = now + DAMAGE_INTERVAL_TICKS;
         }
@@ -99,21 +103,29 @@ public final class BlossomStormManager {
 
     private static LivingEntity findNextTarget(ServerWorld world, ActiveStorm storm, LivingEntity currentTarget) {
         Box search = Box.of(storm.center, JUMP_RANGE * 2.0, 5.0, JUMP_RANGE * 2.0);
-        List<HostileEntity> candidates = world.getEntitiesByClass(HostileEntity.class, search, LivingEntity::isAlive);
+        List<LivingEntity> candidates = world.getEntitiesByClass(
+                LivingEntity.class,
+                search,
+                entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+        );
+        LivingEntity owner = getLivingEntityNullable(world, storm.ownerId);
 
         LivingEntity best = null;
         double bestDist = Double.MAX_VALUE;
-        for (HostileEntity hostile : candidates) {
-            if (storm.ownerId != null && hostile.getUuid().equals(storm.ownerId)) {
+        for (LivingEntity candidate : candidates) {
+            if (storm.ownerId != null && candidate.getUuid().equals(storm.ownerId)) {
                 continue;
             }
-            if (currentTarget != null && hostile.getUuid().equals(currentTarget.getUuid())) {
+            if (currentTarget != null && candidate.getUuid().equals(currentTarget.getUuid())) {
                 continue;
             }
-            double dist = hostile.squaredDistanceTo(storm.center);
+            if (owner != null && !CombatTargeting.checkFriendlyFire(candidate, owner)) {
+                continue;
+            }
+            double dist = candidate.squaredDistanceTo(storm.center);
             if (dist < bestDist) {
                 bestDist = dist;
-                best = hostile;
+                best = candidate;
             }
         }
         return best;
@@ -150,6 +162,13 @@ public final class BlossomStormManager {
     private static LivingEntity getLivingEntity(ServerWorld world, UUID id) {
         Entity entity = world.getEntity(id);
         return entity instanceof LivingEntity living ? living : null;
+    }
+
+    private static LivingEntity getLivingEntityNullable(ServerWorld world, UUID id) {
+        if (id == null) {
+            return null;
+        }
+        return getLivingEntity(world, id);
     }
 
     private static final class ActiveStorm {

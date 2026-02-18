@@ -2,7 +2,6 @@ package net.sweenus.simplybows.world;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.block.Blocks;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
@@ -17,6 +16,7 @@ import net.minecraft.util.math.Vec3d;
 import net.sweenus.simplybows.entity.EarthSpikeVisualEntity;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
+import net.sweenus.simplybows.util.CombatTargeting;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -79,7 +79,7 @@ public final class EarthSpikeFieldManager {
         spawnSpikeVisuals(world, field, points);
         fields.add(field);
 
-        applySpikeDamage(world, center, tuning.radius(), tuning.damage(), tuning.upwardKnockback());
+        applySpikeDamage(world, getOwnerEntity(world, ownerId), center, tuning.radius(), tuning.damage(), tuning.upwardKnockback());
         if (tuning.outwardPainWaves()) {
             initializePainWaves(field, now);
         }
@@ -112,15 +112,19 @@ public final class EarthSpikeFieldManager {
         }
     }
 
-    private static void applySpikeDamage(ServerWorld world, Vec3d center, double radius, float damage, double upwardKnockback) {
+    private static void applySpikeDamage(ServerWorld world, LivingEntity owner, Vec3d center, double radius, float damage, double upwardKnockback) {
         Box box = Box.of(center, radius * 2.0, 3.5, radius * 2.0);
-        for (HostileEntity hostile : world.getEntitiesByClass(HostileEntity.class, box, LivingEntity::isAlive)) {
-            if (hostile.squaredDistanceTo(center) > radius * radius) {
+        for (LivingEntity candidate : world.getEntitiesByClass(
+                LivingEntity.class,
+                box,
+                entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+        )) {
+            if (candidate.squaredDistanceTo(center) > radius * radius) {
                 continue;
             }
-            boolean damaged = hostile.damage(world.getDamageSources().magic(), damage);
+            boolean damaged = CombatTargeting.applyDamage(world, owner, candidate, damage, true);
             if (damaged) {
-                applyUpwardKnockback(hostile, upwardKnockback);
+                applyUpwardKnockback(candidate, upwardKnockback);
             }
         }
     }
@@ -223,7 +227,7 @@ public final class EarthSpikeFieldManager {
             double y = findGroundTopY(world, pos.x, pos.z, field.center().y) + BASE_GROUND_OFFSET;
             int heightSegments = 2 + (wave.nextStep() % 4);
             spawnSpikeVisual(world, field, pos.x, y, pos.z, heightSegments, world.getTime());
-            damageAtWaveStep(world, pos.x, y, pos.z, field.tuning().damage() * PAIN_WAVE_DAMAGE_MULTIPLIER, field.tuning().upwardKnockback());
+            damageAtWaveStep(world, getOwnerEntity(world, field.ownerId()), pos.x, y, pos.z, field.tuning().damage() * PAIN_WAVE_DAMAGE_MULTIPLIER, field.tuning().upwardKnockback());
             world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.POINTED_DRIPSTONE.getDefaultState()), pos.x, y + 0.2, pos.z, 3, 0.1, 0.08, 0.1, 0.005);
 
             wave.advance(PAIN_WAVE_STEP_TICKS);
@@ -239,25 +243,37 @@ public final class EarthSpikeFieldManager {
         field.visuals.add(new SpikeVisual(visual.getUuid(), x, y, z, spawnTick));
     }
 
-    private static void damageAtWaveStep(ServerWorld world, double x, double y, double z, float damage, double upwardKnockback) {
+    private static void damageAtWaveStep(ServerWorld world, LivingEntity owner, double x, double y, double z, float damage, double upwardKnockback) {
         Box hitBox = Box.of(new Vec3d(x, y + 0.3, z), PAIN_WAVE_DAMAGE_RADIUS * 2.0, 2.0, PAIN_WAVE_DAMAGE_RADIUS * 2.0);
-        for (HostileEntity hostile : world.getEntitiesByClass(HostileEntity.class, hitBox, LivingEntity::isAlive)) {
-            boolean damaged = hostile.damage(world.getDamageSources().magic(), damage);
+        for (LivingEntity candidate : world.getEntitiesByClass(
+                LivingEntity.class,
+                hitBox,
+                entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+        )) {
+            boolean damaged = CombatTargeting.applyDamage(world, owner, candidate, damage, true);
             if (damaged) {
-                applyUpwardKnockback(hostile, upwardKnockback);
+                applyUpwardKnockback(candidate, upwardKnockback);
             }
         }
+    }
+
+    private static LivingEntity getOwnerEntity(ServerWorld world, UUID ownerId) {
+        if (ownerId == null) {
+            return null;
+        }
+        Entity entity = world.getEntity(ownerId);
+        return entity instanceof LivingEntity living ? living : null;
     }
 
     private static int getPainWaveMaxSteps(FieldTuning tuning) {
         return Math.max(1, (int) Math.floor(tuning.painWaveDistance() / PAIN_WAVE_STEP_DISTANCE));
     }
 
-    private static void applyUpwardKnockback(HostileEntity hostile, double upwardKnockback) {
+    private static void applyUpwardKnockback(LivingEntity target, double upwardKnockback) {
         if (upwardKnockback <= 0.0) {
             return;
         }
-        hostile.addVelocity(0.0, upwardKnockback, 0.0);
+        target.addVelocity(0.0, upwardKnockback, 0.0);
     }
 
     private static float getHeightScale(long age) {

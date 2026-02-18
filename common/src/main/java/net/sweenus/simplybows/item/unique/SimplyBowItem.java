@@ -32,6 +32,13 @@ public class SimplyBowItem extends BowItem {
     public void appendTooltip(ItemStack stack, Item.TooltipContext context, List<Text> tooltip, TooltipType type) {
         super.appendTooltip(stack, context, tooltip, type);
         BowUpgradeData upgrades = BowUpgradeData.from(stack);
+        int usedSlots = upgrades.stringLevel() + upgrades.frameLevel();
+        int maxSlots = BowUpgradeData.getMaxTotalUpgradeSlots();
+        int maxPerType = BowUpgradeData.getMaxLevelPerType();
+
+        tooltip.add(Text.literal("Upgrade Slots: " + usedSlots + "/" + maxSlots).formatted(Formatting.GRAY));
+        tooltip.add(Text.literal(" Per-type cap: " + maxPerType).formatted(Formatting.DARK_GRAY));
+
         if (upgrades.stringLevel() <= 0 && upgrades.frameLevel() <= 0 && upgrades.runeEtching() == RuneEtching.NONE) {
             tooltip.add(Text.literal("Upgrades: None").formatted(Formatting.DARK_GRAY));
             return;

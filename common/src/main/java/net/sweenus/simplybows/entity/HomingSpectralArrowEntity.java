@@ -13,6 +13,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.sweenus.simplybows.util.CombatTargeting;
 
 import java.util.HashSet;
 import java.util.List;
@@ -75,7 +76,8 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
         if (!this.getWorld().isClient()) {
             if (this.lockSingleTarget && this.lockedTargetUuid != null && this.target == null && this.getWorld() instanceof ServerWorld serverWorld) {
                 net.minecraft.entity.Entity e = serverWorld.getEntity(this.lockedTargetUuid);
-                if (e instanceof LivingEntity living && living.isAlive()) {
+                if (e instanceof LivingEntity living && living.isAlive()
+                        && (!(this.getOwner() instanceof LivingEntity owner) || CombatTargeting.checkFriendlyFire(living, owner))) {
                     this.target = living;
                 }
             }
@@ -110,9 +112,12 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
     private LivingEntity findNearestHostileMob() {
         Box searchBox = new Box(this.getX() - HOMING_RADIUS, this.getY() - HOMING_RADIUS, this.getZ() - HOMING_RADIUS,
                 this.getX() + HOMING_RADIUS, this.getY() + HOMING_RADIUS, this.getZ() + HOMING_RADIUS);
+        LivingEntity owner = this.getOwner() instanceof LivingEntity livingOwner ? livingOwner : null;
 
         List<LivingEntity> entities = getEntityWorld().getEntitiesByClass(LivingEntity.class, searchBox, entity ->
-                entity instanceof HostileEntity && entity.isAlive());
+                entity.isAlive()
+                        && (entity instanceof HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                        && (owner == null || CombatTargeting.checkFriendlyFire(entity, owner)));
 
         if (!entities.isEmpty()) {
             Set<LivingEntity> avoided = new HashSet<>();
@@ -245,6 +250,17 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
             this.setVelocity(velocity.normalize().multiply(speedCap));
             this.velocityDirty = true;
         }
+    }
+
+    @Override
+    public boolean canHit(net.minecraft.entity.Entity entity) {
+        if (!(entity instanceof LivingEntity living)) {
+            return super.canHit(entity);
+        }
+        if (this.getOwner() instanceof LivingEntity owner && !CombatTargeting.checkFriendlyFire(living, owner)) {
+            return false;
+        }
+        return super.canHit(entity);
     }
 
     @Override

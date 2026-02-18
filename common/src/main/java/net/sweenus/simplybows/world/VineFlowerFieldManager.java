@@ -23,6 +23,7 @@ import net.minecraft.util.math.Vec3d;
 import net.sweenus.simplybows.entity.VineFlowerVisualEntity;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
+import net.sweenus.simplybows.util.CombatTargeting;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -141,6 +142,7 @@ public final class VineFlowerFieldManager {
     private static void applyAuraEffects(ServerWorld world, ActiveFlowerField field) {
         Vec3d center = field.center();
         FieldTuning tuning = field.tuning();
+        LivingEntity owner = getOwnerEntity(world, field.ownerId());
         Box box = Box.of(center, tuning.fieldRadius() * 2.0, 4.0, tuning.fieldRadius() * 2.0);
         for (LivingEntity entity : world.getEntitiesByClass(LivingEntity.class, box, LivingEntity::isAlive)) {
             if (entity.squaredDistanceTo(center) > tuning.fieldRadius() * tuning.fieldRadius()) {
@@ -149,7 +151,7 @@ public final class VineFlowerFieldManager {
 
             if (entity.getType().isIn(EntityTypeTags.UNDEAD)) {
                 if (tuning.undeadDamage() > 0.0F) {
-                    boolean died = dealAuraDamage(world, entity, tuning.undeadDamage());
+                    boolean died = dealAuraDamage(world, owner, entity, tuning.undeadDamage());
                     if (died && tuning.bountyLootChance() > 0.0) {
                         trySpawnBountyLoot(entity, tuning.bountyLootChance());
                     }
@@ -159,7 +161,7 @@ public final class VineFlowerFieldManager {
 
             if (entity instanceof HostileEntity) {
                 if (tuning.damageHostiles() && tuning.hostileDamage() > 0.0F) {
-                    boolean died = dealAuraDamage(world, entity, tuning.hostileDamage());
+                    boolean died = dealAuraDamage(world, owner, entity, tuning.hostileDamage());
                     if (died && tuning.bountyLootChance() > 0.0) {
                         trySpawnBountyLoot(entity, tuning.bountyLootChance());
                     }
@@ -171,7 +173,7 @@ public final class VineFlowerFieldManager {
                 cleanseNegativeEffects(entity);
             }
             if (tuning.healFriendlies() && entity.getHealth() < entity.getMaxHealth()) {
-                entity.heal(tuning.friendlyHeal());
+                CombatTargeting.applyHealing(owner, entity, tuning.friendlyHeal());
             }
         }
     }
@@ -325,10 +327,18 @@ public final class VineFlowerFieldManager {
         return points;
     }
 
-    private static boolean dealAuraDamage(ServerWorld world, LivingEntity entity, float damage) {
+    private static boolean dealAuraDamage(ServerWorld world, LivingEntity owner, LivingEntity entity, float damage) {
         float before = entity.getHealth();
-        boolean damaged = entity.damage(world.getDamageSources().magic(), damage);
+        boolean damaged = CombatTargeting.applyDamage(world, owner, entity, damage, true);
         return damaged && before > 0.0F && !entity.isAlive();
+    }
+
+    private static LivingEntity getOwnerEntity(ServerWorld world, UUID ownerId) {
+        if (ownerId == null) {
+            return null;
+        }
+        Entity entity = world.getEntity(ownerId);
+        return entity instanceof LivingEntity living ? living : null;
     }
 
     private static void cleanseNegativeEffects(LivingEntity entity) {

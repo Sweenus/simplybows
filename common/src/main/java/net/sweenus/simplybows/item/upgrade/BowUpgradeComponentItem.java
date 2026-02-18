@@ -37,7 +37,7 @@ public class BowUpgradeComponentItem extends Item {
 
         if (current.equals(updated)) {
             if (!world.isClient()) {
-                user.sendMessage(Text.literal("Bow is already at max for that upgrade."), true);
+                user.sendMessage(Text.literal("Bow upgrade cap reached (per-type or total slots)."), true);
             }
             return TypedActionResult.fail(componentStack);
         }

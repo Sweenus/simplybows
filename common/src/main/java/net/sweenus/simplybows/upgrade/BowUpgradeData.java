@@ -12,7 +12,8 @@ public record BowUpgradeData(int stringLevel, int frameLevel, RuneEtching runeEt
     private static final String STRING_KEY = "enchanted_string";
     private static final String FRAME_KEY = "reinforced_frame";
     private static final String RUNE_KEY = "rune";
-    private static final int MAX_LEVEL = 3;
+    private static final int MAX_LEVEL_PER_TYPE = 5;
+    private static final int MAX_TOTAL_UPGRADE_SLOTS = 5;
 
     public static BowUpgradeData none() {
         return new BowUpgradeData(0, 0, RuneEtching.NONE);
@@ -51,11 +52,17 @@ public record BowUpgradeData(int stringLevel, int frameLevel, RuneEtching runeEt
     }
 
     public BowUpgradeData withIncreasedString() {
-        return new BowUpgradeData(clampLevel(this.stringLevel + 1), this.frameLevel, this.runeEtching);
+        if (this.stringLevel >= MAX_LEVEL_PER_TYPE || this.stringLevel + this.frameLevel >= MAX_TOTAL_UPGRADE_SLOTS) {
+            return this;
+        }
+        return new BowUpgradeData(this.stringLevel + 1, this.frameLevel, this.runeEtching);
     }
 
     public BowUpgradeData withIncreasedFrame() {
-        return new BowUpgradeData(this.stringLevel, clampLevel(this.frameLevel + 1), this.runeEtching);
+        if (this.frameLevel >= MAX_LEVEL_PER_TYPE || this.stringLevel + this.frameLevel >= MAX_TOTAL_UPGRADE_SLOTS) {
+            return this;
+        }
+        return new BowUpgradeData(this.stringLevel, this.frameLevel + 1, this.runeEtching);
     }
 
     public BowUpgradeData withRune(RuneEtching rune) {
@@ -75,11 +82,19 @@ public record BowUpgradeData(int stringLevel, int frameLevel, RuneEtching runeEt
     }
 
     private static int clampLevel(int level) {
-        return Math.max(0, Math.min(MAX_LEVEL, level));
+        return Math.max(0, Math.min(MAX_LEVEL_PER_TYPE, level));
     }
 
     private static NbtCompound getOrCreateCustomData(ItemStack stack) {
         NbtComponent customData = stack.get(DataComponentTypes.CUSTOM_DATA);
         return customData == null ? new NbtCompound() : customData.copyNbt();
+    }
+
+    public static int getMaxLevelPerType() {
+        return MAX_LEVEL_PER_TYPE;
+    }
+
+    public static int getMaxTotalUpgradeSlots() {
+        return MAX_TOTAL_UPGRADE_SLOTS;
     }
 }

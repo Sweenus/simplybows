@@ -6,7 +6,6 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
-import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.item.Item;
@@ -32,6 +31,7 @@ import net.sweenus.simplybows.item.unique.VineBowItem;
 import net.sweenus.simplybows.registry.EntityRegistry;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
+import net.sweenus.simplybows.util.CombatTargeting;
 
 import java.util.UUID;
 
@@ -227,11 +227,18 @@ public class ShoulderBowEntity extends Entity {
     private LivingEntity findNearestHostile(ServerPlayerEntity owner, double targetRadius) {
         LivingEntity nearest = null;
         double nearestDist = targetRadius * targetRadius;
-        for (HostileEntity hostile : this.getWorld().getEntitiesByClass(HostileEntity.class, owner.getBoundingBox().expand(targetRadius, 8.0, targetRadius), Entity::isAlive)) {
-            double dist = hostile.squaredDistanceTo(this.getX(), this.getY(), this.getZ());
+        for (LivingEntity candidate : this.getWorld().getEntitiesByClass(
+                LivingEntity.class,
+                owner.getBoundingBox().expand(targetRadius, 8.0, targetRadius),
+                entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+        )) {
+            if (!CombatTargeting.checkFriendlyFire(candidate, owner)) {
+                continue;
+            }
+            double dist = candidate.squaredDistanceTo(this.getX(), this.getY(), this.getZ());
             if (dist < nearestDist) {
                 nearestDist = dist;
-                nearest = hostile;
+                nearest = candidate;
             }
         }
         return nearest;
@@ -376,25 +383,8 @@ public class ShoulderBowEntity extends Entity {
                     damageMultiplier *= 0.75;
                 }
 
-                if (arrowStack.isOf(Items.SPECTRAL_ARROW)) {
-                    HomingSpectralArrowEntity arrow = new HomingSpectralArrowEntity(world, owner, arrowStack, offHand);
-                    arrow.setDamage(2.0 * damageMultiplier);
-                    arrow.setLockSingleTarget(rune == RuneEtching.PAIN);
-                    arrow.setStackingSlowness(rune == RuneEtching.GRACE);
-                    if (rune == RuneEtching.PAIN && this.trackedTargetUuid != null) {
-                        arrow.setLockedTargetUuid(this.trackedTargetUuid);
-                    }
-                    projectile = arrow;
-                } else {
-                    HomingArrowEntity arrow = new HomingArrowEntity(world, owner, arrowStack, offHand);
-                    arrow.setDamage(2.0 * damageMultiplier);
-                    arrow.setLockSingleTarget(rune == RuneEtching.PAIN);
-                    arrow.setStackingSlowness(rune == RuneEtching.GRACE);
-                    if (rune == RuneEtching.PAIN && this.trackedTargetUuid != null) {
-                        arrow.setLockedTargetUuid(this.trackedTargetUuid);
-                    }
-                    projectile = arrow;
-                }
+                int quantity = getOffhandIceArrowQuantity(upgrades);
+                projectile = spawnOffhandIceVolley(world, owner, offHand, arrowStack, direction, damageMultiplier, rune, speed, divergence, quantity);
             } else {
                 EchoArrowEntity arrow = new EchoArrowEntity(world, owner, arrowStack, mainHand);
                 arrow.setDamage(2.0);
@@ -416,6 +406,81 @@ public class ShoulderBowEntity extends Entity {
         projectile.setPosition(this.getX(), this.getY() + 0.02, this.getZ());
         projectile.setVelocity(direction.x, direction.y, direction.z, speed, divergence);
         return projectile;
+    }
+
+    private ProjectileEntity spawnOffhandIceVolley(
+            ServerWorld world,
+            ServerPlayerEntity owner,
+            ItemStack offHand,
+            ItemStack arrowStack,
+            Vec3d direction,
+            double damageMultiplier,
+            RuneEtching rune,
+            float speed,
+            float divergence,
+            int quantity
+    ) {
+        ProjectileEntity first = null;
+        int clampedQuantity = Math.max(1, quantity);
+        double yawStep = 5.0;
+        double centerOffset = (clampedQuantity - 1) * 0.5;
+        for (int i = 0; i < clampedQuantity; i++) {
+            ProjectileEntity projectile = createOffhandIceProjectile(world, owner, offHand, arrowStack, damageMultiplier, rune);
+            if (projectile == null) {
+                continue;
+            }
+            if (first == null) {
+                first = projectile;
+            }
+
+            double yawOffsetRad = Math.toRadians((i - centerOffset) * yawStep);
+            Vec3d spreadDirection = direction.rotateY((float) yawOffsetRad).normalize();
+            projectile.setPosition(this.getX(), this.getY() + 0.02, this.getZ());
+            projectile.setVelocity(spreadDirection.x, spreadDirection.y, spreadDirection.z, speed, divergence);
+
+            if (i == 0) {
+                continue;
+            }
+            world.spawnEntity(projectile);
+        }
+        return first;
+    }
+
+    private ProjectileEntity createOffhandIceProjectile(
+            ServerWorld world,
+            ServerPlayerEntity owner,
+            ItemStack offHand,
+            ItemStack arrowStack,
+            double damageMultiplier,
+            RuneEtching rune
+    ) {
+        if (arrowStack.isOf(Items.SPECTRAL_ARROW)) {
+            HomingSpectralArrowEntity arrow = new HomingSpectralArrowEntity(world, owner, arrowStack, offHand);
+            arrow.setDamage(2.0 * damageMultiplier);
+            arrow.setLockSingleTarget(rune == RuneEtching.PAIN);
+            arrow.setStackingSlowness(rune == RuneEtching.GRACE);
+            if (rune == RuneEtching.PAIN && this.trackedTargetUuid != null) {
+                arrow.setLockedTargetUuid(this.trackedTargetUuid);
+            }
+            return arrow;
+        }
+
+        HomingArrowEntity arrow = new HomingArrowEntity(world, owner, arrowStack, offHand);
+        arrow.setDamage(2.0 * damageMultiplier);
+        arrow.setLockSingleTarget(rune == RuneEtching.PAIN);
+        arrow.setStackingSlowness(rune == RuneEtching.GRACE);
+        if (rune == RuneEtching.PAIN && this.trackedTargetUuid != null) {
+            arrow.setLockedTargetUuid(this.trackedTargetUuid);
+        }
+        return arrow;
+    }
+
+    private static int getOffhandIceArrowQuantity(BowUpgradeData upgrades) {
+        int quantity = 3 + upgrades.stringLevel();
+        if (upgrades.runeEtching() == RuneEtching.BOUNTY) {
+            quantity *= 2;
+        }
+        return quantity;
     }
 
     private static int stageForRemainingDrawTicks(int remainingTicks) {
