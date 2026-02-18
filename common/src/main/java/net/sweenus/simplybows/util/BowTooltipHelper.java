@@ -75,6 +75,9 @@ public final class BowTooltipHelper {
             case "earth" -> "tooltip.simplybows.bow.earth.string_effect";
             case "echo" -> "tooltip.simplybows.bow.echo.string_effect";
             case "ice" -> "tooltip.simplybows.bow.ice.string_effect";
+            case "bee" -> "tooltip.simplybows.bow.bee.string_effect";
+            case "bubble" -> "tooltip.simplybows.bow.bubble.string_effect";
+            case "blossom" -> "tooltip.simplybows.bow.blossom.string_effect";
             default -> "tooltip.simplybows.bow.generic.string_effect";
         };
     }
@@ -85,6 +88,9 @@ public final class BowTooltipHelper {
             case "earth" -> "tooltip.simplybows.bow.earth.frame_effect";
             case "echo" -> "tooltip.simplybows.bow.echo.frame_effect";
             case "ice" -> "tooltip.simplybows.bow.ice.frame_effect";
+            case "bee" -> "tooltip.simplybows.bow.bee.frame_effect";
+            case "bubble" -> "tooltip.simplybows.bow.bubble.frame_effect";
+            case "blossom" -> "tooltip.simplybows.bow.blossom.frame_effect";
             default -> "tooltip.simplybows.bow.generic.frame_effect";
         };
     }
@@ -92,8 +98,7 @@ public final class BowTooltipHelper {
     private static String getRuneEffectKey(String bowKey, RuneEtching rune) {
         String special = "tooltip.simplybows.bow." + bowKey + ".rune." + rune.id();
         return switch (bowKey) {
-            case "bee" -> (rune == RuneEtching.BOUNTY || rune == RuneEtching.GRACE) ? special : "tooltip.simplybows.bow.generic.rune." + rune.id();
-            case "vine", "earth", "ice", "echo" -> special;
+            case "bee", "vine", "earth", "ice", "echo", "bubble", "blossom" -> special;
             default -> "tooltip.simplybows.bow.generic.rune." + rune.id();
         };
     }

@@ -601,7 +601,7 @@ public abstract class DrawContextMixin {
     @Unique
     private static String simplybows$getStringEffectKey(String bowKey) {
         return switch (bowKey) {
-            case "vine", "earth", "echo", "ice" -> "tooltip.simplybows.bow." + bowKey + ".string_effect";
+            case "vine", "earth", "echo", "ice", "bee", "bubble", "blossom" -> "tooltip.simplybows.bow." + bowKey + ".string_effect";
             default -> "tooltip.simplybows.bow.generic.string_effect";
         };
     }
@@ -609,7 +609,7 @@ public abstract class DrawContextMixin {
     @Unique
     private static String simplybows$getFrameEffectKey(String bowKey) {
         return switch (bowKey) {
-            case "vine", "earth", "echo", "ice" -> "tooltip.simplybows.bow." + bowKey + ".frame_effect";
+            case "vine", "earth", "echo", "ice", "bee", "bubble", "blossom" -> "tooltip.simplybows.bow." + bowKey + ".frame_effect";
             default -> "tooltip.simplybows.bow.generic.frame_effect";
         };
     }
@@ -617,10 +617,7 @@ public abstract class DrawContextMixin {
     @Unique
     private static String simplybows$getRuneEffectKey(String bowKey, RuneEtching rune) {
         return switch (bowKey) {
-            case "bee" -> rune == RuneEtching.BOUNTY
-                    ? "tooltip.simplybows.bow.bee.rune." + rune.id()
-                    : "tooltip.simplybows.bow.generic.rune." + rune.id();
-            case "vine", "earth", "ice", "echo" -> "tooltip.simplybows.bow." + bowKey + ".rune." + rune.id();
+            case "bee", "vine", "earth", "ice", "echo", "bubble", "blossom" -> "tooltip.simplybows.bow." + bowKey + ".rune." + rune.id();
             default -> "tooltip.simplybows.bow.generic.rune." + rune.id();
         };
     }
