@@ -80,7 +80,7 @@
   "tooltip.simplybows.bow.ice.rune.bounty": "  \u2726 Fires additional arrows, but arrows deal less damage.",
   "tooltip.simplybows.bow.echo.rune.pain": "  \u2726 WIP",
   "tooltip.simplybows.bow.echo.rune.grace": "  \u2726 WIP",
-  "tooltip.simplybows.bow.echo.rune.bounty": "  \u2726 One of the magical bows will now mirror your off-hand bow.",
+  "tooltip.simplybows.bow.echo.rune.bounty": "One of the magical bows will now mirror your off-hand bow.",
 
   "tooltip.simplybows.upgrade_component.enchanted_string": "Applies +1 Enchanted String to a unique bow.",
   "tooltip.simplybows.upgrade_component.reinforced_frame": "Applies +1 Reinforced Frame to a unique bow.",

@@ -20,6 +20,7 @@ public final class SimplyBows {
     public static final String MOD_ID = "simplybows";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
     public static boolean debugMode = true;
+    public static boolean modernTooltipsEnabled = true;
 
     public static void init() {
 

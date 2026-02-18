@@ -4,13 +4,14 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
+import net.sweenus.simplybows.SimplyBows;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
 
 import java.util.List;
 
 public final class BowTooltipHelper {
-    private static final int TOOLTIP_WRAP_CHARS = 42;
+    private static final int TOOLTIP_WRAP_CHARS = 36;
 
     public static final Style STYLE_UNIQUE_NAME = Style.EMPTY.withColor(TextColor.fromRgb(0xE2A834));
     public static final Style STYLE_SECTION = Style.EMPTY.withColor(TextColor.fromRgb(0xFFD5A0));
@@ -97,6 +98,7 @@ public final class BowTooltipHelper {
     }
 
     private static boolean isAltDown() {
+        if (SimplyBows.modernTooltipsEnabled) return false;
         try {
             Class<?> screenClass = Class.forName("net.minecraft.client.gui.screen.Screen");
             Object result = screenClass.getMethod("hasAltDown").invoke(null);
