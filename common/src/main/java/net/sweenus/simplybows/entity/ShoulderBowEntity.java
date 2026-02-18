@@ -32,6 +32,7 @@ import net.sweenus.simplybows.registry.EntityRegistry;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
 import net.sweenus.simplybows.util.CombatTargeting;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -64,8 +65,11 @@ public class ShoulderBowEntity extends Entity {
     private static final double BOB_SPEED = 0.22;
     private static final float ARROW_SPEED = 2.7F;
     private static final float ARROW_DIVERGENCE = 0.85F;
+    private static final float COMPANION_ARROW_GRAVITY_PER_TICK = 0.05F;
     private UUID ownerUuid;
     private UUID trackedTargetUuid;
+    private UUID forcedTargetUuid;
+    private UUID queuedTargetUuid;
     private Vec3d queuedShotDirection;
     private Vec3d preparedShotDirection;
     private int drawTicksRemaining;
@@ -139,9 +143,18 @@ public class ShoulderBowEntity extends Entity {
     }
 
     public void queueLookShot(Vec3d direction) {
+        queueLookShot(direction, null);
+    }
+
+    public void queueLookShot(Vec3d direction, @Nullable UUID targetUuid) {
         if (direction.lengthSquared() > 1.0E-6) {
             this.queuedShotDirection = direction.normalize();
+            this.queuedTargetUuid = targetUuid;
         }
+    }
+
+    public void setForcedTargetUuid(@Nullable UUID forcedTargetUuid) {
+        this.forcedTargetUuid = forcedTargetUuid;
     }
 
     @Override
@@ -179,8 +192,18 @@ public class ShoulderBowEntity extends Entity {
         this.setPullStage(0);
 
         if (this.queuedShotDirection != null && this.cooldownTicks <= 0) {
-            beginDrawing(this.queuedShotDirection, null);
+            UUID queuedTarget = this.queuedTargetUuid != null ? this.queuedTargetUuid : this.forcedTargetUuid;
+            beginDrawing(this.queuedShotDirection, queuedTarget);
             this.queuedShotDirection = null;
+            this.queuedTargetUuid = null;
+            return;
+        }
+
+        LivingEntity forcedTarget = resolveForcedTarget(owner, getDynamicTargetRadius(owner));
+        if (forcedTarget != null && this.cooldownTicks <= 0) {
+            Vec3d targetPos = forcedTarget.getPos().add(0.0, forcedTarget.getStandingEyeHeight() * 0.6, 0.0);
+            Vec3d aim = getCompensatedAimDirection(targetPos, ARROW_SPEED, COMPANION_ARROW_GRAVITY_PER_TICK);
+            beginDrawing(aim, forcedTarget.getUuid());
             return;
         }
 
@@ -191,7 +214,8 @@ public class ShoulderBowEntity extends Entity {
 
         LivingEntity target = findNearestHostile(owner, getDynamicTargetRadius(owner));
         if (target != null) {
-            Vec3d aim = target.getPos().add(0.0, target.getStandingEyeHeight() * 0.6, 0.0).subtract(this.getPos());
+            Vec3d targetPos = target.getPos().add(0.0, target.getStandingEyeHeight() * 0.6, 0.0);
+            Vec3d aim = getCompensatedAimDirection(targetPos, ARROW_SPEED, COMPANION_ARROW_GRAVITY_PER_TICK);
             beginDrawing(aim, target.getUuid());
         }
     }
@@ -244,6 +268,25 @@ public class ShoulderBowEntity extends Entity {
         return nearest;
     }
 
+    private LivingEntity resolveForcedTarget(ServerPlayerEntity owner, double targetRadius) {
+        if (this.forcedTargetUuid == null || !(this.getWorld() instanceof ServerWorld serverWorld)) {
+            return null;
+        }
+        Entity entity = serverWorld.getEntity(this.forcedTargetUuid);
+        if (!(entity instanceof LivingEntity forced) || !forced.isAlive()) {
+            this.forcedTargetUuid = null;
+            return null;
+        }
+        if (!CombatTargeting.checkFriendlyFire(forced, owner)) {
+            this.forcedTargetUuid = null;
+            return null;
+        }
+        if (forced.squaredDistanceTo(this.getX(), this.getY(), this.getZ()) > targetRadius * targetRadius) {
+            return null;
+        }
+        return forced;
+    }
+
     private void beginDrawing(Vec3d direction, UUID targetUuid) {
         if (direction.lengthSquared() <= 1.0E-6) {
             return;
@@ -258,7 +301,8 @@ public class ShoulderBowEntity extends Entity {
         if (this.trackedTargetUuid != null && this.getWorld() instanceof ServerWorld serverWorld) {
             Entity tracked = serverWorld.getEntity(this.trackedTargetUuid);
             if (tracked instanceof LivingEntity living && living.isAlive()) {
-                this.preparedShotDirection = living.getPos().add(0.0, living.getStandingEyeHeight() * 0.6, 0.0).subtract(this.getPos()).normalize();
+                Vec3d trackedPos = living.getPos().add(0.0, living.getStandingEyeHeight() * 0.6, 0.0);
+                this.preparedShotDirection = getCompensatedAimDirection(trackedPos, ARROW_SPEED, COMPANION_ARROW_GRAVITY_PER_TICK);
             } else {
                 this.trackedTargetUuid = null;
             }
@@ -269,6 +313,20 @@ public class ShoulderBowEntity extends Entity {
         }
 
         setLookToDirection(this.preparedShotDirection);
+    }
+
+    private Vec3d getCompensatedAimDirection(Vec3d targetPos, float speed, float gravityPerTick) {
+        Vec3d delta = targetPos.subtract(this.getPos());
+        double horizontalDistance = Math.sqrt(delta.x * delta.x + delta.z * delta.z);
+        if (horizontalDistance <= 1.0E-6) {
+            return delta.lengthSquared() > 1.0E-6 ? delta.normalize() : Vec3d.ZERO;
+        }
+
+        double safeSpeed = Math.max(0.1, speed);
+        double travelTicks = horizontalDistance / safeSpeed;
+        double dropCompensation = 0.5 * gravityPerTick * travelTicks * travelTicks;
+        Vec3d compensated = new Vec3d(delta.x, delta.y + dropCompensation, delta.z);
+        return compensated.lengthSquared() > 1.0E-6 ? compensated.normalize() : delta.normalize();
     }
 
     private void firePreparedArrow(ServerPlayerEntity owner) {
