@@ -37,6 +37,22 @@ public abstract class DrawContextMixin {
     @Unique
     private static final int MAX_TEXT_WIDTH = 200;
     @Unique
+    private static final int BORDER_STYLE_DEFAULT = 0;
+    @Unique
+    private static final int BORDER_STYLE_VINE = 1;
+    @Unique
+    private static final int BORDER_STYLE_BEE = 2;
+    @Unique
+    private static final int BORDER_STYLE_BLOSSOM = 3;
+    @Unique
+    private static final int BORDER_STYLE_BUBBLE = 4;
+    @Unique
+    private static final int BORDER_STYLE_EARTH = 5;
+    @Unique
+    private static final int BORDER_STYLE_ECHO = 6;
+    @Unique
+    private static final int BORDER_STYLE_ICE = 7;
+    @Unique
     private static final TooltipTheme DEFAULT_THEME = new TooltipTheme(
             0xFFE2A834, 0xFF8A6A1E, 0xF02E2210, 0xF0181208,
             0xFFFFF0CC, 0xFFEEEEEE, 0xFF141008, 0xFFFFD5A0,
@@ -106,6 +122,20 @@ public abstract class DrawContextMixin {
     }
 
     @Unique
+    private static int simplybows$getBorderStyle(String bowKey) {
+        return switch (bowKey) {
+            case "vine" -> BORDER_STYLE_VINE;
+            case "bee" -> BORDER_STYLE_BEE;
+            case "blossom" -> BORDER_STYLE_BLOSSOM;
+            case "bubble" -> BORDER_STYLE_BUBBLE;
+            case "earth" -> BORDER_STYLE_EARTH;
+            case "echo" -> BORDER_STYLE_ECHO;
+            case "ice" -> BORDER_STYLE_ICE;
+            default -> BORDER_STYLE_DEFAULT;
+        };
+    }
+
+    @Unique
     private static TooltipTheme simplybows$withDefaultTextColors(TooltipTheme base) {
         return new TooltipTheme(
                 base.border(),
@@ -141,7 +171,7 @@ public abstract class DrawContextMixin {
             return;
         }
 
-        // Cache the real stack before anything else â€” drawTooltip may fire from within getTooltipFromItem
+        // Cache the real stack before anything else
         simplybows$lastRealStack = stack;
 
         List<Text> raw = Screen.getTooltipFromItem(client, stack);
@@ -206,7 +236,7 @@ public abstract class DrawContextMixin {
         // 2. Try to get the focused slot stack from HandledScreen (inventory, creative, etc.)
         if (client.currentScreen instanceof HandledScreen<?> handledScreen) {
             try {
-                // Access focusedSlot via reflection â€” it's a protected field
+                // Access focusedSlot via reflection
                 java.lang.reflect.Field focusedSlotField = null;
                 for (java.lang.reflect.Field f : HandledScreen.class.getDeclaredFields()) {
                     if (f.getType() == Slot.class) {
@@ -238,7 +268,7 @@ public abstract class DrawContextMixin {
             }
         }
 
-        // 4. Fallback: scan registry (no NBT data â€” upgrades will show as 0)
+        // 4. Fallback: scan registry (no NBT data - upgrades will show as 0)
         for (Item item : Registries.ITEM) {
             Identifier id = Registries.ITEM.getId(item);
             if (id == null || !SimplyBows.MOD_ID.equals(id.getNamespace())) {
@@ -266,7 +296,7 @@ public abstract class DrawContextMixin {
         List<String> abilityLines = new ArrayList<>();
         List<String> otherLines = new ArrayList<>();  // lines before our sections
         List<Text> extraLines = new ArrayList<>();    // lines after our sections (enchantments, mod lines)
-        // section: 0=before â—†, 1=ability, 2=upgrades, 3=after upgrades
+        // section: 0=before, 1=ability, 2=upgrades, 3=after upgrades
         int section = 0;
 
         for (int i = 1; i < rawLines.size(); i++) {
@@ -283,9 +313,8 @@ public abstract class DrawContextMixin {
             if (section == 2) {
                 if (s.isEmpty() || s.startsWith("\u2022") || s.startsWith("\u25E6")
                         || s.startsWith("\u2726") || s.toLowerCase().contains("hold alt")) {
-                    continue; // still upgrade content â€” skip
+                    continue;
                 }
-                // Not an upgrade line â€” section ended
                 section = 3;
             }
 
@@ -307,7 +336,7 @@ public abstract class DrawContextMixin {
         RuneEtching rune = upgrades.runeEtching();
         boolean hasUpgrades = isBow;
 
-        // Get bow key for effect lookups â€” use the item's own method
+        // Get bow key for effect lookups
         String bowKey = "generic";
         if (stack.getItem() instanceof SimplyBowItem simplyBow) {
             try {
@@ -318,6 +347,7 @@ public abstract class DrawContextMixin {
         }
         final String effectBowKey = bowKey;
         TooltipTheme theme = simplybows$getTheme(bowKey);
+        int borderStyle = simplybows$getBorderStyle(bowKey);
 
         // --- Layout calculations ---
         int lineHeight = tr.fontHeight + LINE_SPACING;
@@ -338,13 +368,13 @@ public abstract class DrawContextMixin {
         boolean altDown = false;
         try { altDown = Screen.hasAltDown(); } catch (Throwable ignored) {}
 
-        // Pre-wrap rune effect description (always shown below rune row)
+        // Pre-wrap rune effect description
         String rawRuneEffect = hasUpgrades ? (rune != RuneEtching.NONE
                 ? "  " + Text.translatable(simplybows$getRuneEffectKey(effectBowKey, rune)).getString().trim()
                 : "  No rune etched.") : "";
         List<String> wrappedRuneEffect = simplybows$wrapStrings(List.of(rawRuneEffect), tr, MAX_TEXT_WIDTH);
 
-        // Compute width â€” account for inline effect text when alt is held
+        // Compute width
         int stringLabelW = tr.getWidth("\u2058 String ") + 2;
         int frameLabelW = tr.getWidth("\u25C8 Frame ") + 2;
         int stringEffectInlineW = hasUpgrades ? stringLabelW + tr.getWidth(Text.translatable(simplybows$getStringEffectKey(effectBowKey)).getString().trim()) : 0;
@@ -376,10 +406,10 @@ public abstract class DrawContextMixin {
         if (hasUpgrades) {
             bodyH += lineHeight + sectionGap; // header + gap
             bodyH += upgradeRowH; // slots row
-            bodyH += upgradeRowH; // string row (pips or effect text â€” same line either way)
-            bodyH += upgradeRowH; // frame row (pips or effect text â€” same line either way)
-            bodyH += lineHeight; // intentional spacer before rune row (always present)
-            bodyH += upgradeRowH + wrappedRuneEffect.size() * lineHeight; // rune always shows effect
+            bodyH += upgradeRowH; // string row
+            bodyH += upgradeRowH; // frame row
+            bodyH += lineHeight; // spacer before rune row
+            bodyH += upgradeRowH + wrappedRuneEffect.size() * lineHeight; // rune
         }
         if (hasOther) bodyH += wrappedOther.size() * lineHeight;
         if (hasExtra) {
@@ -400,7 +430,7 @@ public abstract class DrawContextMixin {
 
         // Draw background & border
         simplybows$drawGradientBackground(context, panelX, panelY, panelW, panelH, theme);
-        simplybows$drawDecorativeBorder(context, panelX, panelY, panelW, panelH, theme);
+        simplybows$drawDecorativeBorder(context, panelX, panelY, panelW, panelH, theme, borderStyle);
 
         int cursorY = panelY + PADDING;
 
@@ -457,7 +487,7 @@ public abstract class DrawContextMixin {
 
             int leftX = panelX + PADDING;
 
-            // Slot pips: â—‡ icon â€” filled/empty squares
+            // Slot pips:
             int slotLabelColor = simplybows$lerpColor(theme.body(), 0xFFFFFFFF, 0.10f);
             int stringLabelColor = simplybows$lerpColor(theme.stringColor(), 0xFFFFFFFF, 0.20f);
             int stringDescColor = simplybows$lerpColor(theme.stringColor(), theme.body(), 0.50f);
@@ -476,7 +506,7 @@ public abstract class DrawContextMixin {
             }
             cursorY += upgradeRowH;
 
-            // Enchanted String: â˜ icon + label + (pips OR effect text inline)
+            // Enchanted String:
             context.drawText(tr, Text.literal("\u25C7").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(theme.stringColor() & 0x00FFFFFF))), leftX, cursorY, theme.stringColor(), false);
             int labelX = leftX + tr.getWidth("\u25C7 ");
             context.drawText(tr, Text.literal("String").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(stringLabelColor & 0x00FFFFFF))), labelX, cursorY, stringLabelColor, false);
@@ -496,7 +526,7 @@ public abstract class DrawContextMixin {
             }
             cursorY += upgradeRowH;
 
-            // Reinforced Frame: â—ˆ icon + label + (pips OR effect text inline)
+            // Reinforced Frame:
             context.drawText(tr, Text.literal("\u25C7").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(theme.frameColor() & 0x00FFFFFF))), leftX, cursorY, theme.frameColor(), false);
             labelX = leftX + tr.getWidth("\u25C7 ");
             context.drawText(tr, Text.literal("Frame").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(frameLabelColor & 0x00FFFFFF))), labelX, cursorY, frameLabelColor, false);
@@ -519,13 +549,11 @@ public abstract class DrawContextMixin {
 
 
             if (!altDown) {
-                // Hint to hold Alt
-                // context.drawText(tr, Text.literal("\u25E6 Hold Alt for details").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(theme.hint() & 0x00FFFFFF))), leftX + 2, cursorY, theme.hint(), false);
-                //cursorY += lineHeight;
+                // Do nothing
             }
 
 
-            // Rune Etching: â—Ž icon + rune name (always visible)
+            // Rune Etching: icon + rune name (always visible)
             context.drawText(tr, Text.literal("\u25CE").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(theme.runeColor() & 0x00FFFFFF))), leftX, cursorY, theme.runeColor(), false);
             labelX = leftX + tr.getWidth("\u25CE ");
             String runeName = rune == RuneEtching.NONE ? "None" : Text.translatable("tooltip.simplybows.rune." + rune.id()).getString();
@@ -617,7 +645,7 @@ public abstract class DrawContextMixin {
     }
 
     @Unique
-    private static void simplybows$drawDecorativeBorder(DrawContext context, int x, int y, int w, int h, TooltipTheme theme) {
+    private static void simplybows$drawDecorativeBorder(DrawContext context, int x, int y, int w, int h, TooltipTheme theme, int borderStyle) {
         context.fill(x, y, x + w, y + 1, theme.border());
         context.fill(x, y + h - 1, x + w, y + h, theme.border());
         context.fill(x, y, x + 1, y + h, theme.border());
@@ -632,6 +660,152 @@ public abstract class DrawContextMixin {
         simplybows$drawSmallDiamond(context, x + w - 7, y, theme.border());
         simplybows$drawSmallDiamond(context, x + 6, y + h - 1, theme.border());
         simplybows$drawSmallDiamond(context, x + w - 7, y + h - 1, theme.border());
+
+        simplybows$drawBorderPattern(context, x, y, w, h, theme, borderStyle);
+    }
+
+    @Unique
+    private static void simplybows$drawBorderPattern(DrawContext context, int x, int y, int w, int h, TooltipTheme theme, int borderStyle) {
+        switch (borderStyle) {
+            case BORDER_STYLE_VINE -> {
+                int leafA = 0xFF79BE77;
+                int leafB = 0xFF5EA661;
+                int stem = 0xFF3E7A44;
+                for (int px = x + 9, i = 0; px < x + w - 10; px += 11, i++) {
+                    boolean flip = (i & 1) == 0;
+                    int c = flip ? leafA : leafB;
+                    // Leaves
+                    context.fill(px, y + 1, px + 2, y + 2, c);
+                    if (flip) {
+                        context.fill(px + 1, y + 2, px + 3, y + 3, c);
+                    } else {
+                        context.fill(px - 1, y + 2, px + 1, y + 3, c);
+                    }
+                    // Mirrored
+                    context.fill(px, y + h - 3, px + 2, y + h - 2, c);
+                    if (flip) {
+                        context.fill(px - 1, y + h - 2, px + 1, y + h - 1, c);
+                    } else {
+                        context.fill(px + 1, y + h - 2, px + 3, y + h - 1, c);
+                    }
+                    // Tendril
+                    if (i % 3 == 0) {
+                        context.fill(px, y + 3, px + 1, y + 5, stem);
+                        context.fill(px, y + h - 5, px + 1, y + h - 3, stem);
+                    }
+                }
+            }
+            case BORDER_STYLE_BEE -> {
+                int honey = 0xFFE8B847;
+                int wax = 0xFFF4D77B;
+                int outline = 0xFF6A4A1C;
+                // Honeycomb cells
+                for (int px = x + 8; px < x + w - 10; px += 12) {
+                    context.fill(px, y + 1, px + 3, y + 3, honey);
+                    context.fill(px + 1, y, px + 2, y + 1, wax);
+                    context.fill(px, y + 1, px + 1, y + 2, outline);
+                    context.fill(px + 2, y + 2, px + 3, y + 3, outline);
+
+                    context.fill(px, y + h - 3, px + 3, y + h - 1, honey);
+                    context.fill(px + 1, y + h - 1, px + 2, y + h, wax);
+                    context.fill(px, y + h - 2, px + 1, y + h - 1, outline);
+                    context.fill(px + 2, y + h - 3, px + 3, y + h - 2, outline);
+                }
+                // Wing accents
+                context.fill(x + 3, y + 4, x + 5, y + 5, 0x99DDF7FF);
+                context.fill(x + w - 5, y + 4, x + w - 3, y + 5, 0x99DDF7FF);
+                context.fill(x + 3, y + h - 5, x + 5, y + h - 4, 0x99DDF7FF);
+                context.fill(x + w - 5, y + h - 5, x + w - 3, y + h - 4, 0x99DDF7FF);
+            }
+            case BORDER_STYLE_BLOSSOM -> {
+                int petal = 0xFFF3B1D2;
+                int core = 0xFFFFF4BE;
+                for (int px = x + 12; px < x + w - 12; px += 16) {
+                    context.fill(px, y + 1, px + 1, y + 4, petal);
+                    context.fill(px - 1, y + 2, px + 2, y + 3, petal);
+                    context.fill(px, y + 2, px + 1, y + 3, core);
+                    context.fill(px, y + h - 4, px + 1, y + h - 1, petal);
+                    context.fill(px - 1, y + h - 3, px + 2, y + h - 2, petal);
+                    context.fill(px, y + h - 3, px + 1, y + h - 2, core);
+                }
+            }
+            case BORDER_STYLE_BUBBLE -> {
+                int crest = 0xFF8EE7F8;
+                int foam = 0xFFC8F7FF;
+                // Wave
+                for (int px = x + 6, step = 0; px < x + w - 6; px += 8, step++) {
+                    int dy = (step % 2 == 0) ? 0 : 1;
+                    context.fill(px, y + 1 + dy, px + 5, y + 2 + dy, crest);
+                    context.fill(px, y + h - 2 - dy, px + 5, y + h - 1 - dy, crest);
+                }
+                // Sparse bubbles
+                for (int px = x + 12; px < x + w - 12; px += 18) {
+                    context.fill(px, y + 2, px + 2, y + 4, foam);
+                    context.fill(px + 1, y + 3, px + 3, y + 5, crest);
+                    context.fill(px, y + h - 5, px + 2, y + h - 3, foam);
+                    context.fill(px + 1, y + h - 4, px + 3, y + h - 2, crest);
+                }
+            }
+            case BORDER_STYLE_EARTH -> {
+                int rockDark = simplybows$lerpColor(theme.border(), 0xFF3A2E22, 0.55f);
+                int rockMid = simplybows$lerpColor(theme.border(), 0xFF6E5A40, 0.32f);
+                int dust = simplybows$lerpColor(theme.borderInner(), 0xFFCAB28D, 0.22f);
+                // Uneven stone chunks
+                for (int px = x + 8, i = 0; px < x + w - 9; px += 10, i++) {
+                    int wChunk = (i % 3 == 0) ? 3 : 2;
+                    context.fill(px, y + 1, px + wChunk, y + 2, rockMid);
+                    context.fill(px + 1, y + 2, px + wChunk + 1, y + 3, rockDark);
+
+                    context.fill(px, y + h - 3, px + wChunk, y + h - 2, rockMid);
+                    context.fill(px - 1, y + h - 2, px + wChunk - 1, y + h - 1, rockDark);
+                }
+                // Hairline cracks
+                for (int px = x + 14; px < x + w - 14; px += 18) {
+                    context.fill(px, y + 2, px + 1, y + 4, dust);
+                    context.fill(px + 1, y + 3, px + 2, y + 4, rockDark);
+                    context.fill(px, y + h - 4, px + 1, y + h - 2, dust);
+                    context.fill(px - 1, y + h - 3, px, y + h - 2, rockDark);
+                }
+                // Small corner pebbles
+                context.fill(x + 3, y + 3, x + 5, y + 5, rockMid);
+                context.fill(x + w - 5, y + 3, x + w - 3, y + 5, rockMid);
+                context.fill(x + 3, y + h - 5, x + 5, y + h - 3, rockMid);
+                context.fill(x + w - 5, y + h - 5, x + w - 3, y + h - 3, rockMid);
+            }
+            case BORDER_STYLE_ECHO -> {
+                int runeA = 0xFFB59AFF;
+                int runeB = 0xFF7C67D9;
+                // Alternating rune sigils
+                for (int px = x + 10, i = 0; px < x + w - 10; px += 16, i++) {
+                    if ((i & 1) == 0) {
+                        // crescent
+                        context.fill(px, y + 1, px + 1, y + 4, runeA);
+                        context.fill(px + 1, y + 1, px + 2, y + 2, runeB);
+                        context.fill(px + 1, y + 3, px + 2, y + 4, runeB);
+                        context.fill(px, y + h - 4, px + 1, y + h - 1, runeA);
+                        context.fill(px + 1, y + h - 4, px + 2, y + h - 3, runeB);
+                        context.fill(px + 1, y + h - 2, px + 2, y + h - 1, runeB);
+                    } else {
+                        // spark
+                        context.fill(px, y + 2, px + 3, y + 3, runeA);
+                        context.fill(px + 1, y + 1, px + 2, y + 4, runeB);
+                        context.fill(px, y + h - 3, px + 3, y + h - 2, runeA);
+                        context.fill(px + 1, y + h - 4, px + 2, y + h - 1, runeB);
+                    }
+                }
+            }
+            case BORDER_STYLE_ICE -> {
+                int ice = 0xFFBFE9FF;
+                for (int px = x + 10; px < x + w - 10; px += 12) {
+                    context.fill(px, y, px + 1, y + 3, ice);
+                    context.fill(px - 1, y + 1, px + 2, y + 2, ice);
+                    context.fill(px, y + h - 3, px + 1, y + h, ice);
+                    context.fill(px - 1, y + h - 2, px + 2, y + h - 1, ice);
+                }
+            }
+            default -> {
+            }
+        }
     }
 
     @Unique
@@ -682,7 +856,7 @@ public abstract class DrawContextMixin {
         // White badge background
         context.fill(x, y, x + badgeW, y + badgeH, theme.badgeBg());
 
-        // Dark cutout text â€” vertically centered (1px top offset for MC font baseline)
+        // Dark cutout text vertically centered
         int textY = y + 1;
         context.drawText(tr, Text.literal(label).setStyle(Style.EMPTY.withColor(TextColor.fromRgb(theme.badgeCutout() & 0x00FFFFFF))), x + badgePadH, textY, theme.badgeCutout(), false);
 
@@ -730,4 +904,3 @@ public abstract class DrawContextMixin {
                ((int)(aG + (bG - aG) * t) << 8)  | (int)(aB + (bB - aB) * t);
     }
 }
-
