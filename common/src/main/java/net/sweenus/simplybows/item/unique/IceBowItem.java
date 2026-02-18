@@ -38,6 +38,11 @@ public class IceBowItem extends SimplyBowItem {
         super(settings);
     }
 
+    @Override
+    protected String getTooltipBowKey() {
+        return "ice";
+    }
+
 
     public static void passiveParticles(ServerPlayerEntity serverPlayer, PlayerEntity player,  ServerWorld world) {
         int random = (int) (Math.random() * 30);

@@ -23,6 +23,11 @@ public class BlossomBowItem extends SimplyBowItem {
         super(settings);
     }
 
+    @Override
+    protected String getTooltipBowKey() {
+        return "blossom";
+    }
+
     public void performStoppedUsing(ServerWorld serverWorld, LivingEntity shooter, Hand hand, ItemStack stack, List<ItemStack> projectiles, float f, float g, boolean critical, @Nullable LivingEntity target) {
         serverWorld.playSound(
                 null,

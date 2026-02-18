@@ -21,6 +21,11 @@ public class BubbleBowItem extends SimplyBowItem {
         super(settings);
     }
 
+    @Override
+    protected String getTooltipBowKey() {
+        return "bubble";
+    }
+
     public void performStoppedUsing(ServerWorld serverWorld, LivingEntity shooter, Hand hand, ItemStack stack, List<ItemStack> projectiles, float f, float g, boolean critical, @Nullable LivingEntity target) {
         this.shootAll(serverWorld, shooter, hand, stack, projectiles, f * BUBBLE_ARROW_SPEED_MULTIPLIER, BUBBLE_ARROW_DIVERGENCE, critical, target);
     }

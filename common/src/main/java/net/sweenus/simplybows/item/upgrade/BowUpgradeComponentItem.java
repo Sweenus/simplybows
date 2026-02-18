@@ -8,10 +8,14 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
+import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.world.World;
 import net.sweenus.simplybows.item.unique.SimplyBowItem;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
+import net.sweenus.simplybows.util.BowTooltipHelper;
+
+import java.util.List;
 
 public class BowUpgradeComponentItem extends Item {
 
@@ -37,7 +41,14 @@ public class BowUpgradeComponentItem extends Item {
 
         if (current.equals(updated)) {
             if (!world.isClient()) {
-                user.sendMessage(Text.literal("Bow upgrade cap reached (per-type or total slots)."), true);
+                user.sendMessage(
+                        Text.translatable(
+                                "message.simplybows.upgrade.cap_reached",
+                                BowUpgradeData.getMaxLevelPerType(),
+                                BowUpgradeData.getMaxTotalUpgradeSlots()
+                        ),
+                        true
+                );
             }
             return TypedActionResult.fail(componentStack);
         }
@@ -49,9 +60,18 @@ public class BowUpgradeComponentItem extends Item {
 
         world.playSound(null, user.getX(), user.getY(), user.getZ(), SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE, SoundCategory.PLAYERS, 0.75F, 1.0F);
         if (!world.isClient()) {
-            user.sendMessage(Text.literal("Applied bow upgrade: " + this.upgradeKind.displayName(this.runeEtching)), true);
+            user.sendMessage(Text.translatable("message.simplybows.upgrade.applied", this.upgradeKind.displayName(this.runeEtching)), true);
         }
         return TypedActionResult.success(componentStack, world.isClient());
+    }
+
+    @Override
+    public void appendTooltip(ItemStack stack, Item.TooltipContext context, List<Text> tooltip, TooltipType type) {
+        super.appendTooltip(stack, context, tooltip, type);
+        tooltip.add(Text.literal(" "));
+        tooltip.add(Text.translatable("tooltip.simplybows.section.component").setStyle(BowTooltipHelper.STYLE_SECTION));
+        tooltip.add(Text.translatable(getComponentTooltipKey()).setStyle(BowTooltipHelper.STYLE_BODY));
+        tooltip.add(Text.translatable("tooltip.simplybows.upgrade_component.cap", BowUpgradeData.getMaxTotalUpgradeSlots()).setStyle(BowTooltipHelper.STYLE_DIM));
     }
 
     public BowUpgradeData applyTo(BowUpgradeData current) {
@@ -100,12 +120,20 @@ public class BowUpgradeComponentItem extends Item {
         REINFORCED_FRAME,
         RUNE_ETCHING;
 
-        String displayName(RuneEtching runeEtching) {
+        Text displayName(RuneEtching runeEtching) {
             return switch (this) {
-                case ENCHANTED_STRING -> "Enchanted Bow-String";
-                case REINFORCED_FRAME -> "Reinforced Bow-Frame";
-                case RUNE_ETCHING -> "Rune Etching (" + runeEtching.id() + ")";
+                case ENCHANTED_STRING -> Text.translatable("item.simplybows.upgrades.enchanted_bow_string");
+                case REINFORCED_FRAME -> Text.translatable("item.simplybows.upgrades.reinforced_bow_frame");
+                case RUNE_ETCHING -> Text.translatable("item.simplybows.upgrades.rune_etching_" + runeEtching.id());
             };
         }
+    }
+
+    private String getComponentTooltipKey() {
+        return switch (this.upgradeKind) {
+            case ENCHANTED_STRING -> "tooltip.simplybows.upgrade_component.enchanted_string";
+            case REINFORCED_FRAME -> "tooltip.simplybows.upgrade_component.reinforced_frame";
+            case RUNE_ETCHING -> "tooltip.simplybows.upgrade_component.rune." + this.runeEtching.id();
+        };
     }
 }

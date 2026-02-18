@@ -10,12 +10,10 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.stat.Stats;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.world.World;
-import net.sweenus.simplybows.upgrade.BowUpgradeData;
-import net.sweenus.simplybows.upgrade.RuneEtching;
+import net.sweenus.simplybows.util.BowTooltipHelper;
 import net.sweenus.simplybows.util.HelperMethods;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,25 +27,14 @@ public class SimplyBowItem extends BowItem {
     }
 
     @Override
+    public Text getName(ItemStack stack) {
+        return super.getName(stack).copy().setStyle(BowTooltipHelper.STYLE_UNIQUE_NAME);
+    }
+
+    @Override
     public void appendTooltip(ItemStack stack, Item.TooltipContext context, List<Text> tooltip, TooltipType type) {
         super.appendTooltip(stack, context, tooltip, type);
-        BowUpgradeData upgrades = BowUpgradeData.from(stack);
-        int usedSlots = upgrades.stringLevel() + upgrades.frameLevel();
-        int maxSlots = BowUpgradeData.getMaxTotalUpgradeSlots();
-        int maxPerType = BowUpgradeData.getMaxLevelPerType();
-
-        tooltip.add(Text.literal("Upgrade Slots: " + usedSlots + "/" + maxSlots).formatted(Formatting.GRAY));
-        tooltip.add(Text.literal(" Per-type cap: " + maxPerType).formatted(Formatting.DARK_GRAY));
-
-        if (upgrades.stringLevel() <= 0 && upgrades.frameLevel() <= 0 && upgrades.runeEtching() == RuneEtching.NONE) {
-            tooltip.add(Text.literal("Upgrades: None").formatted(Formatting.DARK_GRAY));
-            return;
-        }
-
-        tooltip.add(Text.literal("Bow Upgrades").formatted(Formatting.GOLD));
-        tooltip.add(Text.literal(" Enchanted String: " + upgrades.stringLevel()).formatted(Formatting.GREEN));
-        tooltip.add(Text.literal(" Reinforced Frame: " + upgrades.frameLevel()).formatted(Formatting.AQUA));
-        tooltip.add(Text.literal(" Rune Etching: " + formatRune(upgrades.runeEtching())).formatted(Formatting.LIGHT_PURPLE));
+        BowTooltipHelper.appendBowTooltip(getTooltipBowKey(), stack, tooltip);
     }
 
     @Override
@@ -210,13 +197,8 @@ public class SimplyBowItem extends BowItem {
         }
     }
 
-    private static String formatRune(RuneEtching rune) {
-        return switch (rune) {
-            case PAIN -> "Pain";
-            case GRACE -> "Grace";
-            case BOUNTY -> "Bounty";
-            default -> "None";
-        };
+    protected String getTooltipBowKey() {
+        return "generic";
     }
 
 

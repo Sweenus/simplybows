@@ -21,6 +21,11 @@ public class BeeBowItem extends SimplyBowItem {
         super(settings);
     }
 
+    @Override
+    protected String getTooltipBowKey() {
+        return "bee";
+    }
+
     public void performStoppedUsing(ServerWorld serverWorld, LivingEntity shooter, Hand hand, ItemStack stack, List<ItemStack> projectiles, float f, float g, boolean critical, @Nullable LivingEntity target) {
         this.shootAll(serverWorld, shooter, hand, stack, projectiles, f * BEE_ARROW_SPEED_MULTIPLIER, BEE_ARROW_DIVERGENCE, critical, target);
     }

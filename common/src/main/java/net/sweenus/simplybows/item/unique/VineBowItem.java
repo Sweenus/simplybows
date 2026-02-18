@@ -22,6 +22,11 @@ public class VineBowItem extends SimplyBowItem {
         super(settings);
     }
 
+    @Override
+    protected String getTooltipBowKey() {
+        return "vine";
+    }
+
     public void performStoppedUsing(ServerWorld serverWorld, LivingEntity shooter, Hand hand, ItemStack stack, List<ItemStack> projectiles, float f, float g, boolean critical, @Nullable LivingEntity target) {
         BowUpgradeData upgrades = BowUpgradeData.from(stack);
         float speed = (float) (f * VINE_ARROW_SPEED_MULTIPLIER * (1.0 + upgrades.stringLevel() * 0.05));
