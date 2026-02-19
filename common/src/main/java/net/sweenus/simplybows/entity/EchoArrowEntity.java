@@ -2,6 +2,7 @@ package net.sweenus.simplybows.entity;
 
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.projectile.ArrowEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -13,6 +14,7 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
@@ -22,6 +24,7 @@ import net.sweenus.simplybows.world.EchoShoulderBowManager;
 
 import java.util.ArrayDeque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class EchoArrowEntity extends ArrowEntity {
@@ -32,7 +35,11 @@ public class EchoArrowEntity extends ArrowEntity {
     private static final float PAIN_EXPLOSION_MIN_DAMAGE = 2.0F;
     private static final double PAIN_EXPLOSION_BASE_RADIUS = 2.35;
     private static final double PAIN_EXPLOSION_STRING_RADIUS_BONUS = 0.55;
+    private static final float DEFAULT_GRACE_SPLASH_RADIUS = 2.25F;
     private final BowUpgradeData upgrades;
+    private List<StatusEffectInstance> gracePotionEffects = List.of();
+    private boolean graceSupportArrow;
+    private float graceSplashRadius = DEFAULT_GRACE_SPLASH_RADIUS;
 
     public EchoArrowEntity(EntityType<? extends EchoArrowEntity> type, World world) {
         super(type, world);
@@ -49,11 +56,40 @@ public class EchoArrowEntity extends ArrowEntity {
         super.tick();
         if (this.getWorld() instanceof ServerWorld serverWorld && !this.inGround) {
             serverWorld.spawnParticles(ParticleTypes.ENCHANT, this.getX(), this.getY() + 0.1, this.getZ(), 2, 0.05, 0.05, 0.05, 0.0);
+            if (!this.gracePotionEffects.isEmpty()) {
+                serverWorld.spawnParticles(ParticleTypes.WITCH, this.getX(), this.getY() + 0.1, this.getZ(), 1, 0.02, 0.02, 0.02, 0.0);
+            }
         }
+    }
+
+    public void setGracePotionPayload(List<StatusEffectInstance> effects, boolean supportMode, float splashRadius) {
+        if (effects == null || effects.isEmpty()) {
+            this.gracePotionEffects = List.of();
+            this.graceSupportArrow = false;
+            this.graceSplashRadius = DEFAULT_GRACE_SPLASH_RADIUS;
+            return;
+        }
+        java.util.ArrayList<StatusEffectInstance> copied = new java.util.ArrayList<>();
+        for (StatusEffectInstance effect : effects) {
+            if (effect != null) {
+                copied.add(new StatusEffectInstance(effect));
+            }
+        }
+        this.gracePotionEffects = copied;
+        this.graceSupportArrow = supportMode;
+        this.graceSplashRadius = Math.max(1.0F, splashRadius);
     }
 
     @Override
     protected void onEntityHit(EntityHitResult entityHitResult) {
+        if (!this.gracePotionEffects.isEmpty() && this.graceSupportArrow) {
+            if (this.getWorld() instanceof ServerWorld serverWorld) {
+                applyGracePotionSplash(serverWorld, entityHitResult.getPos());
+            }
+            this.discard();
+            return;
+        }
+
         LivingEntity hitLiving = entityHitResult.getEntity() instanceof LivingEntity living ? living : null;
         boolean wasAliveBeforeHit = hitLiving != null && hitLiving.isAlive();
 
@@ -79,6 +115,9 @@ public class EchoArrowEntity extends ArrowEntity {
         if (this.getWorld() instanceof ServerWorld serverWorld) {
             serverWorld.spawnParticles(ParticleTypes.ENCHANT, entityHitResult.getPos().x, entityHitResult.getPos().y + 0.1, entityHitResult.getPos().z, 10, 0.15, 0.15, 0.15, 0.0);
             serverWorld.playSound(null, entityHitResult.getPos().x, entityHitResult.getPos().y, entityHitResult.getPos().z, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.PLAYERS, 0.5F, 1.25F);
+            if (!this.gracePotionEffects.isEmpty()) {
+                applyGracePotionSplash(serverWorld, entityHitResult.getPos());
+            }
         }
     }
 
@@ -87,6 +126,9 @@ public class EchoArrowEntity extends ArrowEntity {
         super.onBlockHit(blockHitResult);
         if (this.getWorld() instanceof ServerWorld serverWorld) {
             serverWorld.spawnParticles(ParticleTypes.ENCHANT, blockHitResult.getPos().x, blockHitResult.getPos().y + 0.1, blockHitResult.getPos().z, 8, 0.12, 0.12, 0.12, 0.0);
+            if (!this.gracePotionEffects.isEmpty()) {
+                applyGracePotionSplash(serverWorld, blockHitResult.getPos());
+            }
         }
     }
 
@@ -180,6 +222,50 @@ public class EchoArrowEntity extends ArrowEntity {
                 world.spawnParticles(ParticleTypes.ENCHANT, x, y + 0.02, z, 1, 0.0, 0.0, 0.0, 0.0);
             }
         }
+    }
+
+    private void applyGracePotionSplash(ServerWorld world, Vec3d impactPos) {
+        if (world == null || impactPos == null || this.gracePotionEffects.isEmpty()) {
+            return;
+        }
+        LivingEntity owner = this.getOwner() instanceof LivingEntity living ? living : null;
+        double radius = Math.max(1.0, this.graceSplashRadius);
+        Box box = Box.of(impactPos, radius * 2.0, radius * 2.0, radius * 2.0);
+        for (LivingEntity target : world.getEntitiesByClass(LivingEntity.class, box, entity ->
+                entity.isAlive() && impactPos.squaredDistanceTo(entity.getPos()) <= radius * radius)) {
+            if (owner != null) {
+                boolean friendly = CombatTargeting.isFriendlyTo(target, owner);
+                if (this.graceSupportArrow) {
+                    if (!friendly) {
+                        continue;
+                    }
+                } else if (!CombatTargeting.checkFriendlyFire(target, owner)) {
+                    continue;
+                }
+            }
+
+            double dist = Math.sqrt(impactPos.squaredDistanceTo(target.getPos()));
+            double proximity = MathHelper.clamp(1.0 - (dist / radius), 0.0, 1.0);
+            if (proximity <= 0.0) {
+                continue;
+            }
+            for (StatusEffectInstance effect : this.gracePotionEffects) {
+                int scaledDuration = Math.max(1, (int) (effect.getDuration() * (0.25 + 0.75 * proximity)));
+                target.addStatusEffect(new StatusEffectInstance(
+                        effect.getEffectType(),
+                        scaledDuration,
+                        effect.getAmplifier(),
+                        effect.isAmbient(),
+                        effect.shouldShowParticles(),
+                        effect.shouldShowIcon()
+                ), this.getOwner());
+            }
+        }
+
+        world.spawnParticles(ParticleTypes.WITCH, impactPos.x, impactPos.y + 0.1, impactPos.z, 16, radius * 0.25, 0.18, radius * 0.25, 0.01);
+        world.spawnParticles(ParticleTypes.INSTANT_EFFECT, impactPos.x, impactPos.y + 0.1, impactPos.z, 12, radius * 0.2, 0.15, radius * 0.2, 0.0);
+        world.spawnParticles(ParticleTypes.INSTANT_EFFECT, impactPos.x, impactPos.y + 0.1, impactPos.z, 8, radius * 0.18, 0.12, radius * 0.18, 0.0);
+        world.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.ENTITY_SPLASH_POTION_BREAK, SoundCategory.PLAYERS, 0.7F, 1.05F + world.random.nextFloat() * 0.1F);
     }
 
     private static ItemStack sanitizeArrowStack(ItemStack arrowStack) {

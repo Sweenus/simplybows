@@ -1,9 +1,14 @@
 package net.sweenus.simplybows.world;
 
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.PotionContentsComponent;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.projectile.ProjectileUtil;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.item.PotionItem;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.hit.EntityHitResult;
@@ -20,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -28,7 +34,12 @@ public final class EchoShoulderBowManager {
 
     private static final Map<UUID, CompanionPair> ACTIVE_BOWS = new HashMap<>();
     private static final Map<UUID, UUID> FOCUSED_TARGETS = new HashMap<>();
+    private static final Map<UUID, GracePotionCharge> GRACE_POTION_CHARGES = new HashMap<>();
     private static final double LOOK_TARGET_DISTANCE = 48.0;
+    private static final int GRACE_BASE_SHOTS = 20;
+    private static final int GRACE_SHOTS_PER_STRING = 5;
+    private static final float GRACE_BASE_SPLASH_RADIUS = 2.25F;
+    private static final float GRACE_SPLASH_RADIUS_PER_FRAME = 0.5F;
 
     private EchoShoulderBowManager() {
     }
@@ -41,6 +52,7 @@ public final class EchoShoulderBowManager {
             discardTracked(world, ownerId);
             ACTIVE_BOWS.remove(ownerId);
             FOCUSED_TARGETS.remove(ownerId);
+            GRACE_POTION_CHARGES.remove(ownerId);
             return;
         }
 
@@ -58,6 +70,9 @@ public final class EchoShoulderBowManager {
         }
 
         BowUpgradeData upgrades = BowUpgradeData.from(player.getMainHandStack());
+        if (upgrades.runeEtching() != RuneEtching.GRACE) {
+            GRACE_POTION_CHARGES.remove(ownerId);
+        }
         boolean mirrorOffhandBow = upgrades.runeEtching() == RuneEtching.BOUNTY
                 && player.getOffHandStack().getItem() instanceof SimplyBowItem
                 && !(player.getOffHandStack().getItem() instanceof EchoBowItem);
@@ -139,8 +154,100 @@ public final class EchoShoulderBowManager {
                 shoulderBow.discard();
                 ACTIVE_BOWS.remove(ownerId);
                 FOCUSED_TARGETS.remove(ownerId);
+                GRACE_POTION_CHARGES.remove(ownerId);
             }
         }
+    }
+
+    public static void registerGracePotionCharge(ServerPlayerEntity player, List<StatusEffectInstance> effects) {
+        if (player == null || effects == null || effects.isEmpty()) {
+            return;
+        }
+        ItemStack mainHand = player.getMainHandStack();
+        if (!(mainHand.getItem() instanceof EchoBowItem)) {
+            return;
+        }
+
+        BowUpgradeData upgrades = BowUpgradeData.from(mainHand);
+        if (upgrades.runeEtching() != RuneEtching.GRACE) {
+            return;
+        }
+
+        boolean allBeneficial = true;
+        java.util.ArrayList<StatusEffectInstance> copied = new java.util.ArrayList<>();
+        for (StatusEffectInstance effect : effects) {
+            if (effect == null) {
+                continue;
+            }
+            StatusEffectInstance instance = new StatusEffectInstance(effect);
+            copied.add(instance);
+            if (!instance.getEffectType().value().isBeneficial()) {
+                allBeneficial = false;
+            }
+        }
+        if (copied.isEmpty()) {
+            return;
+        }
+
+        int shots = GRACE_BASE_SHOTS + upgrades.stringLevel() * GRACE_SHOTS_PER_STRING;
+        GRACE_POTION_CHARGES.put(player.getUuid(), new GracePotionCharge(copied, allBeneficial, shots));
+    }
+
+    @Nullable
+    public static GracePotionPayload consumeGracePotionShot(ServerPlayerEntity player) {
+        if (player == null) {
+            return null;
+        }
+        GracePotionCharge charge = GRACE_POTION_CHARGES.get(player.getUuid());
+        if (charge == null || charge.shotsRemaining <= 0 || charge.effects.isEmpty()) {
+            GRACE_POTION_CHARGES.remove(player.getUuid());
+            return null;
+        }
+
+        ItemStack mainHand = player.getMainHandStack();
+        BowUpgradeData upgrades = BowUpgradeData.from(mainHand);
+        if (!(mainHand.getItem() instanceof EchoBowItem) || upgrades.runeEtching() != RuneEtching.GRACE) {
+            return null;
+        }
+
+        float splashRadius = GRACE_BASE_SPLASH_RADIUS + upgrades.frameLevel() * GRACE_SPLASH_RADIUS_PER_FRAME;
+        GracePotionPayload payload = new GracePotionPayload(copyEffects(charge.effects), charge.supportMode, splashRadius);
+        charge.shotsRemaining--;
+        if (charge.shotsRemaining <= 0) {
+            GRACE_POTION_CHARGES.remove(player.getUuid());
+            moveNextValidPotionToOffhand(player);
+        }
+        return payload;
+    }
+
+    public static boolean hasGracePotionCharge(ServerPlayerEntity player) {
+        if (player == null) {
+            return false;
+        }
+        GracePotionCharge charge = GRACE_POTION_CHARGES.get(player.getUuid());
+        return charge != null && charge.shotsRemaining > 0 && !charge.effects.isEmpty();
+    }
+
+    public static boolean isGraceSupportActive(ServerPlayerEntity player) {
+        if (player == null) {
+            return false;
+        }
+        GracePotionCharge charge = GRACE_POTION_CHARGES.get(player.getUuid());
+        if (charge == null || charge.shotsRemaining <= 0 || !charge.supportMode) {
+            return false;
+        }
+        ItemStack mainHand = player.getMainHandStack();
+        return mainHand.getItem() instanceof EchoBowItem && BowUpgradeData.from(mainHand).runeEtching() == RuneEtching.GRACE;
+    }
+
+    private static List<StatusEffectInstance> copyEffects(List<StatusEffectInstance> effects) {
+        java.util.ArrayList<StatusEffectInstance> copied = new java.util.ArrayList<>();
+        for (StatusEffectInstance effect : effects) {
+            if (effect != null) {
+                copied.add(new StatusEffectInstance(effect));
+            }
+        }
+        return copied;
     }
 
     private static void validateFocusedTarget(ServerPlayerEntity player, @Nullable UUID focusedTargetId) {
@@ -234,6 +341,64 @@ public final class EchoShoulderBowManager {
         }
     }
 
+    private static void moveNextValidPotionToOffhand(ServerPlayerEntity player) {
+        if (player == null) {
+            return;
+        }
+        ItemStack offhand = player.getOffHandStack();
+        boolean offhandEmpty = offhand == null || offhand.isEmpty();
+        boolean offhandIsBottle = !offhandEmpty && offhand.isOf(Items.GLASS_BOTTLE);
+        if (!offhandEmpty && !offhandIsBottle) {
+            return;
+        }
+
+        for (int i = 0; i < player.getInventory().size(); i++) {
+            ItemStack stack = player.getInventory().getStack(i);
+            if (!isValidPotionStack(stack)) {
+                continue;
+            }
+
+            if (offhandIsBottle) {
+                // True swap: potion stack into offhand, bottle stack into source slot.
+                player.setStackInHand(net.minecraft.util.Hand.OFF_HAND, stack.copy());
+                player.getInventory().setStack(i, offhand.copy());
+            } else {
+                player.setStackInHand(net.minecraft.util.Hand.OFF_HAND, stack.copy());
+                player.getInventory().setStack(i, ItemStack.EMPTY);
+            }
+            player.getInventory().markDirty();
+            return;
+        }
+    }
+
+    private static boolean isValidPotionStack(ItemStack stack) {
+        if (stack == null || stack.isEmpty() || !(stack.getItem() instanceof PotionItem)) {
+            return false;
+        }
+        PotionContentsComponent potionContents = stack.get(DataComponentTypes.POTION_CONTENTS);
+        if (potionContents == null) {
+            return false;
+        }
+        final boolean[] hasEffects = {false};
+        potionContents.forEachEffect(effect -> hasEffects[0] = true);
+        return hasEffects[0];
+    }
+
     private record CompanionPair(UUID leftId, UUID rightId) {
+    }
+
+    private static final class GracePotionCharge {
+        private final List<StatusEffectInstance> effects;
+        private final boolean supportMode;
+        private int shotsRemaining;
+
+        private GracePotionCharge(List<StatusEffectInstance> effects, boolean supportMode, int shotsRemaining) {
+            this.effects = effects;
+            this.supportMode = supportMode;
+            this.shotsRemaining = shotsRemaining;
+        }
+    }
+
+    public record GracePotionPayload(List<StatusEffectInstance> effects, boolean supportMode, float splashRadius) {
     }
 }

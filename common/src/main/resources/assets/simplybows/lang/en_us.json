@@ -93,8 +93,8 @@
   "tooltip.simplybows.bow.blossom.rune.pain": "  WIP",
   "tooltip.simplybows.bow.blossom.rune.grace": "  WIP",
   "tooltip.simplybows.bow.blossom.rune.bounty": "  WIP",
-  "tooltip.simplybows.bow.echo.rune.pain": "  Magic bows focus your last target. Echo kills trigger chained arcane explosions. Frame increases explosion damage, String increases radius.",
-  "tooltip.simplybows.bow.echo.rune.grace": "  WIP",
+  "tooltip.simplybows.bow.echo.rune.pain": "  Magical bows focus your last target. Echo kills trigger chained arcane explosions. Frame increases explosion damage, String increases radius.",
+  "tooltip.simplybows.bow.echo.rune.grace": "  Drinking a potion from the offhand charges the magical bows with its effects for a number of shots. If the potion has positive effects, the magical bows will target nearby allies.",
   "tooltip.simplybows.bow.echo.rune.bounty": "One of the magical bows will now mirror your off-hand bow.",
 
   "tooltip.simplybows.upgrade_component.enchanted_string": "Applies +1 Enchanted String to a unique bow.",

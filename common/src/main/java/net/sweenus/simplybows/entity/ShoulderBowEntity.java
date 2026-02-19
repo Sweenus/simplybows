@@ -32,6 +32,7 @@ import net.sweenus.simplybows.registry.EntityRegistry;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
 import net.sweenus.simplybows.util.CombatTargeting;
+import net.sweenus.simplybows.world.EchoShoulderBowManager;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
@@ -212,7 +213,7 @@ public class ShoulderBowEntity extends Entity {
             return;
         }
 
-        LivingEntity target = findNearestHostile(owner, getDynamicTargetRadius(owner));
+        LivingEntity target = findNearestTarget(owner, getDynamicTargetRadius(owner));
         if (target != null) {
             Vec3d targetPos = target.getPos().add(0.0, target.getStandingEyeHeight() * 0.6, 0.0);
             Vec3d aim = getCompensatedAimDirection(targetPos, ARROW_SPEED, COMPANION_ARROW_GRAVITY_PER_TICK);
@@ -248,16 +249,25 @@ public class ShoulderBowEntity extends Entity {
         }
     }
 
-    private LivingEntity findNearestHostile(ServerPlayerEntity owner, double targetRadius) {
+    private LivingEntity findNearestTarget(ServerPlayerEntity owner, double targetRadius) {
+        boolean supportMode = EchoShoulderBowManager.isGraceSupportActive(owner);
         LivingEntity nearest = null;
         double nearestDist = targetRadius * targetRadius;
         for (LivingEntity candidate : this.getWorld().getEntitiesByClass(
                 LivingEntity.class,
                 owner.getBoundingBox().expand(targetRadius, 8.0, targetRadius),
-                entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                entity -> entity.isAlive() && (supportMode
+                        ? entity != owner
+                        : (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity)))
         )) {
-            if (!CombatTargeting.checkFriendlyFire(candidate, owner)) {
-                continue;
+            if (supportMode) {
+                if (candidate == owner || !CombatTargeting.isFriendlyTo(candidate, owner)) {
+                    continue;
+                }
+            } else {
+                if (!CombatTargeting.checkFriendlyFire(candidate, owner)) {
+                    continue;
+                }
             }
             double dist = candidate.squaredDistanceTo(this.getX(), this.getY(), this.getZ());
             if (dist < nearestDist) {
@@ -343,6 +353,14 @@ public class ShoulderBowEntity extends Entity {
             return;
         }
 
+        if (!EchoShoulderBowManager.isGraceSupportActive(owner) && isTrackedTargetFriendly(owner)) {
+            this.preparedShotDirection = null;
+            this.trackedTargetUuid = null;
+            this.cooldownTicks = Math.max(this.cooldownTicks, 2);
+            this.setPullStage(0);
+            return;
+        }
+
         Vec3d direction = this.preparedShotDirection;
         if (direction == null || direction.lengthSquared() <= 1.0E-6) {
             direction = owner.getRotationVec(1.0F);
@@ -363,6 +381,14 @@ public class ShoulderBowEntity extends Entity {
         this.preparedShotDirection = null;
         this.trackedTargetUuid = null;
         this.setPullStage(0);
+    }
+
+    private boolean isTrackedTargetFriendly(ServerPlayerEntity owner) {
+        if (owner == null || this.trackedTargetUuid == null || !(this.getWorld() instanceof ServerWorld serverWorld)) {
+            return false;
+        }
+        Entity tracked = serverWorld.getEntity(this.trackedTargetUuid);
+        return tracked instanceof LivingEntity living && living.isAlive() && CombatTargeting.isFriendlyTo(living, owner);
     }
 
     private double getDynamicTargetRadius(ServerPlayerEntity owner) {
@@ -446,6 +472,7 @@ public class ShoulderBowEntity extends Entity {
             } else {
                 EchoArrowEntity arrow = new EchoArrowEntity(world, owner, arrowStack, mainHand);
                 arrow.setDamage(2.0);
+                applyGracePotionPayload(owner, arrow);
                 projectile = arrow;
                 speed = ARROW_SPEED;
                 divergence = ARROW_DIVERGENCE;
@@ -453,6 +480,7 @@ public class ShoulderBowEntity extends Entity {
         } else {
             EchoArrowEntity arrow = new EchoArrowEntity(world, owner, arrowStack, mainHand);
             arrow.setDamage(2.0);
+            applyGracePotionPayload(owner, arrow);
             projectile = arrow;
             speed = ARROW_SPEED;
             divergence = ARROW_DIVERGENCE;
@@ -464,6 +492,13 @@ public class ShoulderBowEntity extends Entity {
         projectile.setPosition(this.getX(), this.getY() + 0.02, this.getZ());
         projectile.setVelocity(direction.x, direction.y, direction.z, speed, divergence);
         return projectile;
+    }
+
+    private static void applyGracePotionPayload(ServerPlayerEntity owner, EchoArrowEntity arrow) {
+        EchoShoulderBowManager.GracePotionPayload payload = EchoShoulderBowManager.consumeGracePotionShot(owner);
+        if (payload != null && arrow != null) {
+            arrow.setGracePotionPayload(payload.effects(), payload.supportMode(), payload.splashRadius());
+        }
     }
 
     private ProjectileEntity spawnOffhandIceVolley(
@@ -578,6 +613,13 @@ public class ShoulderBowEntity extends Entity {
             return;
         }
         serverWorld.spawnParticles(ParticleTypes.ENCHANT, this.getX(), this.getY() + 0.08, this.getZ(), 2, 0.08, 0.04, 0.08, 0.0);
+        ServerPlayerEntity owner = getOwnerPlayer();
+        if (owner != null && EchoShoulderBowManager.hasGracePotionCharge(owner)) {
+            serverWorld.spawnParticles(ParticleTypes.WITCH, this.getX(), this.getY() + 0.1, this.getZ(), 1, 0.05, 0.03, 0.05, 0.0);
+            if (this.age % 6 == 0) {
+                serverWorld.spawnParticles(ParticleTypes.INSTANT_EFFECT, this.getX(), this.getY() + 0.12, this.getZ(), 2, 0.06, 0.04, 0.06, 0.0);
+            }
+        }
     }
 
 
