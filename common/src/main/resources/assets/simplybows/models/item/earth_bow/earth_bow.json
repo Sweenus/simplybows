@@ -1,7 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "simplybows:item/vine_bow/vine_bow"
+    "layer0": "simplybows:item/earth_bow/earth_bow"
   },
   "display": {
     "thirdperson_righthand": {

@@ -1,6 +1,6 @@
 {
     "parent": "item/bow",
     "textures": {
-        "layer0": "simplybows:item/vine_bow/vine_bow_pulling_2"
+        "layer0": "simplybows:item/earth_bow/earth_bow_pulling_2"
     }
 }
