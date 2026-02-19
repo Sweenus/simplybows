@@ -149,7 +149,7 @@ public final class EarthSpikeFieldManager {
             if (candidate.squaredDistanceTo(center) > radius * radius) {
                 continue;
             }
-            boolean damaged = CombatTargeting.applyDamage(world, owner, candidate, damage, true);
+            boolean damaged = CombatTargeting.applyDamage(world, owner, candidate, damage, true, false);
             if (damaged) {
                 applyUpwardKnockback(candidate, upwardKnockback);
             }
@@ -172,7 +172,7 @@ public final class EarthSpikeFieldManager {
 
             double proximity = 1.0 - MathHelper.clamp(dist / centerRadius, 0.0, 1.0);
             float scaledDamage = tuning.damage() * (BOUNTY_CENTER_DAMAGE_BASE_MULTIPLIER + (float) (proximity * BOUNTY_CENTER_DAMAGE_PROXIMITY_MULTIPLIER));
-            boolean damaged = CombatTargeting.applyDamage(world, owner, candidate, scaledDamage, true);
+            boolean damaged = CombatTargeting.applyDamage(world, owner, candidate, scaledDamage, true, false);
             if (damaged) {
                 double scaledKnockup = tuning.upwardKnockback() * (BOUNTY_CENTER_KNOCKBACK_BASE_MULTIPLIER + (proximity * BOUNTY_CENTER_KNOCKBACK_PROXIMITY_MULTIPLIER));
                 applyUpwardKnockback(candidate, scaledKnockup);
@@ -348,7 +348,7 @@ public final class EarthSpikeFieldManager {
                 hitBox,
                 entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
         )) {
-            boolean damaged = CombatTargeting.applyDamage(world, owner, candidate, damage, true);
+            boolean damaged = CombatTargeting.applyDamage(world, owner, candidate, damage, true, false);
             if (damaged) {
                 applyUpwardKnockback(candidate, upwardKnockback);
             }

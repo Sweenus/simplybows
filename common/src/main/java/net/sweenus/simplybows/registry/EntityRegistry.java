@@ -13,6 +13,9 @@ import net.sweenus.simplybows.entity.BeeHiveVisualEntity;
 import net.sweenus.simplybows.entity.BlossomArrowEntity;
 import net.sweenus.simplybows.SimplyBows;
 import net.sweenus.simplybows.entity.BubbleArrowEntity;
+import net.sweenus.simplybows.entity.BubbleBountyVisualEntity;
+import net.sweenus.simplybows.entity.BubbleGraceVisualEntity;
+import net.sweenus.simplybows.entity.BubblePainArrowEntity;
 import net.sweenus.simplybows.entity.EchoArrowEntity;
 import net.sweenus.simplybows.entity.EarthArrowEntity;
 import net.sweenus.simplybows.entity.EarthSpikeVisualEntity;
@@ -46,6 +49,11 @@ public class EntityRegistry {
             () -> EntityType.Builder.<BubbleArrowEntity>create(BubbleArrowEntity::new, SpawnGroup.MISC)
                     .dimensions(0.5F, 0.5F)
                     .build(SimplyBows.MOD_ID + ":bubble_arrow"));
+
+    public static final RegistrySupplier<EntityType<BubblePainArrowEntity>> BUBBLE_PAIN_ARROW = ENTITY_TYPES.register("bubble_pain_arrow",
+            () -> EntityType.Builder.<BubblePainArrowEntity>create(BubblePainArrowEntity::new, SpawnGroup.MISC)
+                    .dimensions(0.9F, 0.6F)
+                    .build(SimplyBows.MOD_ID + ":bubble_pain_arrow"));
 
     public static final RegistrySupplier<EntityType<BeeArrowEntity>> BEE_ARROW = ENTITY_TYPES.register("bee_arrow",
             () -> EntityType.Builder.<BeeArrowEntity>create(BeeArrowEntity::new, SpawnGroup.MISC)
@@ -95,6 +103,20 @@ public class EntityRegistry {
                     .maxTrackingRange(64)
                     .trackingTickInterval(1)
                     .build(SimplyBows.MOD_ID + ":bee_grace_visual"));
+
+    public static final RegistrySupplier<EntityType<BubbleBountyVisualEntity>> BUBBLE_BOUNTY_VISUAL = ENTITY_TYPES.register("bubble_bounty_visual",
+            () -> EntityType.Builder.<BubbleBountyVisualEntity>create(BubbleBountyVisualEntity::new, SpawnGroup.MISC)
+                    .dimensions(0.5F, 0.5F)
+                    .maxTrackingRange(64)
+                    .trackingTickInterval(1)
+                    .build(SimplyBows.MOD_ID + ":bubble_bounty_visual"));
+
+    public static final RegistrySupplier<EntityType<BubbleGraceVisualEntity>> BUBBLE_GRACE_VISUAL = ENTITY_TYPES.register("bubble_grace_visual",
+            () -> EntityType.Builder.<BubbleGraceVisualEntity>create(BubbleGraceVisualEntity::new, SpawnGroup.MISC)
+                    .dimensions(0.5F, 0.5F)
+                    .maxTrackingRange(64)
+                    .trackingTickInterval(1)
+                    .build(SimplyBows.MOD_ID + ":bubble_grace_visual"));
 
     public static void registerEntities() {
         ENTITY_TYPES.register();

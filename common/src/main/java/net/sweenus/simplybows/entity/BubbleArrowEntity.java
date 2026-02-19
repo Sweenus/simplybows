@@ -11,12 +11,17 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.world.BubbleColumnFieldManager;
+
+import java.util.UUID;
 
 public class BubbleArrowEntity extends ArrowEntity {
 
     private static final double WATER_DRAG_COMPENSATION = 1.0 / 0.6;
     private boolean spawnedBubbleColumn;
+    private UUID columnOwnerId;
+    private BowUpgradeData columnUpgrades = BowUpgradeData.none();
 
     public BubbleArrowEntity(EntityType<? extends BubbleArrowEntity> type, World world) {
         super(type, world);
@@ -25,6 +30,8 @@ public class BubbleArrowEntity extends ArrowEntity {
     public BubbleArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
         super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
         this.setOwner(owner);
+        this.columnOwnerId = owner != null ? owner.getUuid() : null;
+        this.columnUpgrades = BowUpgradeData.from(weaponStack);
     }
 
     @Override
@@ -74,7 +81,7 @@ public class BubbleArrowEntity extends ArrowEntity {
         }
 
         if (this.getWorld() instanceof ServerWorld serverWorld) {
-            this.spawnedBubbleColumn = BubbleColumnFieldManager.createOrReplaceColumn(serverWorld, hitPos);
+            this.spawnedBubbleColumn = BubbleColumnFieldManager.createOrReplaceColumn(serverWorld, hitPos, this.columnOwnerId, this.columnUpgrades);
         }
     }
 

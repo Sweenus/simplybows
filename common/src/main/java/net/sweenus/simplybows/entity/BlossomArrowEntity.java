@@ -13,18 +13,22 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.world.BlossomStormManager;
 
 public class BlossomArrowEntity extends ArrowEntity {
 
     private boolean spawnedStorm;
+    private final BowUpgradeData upgrades;
 
     public BlossomArrowEntity(EntityType<? extends BlossomArrowEntity> type, World world) {
         super(type, world);
+        this.upgrades = BowUpgradeData.none();
     }
 
     public BlossomArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
         super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
+        this.upgrades = BowUpgradeData.from(weaponStack);
     }
 
     @Override
@@ -76,7 +80,7 @@ public class BlossomArrowEntity extends ArrowEntity {
         }
 
         if (this.getWorld() instanceof ServerWorld serverWorld) {
-            BlossomStormManager.createStorm(serverWorld, pos, directTarget, this.getOwner());
+            BlossomStormManager.createStorm(serverWorld, pos, directTarget, this.getOwner(), this.upgrades);
             this.spawnedStorm = true;
         }
     }

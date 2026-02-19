@@ -7,6 +7,9 @@ import net.minecraft.client.render.entity.ArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BeeArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BeeGraceVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BeeHiveVisualEntityRenderer;
+import net.sweenus.simplybows.client.renderer.BubbleBountyVisualEntityRenderer;
+import net.sweenus.simplybows.client.renderer.BubbleGraceVisualEntityRenderer;
+import net.sweenus.simplybows.client.renderer.BubblePainArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.EarthSpikeVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.HomingArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.HomingSpectralArrowEntityRenderer;
@@ -41,6 +44,7 @@ public final class SimplyBows {
             EntityRendererRegistry.register(EntityRegistry.HOMING_SPECTRAL_ARROW, HomingSpectralArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.VINE_ARROW, ArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.BUBBLE_ARROW, ArrowEntityRenderer::new);
+            EntityRendererRegistry.register(EntityRegistry.BUBBLE_PAIN_ARROW, BubblePainArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.BEE_ARROW, BeeArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.BLOSSOM_ARROW, ArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.EARTH_ARROW, ArrowEntityRenderer::new);
@@ -50,6 +54,8 @@ public final class SimplyBows {
             EntityRendererRegistry.register(EntityRegistry.VINE_FLOWER_VISUAL, VineFlowerVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.BEE_HIVE_VISUAL, BeeHiveVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.BEE_GRACE_VISUAL, BeeGraceVisualEntityRenderer::new);
+            EntityRendererRegistry.register(EntityRegistry.BUBBLE_BOUNTY_VISUAL, BubbleBountyVisualEntityRenderer::new);
+            EntityRendererRegistry.register(EntityRegistry.BUBBLE_GRACE_VISUAL, BubbleGraceVisualEntityRenderer::new);
 
         }
     }

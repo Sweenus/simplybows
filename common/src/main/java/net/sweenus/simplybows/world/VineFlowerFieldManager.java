@@ -386,7 +386,7 @@ public final class VineFlowerFieldManager {
 
     private static boolean dealAuraDamage(ServerWorld world, LivingEntity owner, LivingEntity entity, float damage) {
         float before = entity.getHealth();
-        boolean damaged = CombatTargeting.applyDamage(world, owner, entity, damage, true);
+        boolean damaged = CombatTargeting.applyDamage(world, owner, entity, damage, true, false);
         return damaged && before > 0.0F && !entity.isAlive();
     }
 

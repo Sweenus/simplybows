@@ -11,6 +11,7 @@ import net.minecraft.registry.Registries;
 import net.minecraft.scoreboard.AbstractTeam;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.Vec3d;
 import net.sweenus.simplybows.compat.opac.OpacCompat;
 import org.jetbrains.annotations.Nullable;
 
@@ -95,6 +96,10 @@ public final class CombatTargeting {
     }
 
     public static boolean applyDamage(ServerWorld world, @Nullable Entity attackingEntity, LivingEntity target, float amount, boolean ignoreIframe) {
+        return applyDamage(world, attackingEntity, target, amount, ignoreIframe, true);
+    }
+
+    public static boolean applyDamage(ServerWorld world, @Nullable Entity attackingEntity, LivingEntity target, float amount, boolean ignoreIframe, boolean applyKnockback) {
         if (world == null || target == null || amount <= 0.0F || !target.isAlive()) {
             return false;
         }
@@ -108,6 +113,7 @@ public final class CombatTargeting {
             target.timeUntilRegen = 0;
         }
 
+        Vec3d velocityBeforeDamage = applyKnockback ? null : target.getVelocity();
         boolean damaged;
         if (attackingEntity instanceof PlayerEntity playerEntity) {
             damaged = target.damage(world.getDamageSources().playerAttack(playerEntity), amount);
@@ -120,6 +126,9 @@ public final class CombatTargeting {
         if (ignoreIframe) {
             target.hurtTime = 0;
             target.timeUntilRegen = 0;
+        }
+        if (!applyKnockback && damaged && velocityBeforeDamage != null) {
+            target.setVelocity(velocityBeforeDamage);
         }
 
         return damaged;

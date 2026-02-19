@@ -441,8 +441,15 @@ public class ShoulderBowEntity extends Entity {
             } else if (offhandBow instanceof BubbleBowItem) {
                 speed = 2.85F;
                 divergence = 0.8F;
-                BubbleArrowEntity arrow = new BubbleArrowEntity(world, owner, arrowStack, offHand);
-                arrow.setDamage(1.75);
+                ProjectileEntity arrow;
+                if (upgrades.runeEtching() == RuneEtching.PAIN) {
+                    arrow = new BubblePainArrowEntity(world, owner, arrowStack, offHand);
+                } else {
+                    arrow = new BubbleArrowEntity(world, owner, arrowStack, offHand);
+                }
+                if (arrow instanceof net.minecraft.entity.projectile.PersistentProjectileEntity persistent) {
+                    persistent.setDamage(1.75);
+                }
                 projectile = arrow;
             } else if (offhandBow instanceof BeeBowItem) {
                 speed = 1.44F;

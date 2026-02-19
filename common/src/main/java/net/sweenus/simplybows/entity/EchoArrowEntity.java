@@ -164,7 +164,7 @@ public class EchoArrowEntity extends ArrowEntity {
             for (LivingEntity nearby : world.getEntitiesByClass(LivingEntity.class, damageBox, entity ->
                     entity.isAlive() && entity != sourceVictim && sourceVictim.squaredDistanceTo(entity) <= radius * radius)) {
                 boolean wasAlive = nearby.isAlive();
-                if (!CombatTargeting.applyDamage(world, this.getOwner(), nearby, damage, true)) {
+                if (!CombatTargeting.applyDamage(world, this.getOwner(), nearby, damage, true, false)) {
                     continue;
                 }
                 if (wasAlive && !nearby.isAlive()) {
