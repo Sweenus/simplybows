@@ -2,6 +2,13 @@ architectury {
     common rootProject.enabled_platforms.split(',')
 }
 
+repositories {
+    maven {
+        name = "FzzyMaven"
+        url = "https://maven.fzzyhmstrs.me/"
+    }
+}
+
 dependencies {
     // We depend on Fabric Loader here to use the Fabric @Environment annotations,
     // which get remapped to the correct annotations on each platform.
@@ -9,4 +16,6 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
 
     modImplementation "dev.architectury:architectury:$rootProject.architectury_api_version"
+
+    modImplementation "me.fzzyhmstrs:fzzy_config:${project.fzz_config_version}"
 }
