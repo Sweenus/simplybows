@@ -21,6 +21,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.sweenus.simplybows.registry.EntityRegistry;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
 import net.sweenus.simplybows.util.CombatTargeting;
@@ -31,17 +32,17 @@ import java.util.List;
 
 public class BeeArrowEntity extends ArrowEntity {
 
-    private static final int BASE_POISON_DURATION_TICKS = 60;
-    private static final int STRING_POISON_DURATION_BONUS_TICKS = 20;
+    private static int basePoisonDuration() { return SimplyBowsConfig.INSTANCE.beeBow.basePoisonDuration.get(); }
+    private static int stringPoisonDurationBonus() { return SimplyBowsConfig.INSTANCE.beeBow.stringPoisonDurationBonus.get(); }
     private static final int MAX_POISON_LEVELS = 5;
     private static final int MAX_POISON_AMPLIFIER = MAX_POISON_LEVELS - 1;
     private static final int STRING_LEVELS_PER_POISON_STEP = 2;
     private static final double MIN_HORIZONTAL_SPEED_SQ_FOR_YAW = 1.0E-4;
     private static final float ROTATION_SMOOTHING = 0.35F;
-    private static final double PAIN_HOMING_RADIUS = 10.0;
-    private static final int PAIN_HOMING_START_TICKS = 8;
-    private static final double PAIN_HOMING_ACCEL = 0.18;
-    private static final double PAIN_MAX_SPEED = 1.05;
+    private static double painHomingRadius() { return SimplyBowsConfig.INSTANCE.beeBow.painHomingRadius.get(); }
+    private static int painHomingStartTicks() { return SimplyBowsConfig.INSTANCE.beeBow.painHomingStartTicks.get(); }
+    private static double painHomingAccel() { return SimplyBowsConfig.INSTANCE.beeBow.painHomingAccel.get(); }
+    private static double painMaxSpeed() { return SimplyBowsConfig.INSTANCE.beeBow.painMaxSpeed.get(); }
     private static final String HIVE_VISUAL_TAG = "simplybows_bee_hive_visual";
     private final BowUpgradeData upgrades;
     private boolean spawnSoundPlayed;
@@ -105,7 +106,7 @@ public class BeeArrowEntity extends ArrowEntity {
     }
 
     private void updatePainHoming() {
-        if (this.age < PAIN_HOMING_START_TICKS) {
+        if (this.age < painHomingStartTicks()) {
             return;
         }
 
@@ -122,9 +123,9 @@ public class BeeArrowEntity extends ArrowEntity {
             return;
         }
 
-        Vec3d newVelocity = this.getVelocity().add(direction.normalize().multiply(PAIN_HOMING_ACCEL));
-        if (newVelocity.lengthSquared() > PAIN_MAX_SPEED * PAIN_MAX_SPEED) {
-            newVelocity = newVelocity.normalize().multiply(PAIN_MAX_SPEED);
+        Vec3d newVelocity = this.getVelocity().add(direction.normalize().multiply(painHomingAccel()));
+        if (newVelocity.lengthSquared() > painMaxSpeed() * painMaxSpeed()) {
+            newVelocity = newVelocity.normalize().multiply(painMaxSpeed());
         }
         this.setVelocity(newVelocity);
         this.velocityDirty = true;
@@ -135,7 +136,7 @@ public class BeeArrowEntity extends ArrowEntity {
             return null;
         }
 
-        Box searchBox = this.getBoundingBox().expand(PAIN_HOMING_RADIUS);
+        Box searchBox = this.getBoundingBox().expand(painHomingRadius());
         List<LivingEntity> candidates = this.getWorld().getEntitiesByClass(LivingEntity.class, searchBox, entity ->
                 entity.isAlive()
                         && entity != ownerLiving
@@ -232,7 +233,7 @@ public class BeeArrowEntity extends ArrowEntity {
         if (existing != null) {
             amplifier = Math.min(MAX_POISON_AMPLIFIER, existing.getAmplifier() + poisonStep);
         }
-        int duration = BASE_POISON_DURATION_TICKS + this.upgrades.stringLevel() * STRING_POISON_DURATION_BONUS_TICKS;
+        int duration = basePoisonDuration() + this.upgrades.stringLevel() * stringPoisonDurationBonus();
         target.addStatusEffect(new StatusEffectInstance(StatusEffects.POISON, duration, amplifier), this.getOwner());
     }
 

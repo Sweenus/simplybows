@@ -9,6 +9,7 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.entity.BeeGraceVisualEntity;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.util.CombatTargeting;
@@ -22,10 +23,10 @@ import java.util.UUID;
 public final class BeeGraceShieldManager {
 
     public static final String GRACE_VISUAL_TAG = "simplybows_bee_grace_visual";
-    private static final double GRACE_APPLY_RADIUS = 2.0;
-    private static final int MAX_BEES_PER_TARGET = 5;
-    private static final int BASE_DURATION_TICKS = 180;
-    private static final int STRING_DURATION_BONUS_TICKS = 35;
+    private static double graceApplyRadius() { return SimplyBowsConfig.INSTANCE.beeBow.graceApplyRadius.get(); }
+    private static int maxBeesPerTarget() { return SimplyBowsConfig.INSTANCE.beeBow.graceMaxBeesPerTarget.get(); }
+    private static int baseDurationTicks() { return SimplyBowsConfig.INSTANCE.beeBow.graceBaseDuration.get(); }
+    private static int stringDurationBonusTicks() { return SimplyBowsConfig.INSTANCE.beeBow.graceStringDurationBonus.get(); }
     private static final double ORBIT_RADIUS = 0.78;
     private static final double ORBIT_HEIGHT = 1.2;
     private static final double ORBIT_BOB_HEIGHT = 0.18;
@@ -46,7 +47,8 @@ public final class BeeGraceShieldManager {
             return;
         }
 
-        Box box = Box.of(impactPos, GRACE_APPLY_RADIUS * 2.0, GRACE_APPLY_RADIUS * 2.0, GRACE_APPLY_RADIUS * 2.0);
+        double radius = graceApplyRadius();
+        Box box = Box.of(impactPos, radius * 2.0, radius * 2.0, radius * 2.0);
         List<LivingEntity> candidates = world.getEntitiesByClass(LivingEntity.class, box, entity ->
                 entity.isAlive() && entity != owner && CombatTargeting.isFriendlyTo(entity, owner));
         if (candidates.isEmpty()) {
@@ -59,7 +61,7 @@ public final class BeeGraceShieldManager {
         double bestStackDist = Double.MAX_VALUE;
         LivingEntity closest = null;
         double bestDist = Double.MAX_VALUE;
-        double maxDistSq = GRACE_APPLY_RADIUS * GRACE_APPLY_RADIUS;
+        double maxDistSq = radius * radius;
         for (LivingEntity candidate : candidates) {
             double distSq = candidate.squaredDistanceTo(impactPos);
             if (distSq > maxDistSq) {
@@ -209,7 +211,7 @@ public final class BeeGraceShieldManager {
             return;
         }
 
-        int duration = BASE_DURATION_TICKS + upgrades.stringLevel() * STRING_DURATION_BONUS_TICKS;
+        int duration = baseDurationTicks() + upgrades.stringLevel() * stringDurationBonusTicks();
         long now = world.getTime();
         ActiveGraceShield shield = new ActiveGraceShield(
                 targetId,
@@ -253,7 +255,7 @@ public final class BeeGraceShieldManager {
     }
 
     private static int getMaxBeesForStringLevel(int stringLevel) {
-        return Math.min(MAX_BEES_PER_TARGET, Math.max(1, stringLevel + 1));
+        return Math.min(maxBeesPerTarget(), Math.max(1, stringLevel + 1));
     }
 
     private static int getCurrentStacksForTarget(ServerWorld world, UUID targetId) {

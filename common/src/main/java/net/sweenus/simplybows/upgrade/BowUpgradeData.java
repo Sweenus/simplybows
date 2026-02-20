@@ -5,6 +5,7 @@ import net.minecraft.component.type.NbtComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 
 public record BowUpgradeData(int stringLevel, int frameLevel, RuneEtching runeEtching) {
 
@@ -12,8 +13,10 @@ public record BowUpgradeData(int stringLevel, int frameLevel, RuneEtching runeEt
     private static final String STRING_KEY = "enchanted_string";
     private static final String FRAME_KEY = "reinforced_frame";
     private static final String RUNE_KEY = "rune";
-    private static final int MAX_LEVEL_PER_TYPE = 5;
-    private static final int MAX_TOTAL_UPGRADE_SLOTS = 5;
+    private static int maxLevelPerType() { return SimplyBowsConfig.INSTANCE.upgrades.maxLevelPerType.get(); }
+    private static int maxTotalUpgradeSlots() { return SimplyBowsConfig.INSTANCE.upgrades.maxTotalSlots.get(); }
+    private static double sizeMultiplierPerString() { return SimplyBowsConfig.INSTANCE.upgrades.sizeMultiplierPerString.get(); }
+    private static double damageMultiplierPerFrame() { return SimplyBowsConfig.INSTANCE.upgrades.damageMultiplierPerFrame.get(); }
 
     public static BowUpgradeData none() {
         return new BowUpgradeData(0, 0, RuneEtching.NONE);
@@ -52,14 +55,14 @@ public record BowUpgradeData(int stringLevel, int frameLevel, RuneEtching runeEt
     }
 
     public BowUpgradeData withIncreasedString() {
-        if (this.stringLevel >= MAX_LEVEL_PER_TYPE || this.stringLevel + this.frameLevel >= MAX_TOTAL_UPGRADE_SLOTS) {
+        if (this.stringLevel >= maxLevelPerType() || this.stringLevel + this.frameLevel >= maxTotalUpgradeSlots()) {
             return this;
         }
         return new BowUpgradeData(this.stringLevel + 1, this.frameLevel, this.runeEtching);
     }
 
     public BowUpgradeData withIncreasedFrame() {
-        if (this.frameLevel >= MAX_LEVEL_PER_TYPE || this.stringLevel + this.frameLevel >= MAX_TOTAL_UPGRADE_SLOTS) {
+        if (this.frameLevel >= maxLevelPerType() || this.stringLevel + this.frameLevel >= maxTotalUpgradeSlots()) {
             return this;
         }
         return new BowUpgradeData(this.stringLevel, this.frameLevel + 1, this.runeEtching);
@@ -70,11 +73,11 @@ public record BowUpgradeData(int stringLevel, int frameLevel, RuneEtching runeEt
     }
 
     public double sizeMultiplier() {
-        return 1.0 + this.stringLevel * 0.2;
+        return 1.0 + this.stringLevel * sizeMultiplierPerString();
     }
 
     public double damageMultiplier() {
-        return 1.0 + this.frameLevel * 0.55;
+        return 1.0 + this.frameLevel * damageMultiplierPerFrame();
     }
 
     public int bonusKnockback() {
@@ -82,7 +85,7 @@ public record BowUpgradeData(int stringLevel, int frameLevel, RuneEtching runeEt
     }
 
     private static int clampLevel(int level) {
-        return Math.max(0, Math.min(MAX_LEVEL_PER_TYPE, level));
+        return Math.max(0, Math.min(maxLevelPerType(), level));
     }
 
     private static NbtCompound getOrCreateCustomData(ItemStack stack) {
@@ -91,10 +94,10 @@ public record BowUpgradeData(int stringLevel, int frameLevel, RuneEtching runeEt
     }
 
     public static int getMaxLevelPerType() {
-        return MAX_LEVEL_PER_TYPE;
+        return maxLevelPerType();
     }
 
     public static int getMaxTotalUpgradeSlots() {
-        return MAX_TOTAL_UPGRADE_SLOTS;
+        return maxTotalUpgradeSlots();
     }
 }

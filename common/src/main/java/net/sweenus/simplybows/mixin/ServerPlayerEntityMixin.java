@@ -43,7 +43,7 @@ public abstract class ServerPlayerEntityMixin {
     }
 
     private static void simplybows$debugLogLookedEntity(ServerPlayerEntity player) {
-        if (!SimplyBows.debugMode || player.age % 5 != 0) {
+        if (!SimplyBows.debugMode() || player.age % 5 != 0) {
             return;
         }
 

@@ -13,6 +13,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
 import net.minecraft.world.World;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.entity.EchoArrowEntity;
 import net.sweenus.simplybows.world.EchoShoulderBowManager;
 import org.jetbrains.annotations.Nullable;
@@ -20,9 +21,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class EchoBowItem extends SimplyBowItem {
-
-    private static final float ECHO_ARROW_SPEED_MULTIPLIER = 0.9F;
-    private static final float ECHO_ARROW_DIVERGENCE = 0.8F;
 
     public EchoBowItem(Settings settings) {
         super(settings);
@@ -46,7 +44,7 @@ public class EchoBowItem extends SimplyBowItem {
     }
 
     public void performStoppedUsing(ServerWorld serverWorld, LivingEntity shooter, Hand hand, ItemStack stack, List<ItemStack> projectiles, float f, float g, boolean critical, @Nullable LivingEntity target) {
-        this.shootAll(serverWorld, shooter, hand, stack, projectiles, f * ECHO_ARROW_SPEED_MULTIPLIER, ECHO_ARROW_DIVERGENCE, critical, target);
+        this.shootAll(serverWorld, shooter, hand, stack, projectiles, f * SimplyBowsConfig.INSTANCE.echoBow.arrowSpeedMultiplier.get(), SimplyBowsConfig.INSTANCE.echoBow.arrowDivergence.get(), critical, target);
         if (shooter instanceof ServerPlayerEntity serverPlayer) {
             EchoShoulderBowManager.onPlayerFired(serverPlayer);
         }
@@ -60,7 +58,7 @@ public class EchoBowItem extends SimplyBowItem {
         }
 
         EchoArrowEntity arrowEntity = new EchoArrowEntity(world, shooter, firedArrowStack, weaponStack);
-        arrowEntity.setDamage(2.0);
+        arrowEntity.setDamage(SimplyBowsConfig.INSTANCE.echoBow.baseDamage.get());
         arrowEntity.setCritical(critical);
         return arrowEntity;
     }

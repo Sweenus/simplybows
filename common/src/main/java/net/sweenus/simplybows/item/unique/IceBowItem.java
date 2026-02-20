@@ -1,4 +1,6 @@
 package net.sweenus.simplybows.item.unique;
+
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
 import net.minecraft.entity.LivingEntity;
@@ -28,9 +30,9 @@ import java.util.Map;
 import java.util.UUID;
 
 public class IceBowItem extends SimplyBowItem {
-    private static final int BASE_QUANTITY = 3;
-    private static final double PAIN_TARGET_HORIZONTAL_RANGE = 48.0;
-    private static final double PAIN_TARGET_VERTICAL_RANGE = 16.0;
+    private static int baseQuantity() { return SimplyBowsConfig.INSTANCE.iceBow.baseQuantity.get(); }
+    private static double painTargetHorizontalRange() { return SimplyBowsConfig.INSTANCE.iceBow.painTargetHorizontalRange.get(); }
+    private static double painTargetVerticalRange() { return SimplyBowsConfig.INSTANCE.iceBow.painTargetVerticalRange.get(); }
     private static final String NBT_DAMAGE_MULTIPLIER = "simplybows_ice_damage_multiplier";
     private static final String NBT_LOCK_TARGET = "simplybows_ice_lock_target";
     private static final String NBT_SLOW_STACK = "simplybows_ice_stacking_slow";
@@ -61,9 +63,9 @@ public class IceBowItem extends SimplyBowItem {
         double damageMultiplier = upgrades.damageMultiplier();
         RuneEtching rune = upgrades.runeEtching();
         if (rune == RuneEtching.PAIN) {
-            damageMultiplier *= 1.5;
+            damageMultiplier *= SimplyBowsConfig.INSTANCE.iceBow.painDamageMultiplier.get();
         } else if (rune == RuneEtching.BOUNTY) {
-            damageMultiplier *= 0.75;
+            damageMultiplier *= SimplyBowsConfig.INSTANCE.iceBow.bountyDamageMultiplier.get();
         }
 
         LivingEntity painTarget = null;
@@ -84,7 +86,7 @@ public class IceBowItem extends SimplyBowItem {
         }
         stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(customData));
 
-        this.shootFan(this, serverWorld, player, player.getActiveHand(), stack, list, f * 1.2F, 1.0F, f == 1.0F, null, quantity);
+        this.shootFan(this, serverWorld, player, player.getActiveHand(), stack, list, f * SimplyBowsConfig.INSTANCE.iceBow.arrowSpeed.get(), SimplyBowsConfig.INSTANCE.iceBow.arrowDivergence.get(), f == 1.0F, null, quantity);
         HelperMethods.spawnParticlesInFrontOfPlayer(serverWorld, player, ParticleTypes.SNOWFLAKE, 6);
         HelperMethods.spawnParticlesInFrontOfPlayer(serverWorld, player, ParticleTypes.WHITE_ASH, 8);
 
@@ -135,7 +137,7 @@ public class IceBowItem extends SimplyBowItem {
         ProjectileEntity arrowEntity;
         if (arrowStack.isOf(Items.SPECTRAL_ARROW)) {
             HomingSpectralArrowEntity spectralArrow = new HomingSpectralArrowEntity(world, shooter, arrowStack, weaponStack);
-            spectralArrow.setDamage(2.0 * damageMultiplier);
+            spectralArrow.setDamage(SimplyBowsConfig.INSTANCE.iceBow.baseDamage.get() * damageMultiplier);
             //spectralArrow.setPunch((int) Math.floor((damageMultiplier - 1.0) * 2.0));
             spectralArrow.setLockSingleTarget(lockTarget);
             spectralArrow.setStackingSlowness(stackSlow);
@@ -146,7 +148,7 @@ public class IceBowItem extends SimplyBowItem {
             arrowEntity = spectralArrow;
         } else {
             HomingArrowEntity homingArrow = new HomingArrowEntity(world, shooter, arrowStack, weaponStack);
-            homingArrow.setDamage(2.0 * damageMultiplier);
+            homingArrow.setDamage(SimplyBowsConfig.INSTANCE.iceBow.baseDamage.get() * damageMultiplier);
             //homingArrow.setPunch((int) Math.floor((damageMultiplier - 1.0) * 2.0));
             homingArrow.setLockSingleTarget(lockTarget);
             homingArrow.setStackingSlowness(stackSlow);
@@ -160,9 +162,9 @@ public class IceBowItem extends SimplyBowItem {
     }
 
     private int getArrowQuantity(BowUpgradeData upgrades) {
-        int quantity = BASE_QUANTITY + upgrades.stringLevel();
+        int quantity = baseQuantity() + upgrades.stringLevel();
         if (upgrades.runeEtching() == RuneEtching.BOUNTY) {
-            quantity *= 2;
+            quantity *= SimplyBowsConfig.INSTANCE.iceBow.bountyExtraArrowMultiplier.get();
         }
         return quantity;
     }
@@ -170,7 +172,7 @@ public class IceBowItem extends SimplyBowItem {
     private LivingEntity findNearestHostile(ServerWorld world, PlayerEntity player) {
         List<LivingEntity> hostiles = world.getEntitiesByClass(
                 LivingEntity.class,
-                player.getBoundingBox().expand(PAIN_TARGET_HORIZONTAL_RANGE, PAIN_TARGET_VERTICAL_RANGE, PAIN_TARGET_HORIZONTAL_RANGE),
+                player.getBoundingBox().expand(painTargetHorizontalRange(), painTargetVerticalRange(), painTargetHorizontalRange()),
                 entity -> entity.isAlive()
                         && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
         );

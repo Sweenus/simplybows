@@ -17,6 +17,7 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
 import net.sweenus.simplybows.util.CombatTargeting;
@@ -29,17 +30,17 @@ import java.util.Set;
 
 public class EchoArrowEntity extends ArrowEntity {
 
-    private static final float PAIN_EXPLOSION_BASE_MAX_HEALTH_DAMAGE = 0.16F;
-    private static final float PAIN_EXPLOSION_FRAME_MAX_HEALTH_DAMAGE = 0.06F;
-    private static final float PAIN_EXPLOSION_MAX_DAMAGE_RATIO = 0.55F;
-    private static final float PAIN_EXPLOSION_MIN_DAMAGE = 2.0F;
-    private static final double PAIN_EXPLOSION_BASE_RADIUS = 2.35;
-    private static final double PAIN_EXPLOSION_STRING_RADIUS_BONUS = 0.55;
-    private static final float DEFAULT_GRACE_SPLASH_RADIUS = 2.25F;
+    private static float painExplosionBaseMaxHealthDamage() { return SimplyBowsConfig.INSTANCE.echoBow.painExplosionBaseHpDamage.get(); }
+    private static float painExplosionFrameMaxHealthDamage() { return SimplyBowsConfig.INSTANCE.echoBow.painExplosionFrameHpDamage.get(); }
+    private static float painExplosionMaxDamageRatio() { return SimplyBowsConfig.INSTANCE.echoBow.painExplosionMaxDamageRatio.get(); }
+    private static float painExplosionMinDamage() { return SimplyBowsConfig.INSTANCE.echoBow.painExplosionMinDamage.get(); }
+    private static double painExplosionBaseRadius() { return SimplyBowsConfig.INSTANCE.echoBow.painExplosionBaseRadius.get(); }
+    private static double painExplosionStringRadiusBonus() { return SimplyBowsConfig.INSTANCE.echoBow.painExplosionStringRadiusBonus.get(); }
+    private static float defaultGraceSplashRadius() { return SimplyBowsConfig.INSTANCE.echoBow.graceBaseSplashRadius.get(); }
     private final BowUpgradeData upgrades;
     private List<StatusEffectInstance> gracePotionEffects = List.of();
     private boolean graceSupportArrow;
-    private float graceSplashRadius = DEFAULT_GRACE_SPLASH_RADIUS;
+    private float graceSplashRadius = defaultGraceSplashRadius();
 
     public EchoArrowEntity(EntityType<? extends EchoArrowEntity> type, World world) {
         super(type, world);
@@ -66,7 +67,7 @@ public class EchoArrowEntity extends ArrowEntity {
         if (effects == null || effects.isEmpty()) {
             this.gracePotionEffects = List.of();
             this.graceSupportArrow = false;
-            this.graceSplashRadius = DEFAULT_GRACE_SPLASH_RADIUS;
+            this.graceSplashRadius = defaultGraceSplashRadius();
             return;
         }
         java.util.ArrayList<StatusEffectInstance> copied = new java.util.ArrayList<>();
@@ -152,10 +153,10 @@ public class EchoArrowEntity extends ArrowEntity {
                 continue;
             }
 
-            double radius = PAIN_EXPLOSION_BASE_RADIUS + this.upgrades.stringLevel() * PAIN_EXPLOSION_STRING_RADIUS_BONUS;
-            float healthRatio = PAIN_EXPLOSION_BASE_MAX_HEALTH_DAMAGE + this.upgrades.frameLevel() * PAIN_EXPLOSION_FRAME_MAX_HEALTH_DAMAGE;
-            float clampedRatio = Math.min(PAIN_EXPLOSION_MAX_DAMAGE_RATIO, healthRatio);
-            float damage = Math.max(PAIN_EXPLOSION_MIN_DAMAGE, sourceVictim.getMaxHealth() * clampedRatio);
+            double radius = painExplosionBaseRadius() + this.upgrades.stringLevel() * painExplosionStringRadiusBonus();
+            float healthRatio = painExplosionBaseMaxHealthDamage() + this.upgrades.frameLevel() * painExplosionFrameMaxHealthDamage();
+            float clampedRatio = Math.min(painExplosionMaxDamageRatio(), healthRatio);
+            float damage = Math.max(painExplosionMinDamage(), sourceVictim.getMaxHealth() * clampedRatio);
             Vec3d center = sourceVictim.getPos().add(0.0, sourceVictim.getStandingEyeHeight() * 0.5, 0.0);
 
             spawnArcaneExplosionEffects(world, center, radius);

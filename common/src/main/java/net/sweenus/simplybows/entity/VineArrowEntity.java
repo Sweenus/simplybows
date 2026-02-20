@@ -13,13 +13,14 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.world.VineFlowerFieldManager;
 
 public class VineArrowEntity extends ArrowEntity {
 
-    private static final double EXTRA_DRAG_XZ = 0.94;
-    private static final double EXTRA_DRAG_Y = 0.90;
+    private static double extraDragXZ() { return SimplyBowsConfig.INSTANCE.vineBow.extraDragXZ.get(); }
+    private static double extraDragY() { return SimplyBowsConfig.INSTANCE.vineBow.extraDragY.get(); }
     private static final String FIELD_VISUAL_TAG = "simplybows_vine_field_visual";
     private final BowUpgradeData upgrades;
     private boolean spawnedFlowerField;
@@ -45,7 +46,7 @@ public class VineArrowEntity extends ArrowEntity {
 
         if (!this.inGround) {
             Vec3d velocity = this.getVelocity();
-            this.setVelocity(velocity.x * EXTRA_DRAG_XZ, velocity.y * EXTRA_DRAG_Y, velocity.z * EXTRA_DRAG_XZ);
+            this.setVelocity(velocity.x * extraDragXZ(), velocity.y * extraDragY(), velocity.z * extraDragXZ());
         }
     }
 

@@ -15,6 +15,7 @@ import net.sweenus.simplybows.client.renderer.HomingArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.HomingSpectralArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.ShoulderBowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.VineFlowerVisualEntityRenderer;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.registry.EntityRegistry;
 import net.sweenus.simplybows.registry.ItemRegistry;
 import net.sweenus.simplybows.registry.SimplyBowsItemProperties;
@@ -24,10 +25,18 @@ import org.slf4j.LoggerFactory;
 public final class SimplyBows {
     public static final String MOD_ID = "simplybows";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    public static boolean debugMode = true;
-    public static boolean modernTooltipsEnabled = true;
+
+    public static boolean debugMode() {
+        return SimplyBowsConfig.INSTANCE.general.debugMode.get();
+    }
+
+    public static boolean modernTooltipsEnabled() {
+        return SimplyBowsConfig.INSTANCE.general.modernTooltipsEnabled.get();
+    }
 
     public static void init() {
+        // Trigger config registration and loading
+        LOGGER.info("Simply Bows config loaded: {}", SimplyBowsConfig.INSTANCE.getId());
 
         ItemRegistry.ITEM.register();
         EntityRegistry.registerEntities();

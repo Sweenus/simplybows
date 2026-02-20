@@ -14,6 +14,7 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.sweenus.simplybows.registry.EntityRegistry;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.util.CombatTargeting;
 
 import java.util.HashSet;
@@ -23,14 +24,14 @@ import java.util.UUID;
 
 public class HomingArrowEntity extends ArrowEntity {
 
-    private static final double HOMING_RADIUS = 10.0; // Radius to detect mobs
-    private static final double HOMING_ACCEL = 0.3; // Strength of homing adjustment
-    private static final int HOMING_START_TICKS = 15; // Delay before arrows begin homing
-    private static final float INITIAL_SPREAD_YAW_RADIANS = 0.90F;
-    private static final float INITIAL_SPREAD_PITCH_RADIANS = 0.14F;
-    private static final double START_SPEED = 0.2; // Initial speed cap at spawn
-    private static final double MAX_SPEED = 0.7; // Maximum speed cap over lifetime
-    private static final int SPEED_RAMP_TICKS = 40; // Ticks to ramp from START_SPEED to MAX_SPEED
+    private static double homingRadius() { return SimplyBowsConfig.INSTANCE.iceBow.homingRadius.get(); }
+    private static double homingAccel() { return SimplyBowsConfig.INSTANCE.iceBow.homingAccel.get(); }
+    private static int homingStartTicks() { return SimplyBowsConfig.INSTANCE.iceBow.homingStartTicks.get(); }
+    private static float initialSpreadYawRadians() { return SimplyBowsConfig.INSTANCE.iceBow.initialSpreadYaw.get(); }
+    private static float initialSpreadPitchRadians() { return SimplyBowsConfig.INSTANCE.iceBow.initialSpreadPitch.get(); }
+    private static double startSpeed() { return SimplyBowsConfig.INSTANCE.iceBow.startSpeed.get(); }
+    private static double maxSpeed() { return SimplyBowsConfig.INSTANCE.iceBow.maxSpeed.get(); }
+    private static int speedRampTicks() { return SimplyBowsConfig.INSTANCE.iceBow.speedRampTicks.get(); }
     private LivingEntity target;
     private boolean initialSpreadApplied;
     private boolean lockSingleTarget;
@@ -91,7 +92,7 @@ public class HomingArrowEntity extends ArrowEntity {
                 return;
             }
 
-            if (this.age < HOMING_START_TICKS) {
+            if (this.age < homingStartTicks()) {
                 return;
             }
 
@@ -112,11 +113,11 @@ public class HomingArrowEntity extends ArrowEntity {
     }
 
     /**
-     * Finds the nearest hostile mob to the arrow within the HOMING_RADIUS.
+     * Finds the nearest hostile mob to the arrow within the homingRadius().
      */
     private LivingEntity findNearestHostileMob() {
-        Box searchBox = new Box(this.getX() - HOMING_RADIUS, this.getY() - HOMING_RADIUS, this.getZ() - HOMING_RADIUS,
-                this.getX() + HOMING_RADIUS, this.getY() + HOMING_RADIUS, this.getZ() + HOMING_RADIUS);
+        Box searchBox = new Box(this.getX() - homingRadius(), this.getY() - homingRadius(), this.getZ() - homingRadius(),
+                this.getX() + homingRadius(), this.getY() + homingRadius(), this.getZ() + homingRadius());
         LivingEntity owner = this.getOwner() instanceof LivingEntity livingOwner ? livingOwner : null;
 
         List<LivingEntity> entities = getEntityWorld().getEntitiesByClass(LivingEntity.class, searchBox, entity ->
@@ -177,7 +178,7 @@ public class HomingArrowEntity extends ArrowEntity {
         Vec3d direction = targetPos.subtract(arrowPos).normalize();
 
         // Smoothly adjust the velocity toward the target
-        Vec3d newVelocity = this.getVelocity().add(direction.multiply(HOMING_ACCEL));
+        Vec3d newVelocity = this.getVelocity().add(direction.multiply(homingAccel()));
         double speedCap = getCurrentMaxSpeed();
         if (newVelocity.lengthSquared() > (speedCap * speedCap)) {
             newVelocity = newVelocity.normalize().multiply(speedCap);
@@ -196,8 +197,8 @@ public class HomingArrowEntity extends ArrowEntity {
     }
 
     private double getCurrentMaxSpeed() {
-        double ramp = Math.min(1.0, (double) this.age / SPEED_RAMP_TICKS);
-        return START_SPEED + (MAX_SPEED - START_SPEED) * ramp;
+        double ramp = Math.min(1.0, (double) this.age / speedRampTicks());
+        return startSpeed() + (maxSpeed() - startSpeed()) * ramp;
     }
 
     private void applyInitialSpread() {
@@ -211,15 +212,15 @@ public class HomingArrowEntity extends ArrowEntity {
             return;
         }
 
-        float yawJitter = (this.random.nextFloat() * 2.0F - 1.0F) * INITIAL_SPREAD_YAW_RADIANS;
-        float pitchJitter = (this.random.nextFloat() * 2.0F - 1.0F) * INITIAL_SPREAD_PITCH_RADIANS;
+        float yawJitter = (this.random.nextFloat() * 2.0F - 1.0F) * initialSpreadYawRadians();
+        float pitchJitter = (this.random.nextFloat() * 2.0F - 1.0F) * initialSpreadPitchRadians();
         Vec3d spreadVelocity = velocity.rotateY(yawJitter).rotateX(pitchJitter);
         this.setVelocity(spreadVelocity);
         this.velocityDirty = true;
     }
 
     private void updateNoGravityState() {
-        this.setNoGravity(!this.inGround && this.age < HOMING_START_TICKS);
+        this.setNoGravity(!this.inGround && this.age < homingStartTicks());
     }
 
     private void spawnTrailParticles(ServerWorld world) {
@@ -306,9 +307,9 @@ public class HomingArrowEntity extends ArrowEntity {
         int amplifier = 0;
         StatusEffectInstance existing = target.getStatusEffect(StatusEffects.SLOWNESS);
         if (existing != null) {
-            amplifier = Math.min(4, existing.getAmplifier() + 1);
+            amplifier = Math.min(SimplyBowsConfig.INSTANCE.iceBow.graceMaxSlownessStacks.get(), existing.getAmplifier() + 1);
         }
-        target.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 80, amplifier), this.getOwner());
+        target.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, SimplyBowsConfig.INSTANCE.iceBow.graceSlownessDuration.get(), amplifier), this.getOwner());
     }
 
     @Override

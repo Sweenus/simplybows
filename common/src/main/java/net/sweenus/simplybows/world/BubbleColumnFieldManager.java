@@ -16,6 +16,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.entity.BubbleBountyVisualEntity;
 import net.sweenus.simplybows.entity.BubbleGraceVisualEntity;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
@@ -28,17 +29,17 @@ import java.util.UUID;
 
 public final class BubbleColumnFieldManager {
 
-    private static final int COLUMN_DURATION_TICKS = 120;
-    private static final int COLUMN_DURATION_BONUS_PER_STRING = 40;
-    private static final double COLUMN_BASE_RADIUS = 1.2;
-    private static final double COLUMN_BASE_HEIGHT = 2.6;
-    private static final double COLUMN_RADIUS_PER_FRAME = 0.90;
-    private static final double COLUMN_HEIGHT_PER_FRAME = 0.45;
-    private static final int BOUNTY_DAMAGE_INTERVAL_TICKS = 10;
-    private static final float BOUNTY_BASE_DAMAGE = 3.75F;
-    private static final int GRACE_PULSE_INTERVAL_TICKS = 10;
-    private static final int GRACE_RESISTANCE_DURATION_TICKS = 40;
-    private static final int GRACE_SLOWNESS_DURATION_TICKS = 35;
+    private static int columnDurationTicks() { return SimplyBowsConfig.INSTANCE.bubbleBow.columnDurationTicks.get(); }
+    private static int columnDurationBonusPerString() { return SimplyBowsConfig.INSTANCE.bubbleBow.columnDurationBonusPerString.get(); }
+    private static double columnBaseRadius() { return SimplyBowsConfig.INSTANCE.bubbleBow.columnBaseRadius.get(); }
+    private static double columnBaseHeight() { return SimplyBowsConfig.INSTANCE.bubbleBow.columnBaseHeight.get(); }
+    private static double columnRadiusPerFrame() { return SimplyBowsConfig.INSTANCE.bubbleBow.columnRadiusPerFrame.get(); }
+    private static double columnHeightPerFrame() { return SimplyBowsConfig.INSTANCE.bubbleBow.columnHeightPerFrame.get(); }
+    private static int bountyDamageIntervalTicks() { return SimplyBowsConfig.INSTANCE.bubbleBow.bountyDamageIntervalTicks.get(); }
+    private static float bountyBaseDamage() { return SimplyBowsConfig.INSTANCE.bubbleBow.bountyBaseDamage.get(); }
+    private static int gracePulseIntervalTicks() { return SimplyBowsConfig.INSTANCE.bubbleBow.gracePulseIntervalTicks.get(); }
+    private static int graceResistanceDurationTicks() { return SimplyBowsConfig.INSTANCE.bubbleBow.graceResistanceDuration.get(); }
+    private static int graceSlownessDurationTicks() { return SimplyBowsConfig.INSTANCE.bubbleBow.graceSlownessDuration.get(); }
     private static final int GRACE_RESISTANCE_AMPLIFIER = 0;
     private static final int GRACE_SLOWNESS_AMPLIFIER = 0;
     private static final String BUBBLE_BOUNTY_VISUAL_TAG = "simplybows_bubble_bounty_visual";
@@ -97,7 +98,7 @@ public final class BubbleColumnFieldManager {
             }
         }
 
-        long firstEffectTick = world.getTime() + (tuning.bountyMode() ? BOUNTY_DAMAGE_INTERVAL_TICKS : GRACE_PULSE_INTERVAL_TICKS);
+        long firstEffectTick = world.getTime() + (tuning.bountyMode() ? bountyDamageIntervalTicks() : gracePulseIntervalTicks());
         ACTIVE_COLUMNS.put(world, new ActiveBubbleColumn(anchoredCenter, expiryTick, ownerId, tuning, firstEffectTick, visualId));
         spawnBurstParticles(world, anchoredCenter, tuning);
         playSpawnSound(world, anchoredCenter);
@@ -127,12 +128,12 @@ public final class BubbleColumnFieldManager {
         }
         if (column.tuning.bountyMode() && world.getTime() >= column.nextDamageTick) {
             applyBountySwarmDamage(world, column);
-            column.nextDamageTick = world.getTime() + BOUNTY_DAMAGE_INTERVAL_TICKS;
+            column.nextDamageTick = world.getTime() + bountyDamageIntervalTicks();
         } else if (column.tuning.graceMode()) {
             blockHostileProjectiles(world, column);
             if (world.getTime() >= column.nextDamageTick) {
                 applyGraceAuras(world, column);
-                column.nextDamageTick = world.getTime() + GRACE_PULSE_INTERVAL_TICKS;
+                column.nextDamageTick = world.getTime() + gracePulseIntervalTicks();
             }
         }
     }
@@ -246,9 +247,9 @@ public final class BubbleColumnFieldManager {
                 continue;
             }
             if (CombatTargeting.isFriendlyTo(candidate, owner)) {
-                candidate.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, GRACE_RESISTANCE_DURATION_TICKS, GRACE_RESISTANCE_AMPLIFIER), owner);
+                candidate.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, graceResistanceDurationTicks(), GRACE_RESISTANCE_AMPLIFIER), owner);
             } else if (candidate instanceof HostileEntity || CombatTargeting.isTargetWhitelisted(candidate)) {
-                candidate.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, GRACE_SLOWNESS_DURATION_TICKS, GRACE_SLOWNESS_AMPLIFIER), owner);
+                candidate.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, graceSlownessDurationTicks(), GRACE_SLOWNESS_AMPLIFIER), owner);
             }
         }
     }
@@ -342,12 +343,12 @@ public final class BubbleColumnFieldManager {
     }
 
     private static ColumnTuning buildTuning(BowUpgradeData upgrades) {
-        double radius = (COLUMN_BASE_RADIUS * upgrades.sizeMultiplier()) + upgrades.frameLevel() * COLUMN_RADIUS_PER_FRAME;
-        double height = (COLUMN_BASE_HEIGHT * upgrades.sizeMultiplier()) + upgrades.frameLevel() * COLUMN_HEIGHT_PER_FRAME;
-        int durationTicks = COLUMN_DURATION_TICKS + upgrades.stringLevel() * COLUMN_DURATION_BONUS_PER_STRING;
+        double radius = (columnBaseRadius() * upgrades.sizeMultiplier()) + upgrades.frameLevel() * columnRadiusPerFrame();
+        double height = (columnBaseHeight() * upgrades.sizeMultiplier()) + upgrades.frameLevel() * columnHeightPerFrame();
+        int durationTicks = columnDurationTicks() + upgrades.stringLevel() * columnDurationBonusPerString();
         boolean bountyMode = upgrades.runeEtching() == RuneEtching.BOUNTY;
         boolean graceMode = upgrades.runeEtching() == RuneEtching.GRACE;
-        float bountyDotDamage = (float) (BOUNTY_BASE_DAMAGE * upgrades.damageMultiplier());
+        float bountyDotDamage = (float) (bountyBaseDamage() * upgrades.damageMultiplier());
         return new ColumnTuning(radius, height, durationTicks, bountyMode, graceMode, bountyDotDamage);
     }
 

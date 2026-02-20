@@ -18,6 +18,7 @@ import net.minecraft.util.math.Vec3d;
 import net.sweenus.simplybows.entity.ShoulderBowEntity;
 import net.sweenus.simplybows.item.unique.EchoBowItem;
 import net.sweenus.simplybows.item.unique.SimplyBowItem;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
 import net.sweenus.simplybows.util.CombatTargeting;
@@ -35,11 +36,11 @@ public final class EchoShoulderBowManager {
     private static final Map<UUID, CompanionPair> ACTIVE_BOWS = new HashMap<>();
     private static final Map<UUID, UUID> FOCUSED_TARGETS = new HashMap<>();
     private static final Map<UUID, GracePotionCharge> GRACE_POTION_CHARGES = new HashMap<>();
-    private static final double LOOK_TARGET_DISTANCE = 48.0;
-    private static final int GRACE_BASE_SHOTS = 20;
-    private static final int GRACE_SHOTS_PER_STRING = 5;
-    private static final float GRACE_BASE_SPLASH_RADIUS = 2.25F;
-    private static final float GRACE_SPLASH_RADIUS_PER_FRAME = 0.5F;
+    private static double lookTargetDistance() { return SimplyBowsConfig.INSTANCE.echoBow.lookTargetDistance.get(); }
+    private static int graceBaseShots() { return SimplyBowsConfig.INSTANCE.echoBow.graceBaseShots.get(); }
+    private static int graceShotsPerString() { return SimplyBowsConfig.INSTANCE.echoBow.graceShotsPerString.get(); }
+    private static float graceBaseSplashRadius() { return SimplyBowsConfig.INSTANCE.echoBow.graceBaseSplashRadius.get(); }
+    private static float graceSplashRadiusPerFrame() { return SimplyBowsConfig.INSTANCE.echoBow.graceSplashRadiusPerFrame.get(); }
 
     private EchoShoulderBowManager() {
     }
@@ -189,7 +190,7 @@ public final class EchoShoulderBowManager {
             return;
         }
 
-        int shots = GRACE_BASE_SHOTS + upgrades.stringLevel() * GRACE_SHOTS_PER_STRING;
+        int shots = graceBaseShots() + upgrades.stringLevel() * graceShotsPerString();
         GRACE_POTION_CHARGES.put(player.getUuid(), new GracePotionCharge(copied, allBeneficial, shots));
     }
 
@@ -210,7 +211,7 @@ public final class EchoShoulderBowManager {
             return null;
         }
 
-        float splashRadius = GRACE_BASE_SPLASH_RADIUS + upgrades.frameLevel() * GRACE_SPLASH_RADIUS_PER_FRAME;
+        float splashRadius = graceBaseSplashRadius() + upgrades.frameLevel() * graceSplashRadiusPerFrame();
         GracePotionPayload payload = new GracePotionPayload(copyEffects(charge.effects), charge.supportMode, splashRadius);
         charge.shotsRemaining--;
         if (charge.shotsRemaining <= 0) {
@@ -264,8 +265,8 @@ public final class EchoShoulderBowManager {
     private static UUID resolveLookFocusedTarget(ServerPlayerEntity player) {
         Vec3d start = player.getCameraPosVec(1.0F);
         Vec3d look = player.getRotationVec(1.0F);
-        Vec3d end = start.add(look.multiply(LOOK_TARGET_DISTANCE));
-        Box searchBox = player.getBoundingBox().stretch(look.multiply(LOOK_TARGET_DISTANCE)).expand(1.0);
+        Vec3d end = start.add(look.multiply(lookTargetDistance()));
+        Box searchBox = player.getBoundingBox().stretch(look.multiply(lookTargetDistance())).expand(1.0);
 
         EntityHitResult entityHit = ProjectileUtil.getEntityCollision(
                 player.getWorld(),
@@ -281,7 +282,7 @@ public final class EchoShoulderBowManager {
             return null;
         }
 
-        HitResult blockHit = player.raycast(LOOK_TARGET_DISTANCE, 1.0F, false);
+        HitResult blockHit = player.raycast(lookTargetDistance(), 1.0F, false);
         double entityDistanceSq = start.squaredDistanceTo(entityHit.getPos());
         double blockDistanceSq = blockHit.getType() == HitResult.Type.MISS
                 ? Double.MAX_VALUE

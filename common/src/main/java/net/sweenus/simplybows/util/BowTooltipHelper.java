@@ -104,7 +104,7 @@ public final class BowTooltipHelper {
     }
 
     private static boolean isAltDown() {
-        if (SimplyBows.modernTooltipsEnabled) return false;
+        if (SimplyBows.modernTooltipsEnabled()) return false;
         try {
             Class<?> screenClass = Class.forName("net.minecraft.client.gui.screen.Screen");
             Object result = screenClass.getMethod("hasAltDown").invoke(null);

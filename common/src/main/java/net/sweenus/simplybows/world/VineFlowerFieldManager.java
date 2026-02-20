@@ -26,6 +26,8 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameRules;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
+import net.sweenus.simplybows.config.SimplyBowsConfig.VineBowSection;
 import net.sweenus.simplybows.entity.VineFlowerVisualEntity;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
@@ -39,8 +41,8 @@ import java.util.UUID;
 
 public final class VineFlowerFieldManager {
 
-    private static final int FIELD_DURATION_TICKS = 200;
-    private static final double FIELD_RADIUS = 5.0;
+    private static int fieldDurationTicks() { return SimplyBowsConfig.INSTANCE.vineBow.fieldDurationTicks.get(); }
+    private static double fieldRadius() { return SimplyBowsConfig.INSTANCE.vineBow.fieldRadius.get(); }
     private static final double ATTRACTION_RADIUS = 14.0;
     private static final double PATCH_VISUAL_RADIUS = 2.35;
     private static final int PATCH_VISUAL_POINTS = 26;
@@ -50,9 +52,9 @@ public final class VineFlowerFieldManager {
     private static final int GROWTH_POINTS_PER_TICK = 6;
     private static final int SPRING_ANIM_TICKS = 8;
     private static final double SPRING_START_OFFSET_Y = -0.62;
-    private static final float FRIENDLY_HEAL = 1.0F;
-    private static final float HOSTILE_DAMAGE = 2.0F;
-    private static final float UNDEAD_BONUS_DAMAGE = 0.6F;
+    private static float friendlyHealBase() { return SimplyBowsConfig.INSTANCE.vineBow.friendlyHeal.get(); }
+    private static float hostileDamageBase() { return SimplyBowsConfig.INSTANCE.vineBow.hostileDamage.get(); }
+    private static float undeadBonusDamageBase() { return SimplyBowsConfig.INSTANCE.vineBow.undeadBonusDamage.get(); }
     private static final int GROUND_SCAN_UP = 5;
     private static final int GROUND_SCAN_DOWN = 18;
     private static final int FLOWER_TYPE_SHORT_GRASS = 0;
@@ -87,7 +89,7 @@ public final class VineFlowerFieldManager {
             });
         }
 
-        long expiryTick = world.getTime() + FIELD_DURATION_TICKS;
+        long expiryTick = world.getTime() + fieldDurationTicks();
         FieldTuning tuning = buildTuning(upgrades);
         List<FlowerPoint> pendingPoints = buildPatchPoints(world, center, tuning.visualPoints(), tuning.visualRadius());
         if (tuning.cherryTreeVisual()) {
@@ -303,20 +305,20 @@ public final class VineFlowerFieldManager {
         int stringLevel = upgrades.stringLevel();
         RuneEtching rune = upgrades.runeEtching();
 
-        float friendlyHeal = FRIENDLY_HEAL * frameMultiplier;
-        float hostileDamage = HOSTILE_DAMAGE * frameMultiplier;
-        float undeadBonusDamage = UNDEAD_BONUS_DAMAGE * frameMultiplier;
+        float friendlyHeal = friendlyHealBase() * frameMultiplier;
+        float hostileDamage = hostileDamageBase() * frameMultiplier;
+        float undeadBonusDamage = undeadBonusDamageBase() * frameMultiplier;
         boolean healFriendlies = true;
         boolean damageHostiles = true;
         boolean cleanseNegative = false;
         boolean cherryTreeVisual = false;
         double bountyLootChance = 0.0;
-        int auraInterval = 20;
+        int auraInterval = SimplyBowsConfig.INSTANCE.vineBow.auraIntervalTicks.get();
 
         if (rune == RuneEtching.PAIN) {
             healFriendlies = false;
             damageHostiles = true;
-            auraInterval = 10;
+            auraInterval = SimplyBowsConfig.INSTANCE.vineBow.painAuraInterval.get();
         } else if (rune == RuneEtching.GRACE) {
             healFriendlies = true;
             damageHostiles = false;
@@ -325,10 +327,10 @@ public final class VineFlowerFieldManager {
             cleanseNegative = true;
             cherryTreeVisual = true;
         } else if (rune == RuneEtching.BOUNTY) {
-            bountyLootChance = 0.25;
+            bountyLootChance = SimplyBowsConfig.INSTANCE.vineBow.bountyLootChance.get();
         }
 
-        double fieldRadius = FIELD_RADIUS * sizeMultiplier + stringLevel * STRING_FIELD_RADIUS_BONUS_PER_LEVEL;
+        double fieldRadius = fieldRadius() * sizeMultiplier + stringLevel * STRING_FIELD_RADIUS_BONUS_PER_LEVEL;
         double attractionRadius = ATTRACTION_RADIUS * sizeMultiplier + stringLevel * STRING_ATTRACTION_RADIUS_BONUS_PER_LEVEL;
         double visualRadius = PATCH_VISUAL_RADIUS * sizeMultiplier + stringLevel * STRING_VISUAL_RADIUS_BONUS_PER_LEVEL;
         double radiusRatio = visualRadius / PATCH_VISUAL_RADIUS;

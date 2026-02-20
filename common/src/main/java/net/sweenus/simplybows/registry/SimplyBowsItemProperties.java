@@ -6,6 +6,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.item.Item;
 import net.minecraft.util.Identifier;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 
 @Environment(EnvType.CLIENT)
 public class SimplyBowsItemProperties {
@@ -14,13 +15,13 @@ public class SimplyBowsItemProperties {
     }
 
     public static void register() {
-        makeBows(ItemRegistry.VINE_BOW.get(), 20f);
-        makeBows(ItemRegistry.ICE_BOW.get(), 40f);
-        makeBows(ItemRegistry.BUBBLE_BOW.get(), 20f);
-        makeBows(ItemRegistry.BEE_BOW.get(), 20f);
-        makeBows(ItemRegistry.BLOSSOM_BOW.get(), 20f);
-        makeBows(ItemRegistry.EARTH_BOW.get(), 20f);
-        makeBows(ItemRegistry.ECHO_BOW.get(), 20f);
+        makeBows(ItemRegistry.VINE_BOW.get(), SimplyBowsConfig.INSTANCE.upgrades.drawSpeedVine.get());
+        makeBows(ItemRegistry.ICE_BOW.get(), SimplyBowsConfig.INSTANCE.upgrades.drawSpeedIce.get());
+        makeBows(ItemRegistry.BUBBLE_BOW.get(), SimplyBowsConfig.INSTANCE.upgrades.drawSpeedBubble.get());
+        makeBows(ItemRegistry.BEE_BOW.get(), SimplyBowsConfig.INSTANCE.upgrades.drawSpeedBee.get());
+        makeBows(ItemRegistry.BLOSSOM_BOW.get(), SimplyBowsConfig.INSTANCE.upgrades.drawSpeedBlossom.get());
+        makeBows(ItemRegistry.EARTH_BOW.get(), SimplyBowsConfig.INSTANCE.upgrades.drawSpeedEarth.get());
+        makeBows(ItemRegistry.ECHO_BOW.get(), SimplyBowsConfig.INSTANCE.upgrades.drawSpeedEcho.get());
     }
 
     public static void makeBows(Item item, float drawSpeed) {

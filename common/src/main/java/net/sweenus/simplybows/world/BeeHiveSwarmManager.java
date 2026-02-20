@@ -19,6 +19,7 @@ import net.sweenus.simplybows.entity.BeeArrowEntity;
 import net.sweenus.simplybows.entity.BeeHiveVisualEntity;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.util.CombatTargeting;
 
 import java.util.ArrayList;
@@ -29,14 +30,15 @@ import java.util.UUID;
 
 public final class BeeHiveSwarmManager {
 
-    private static final int BASE_HIVE_DURATION_TICKS = 60;
-    private static final int STRING_HIVE_DURATION_BONUS_TICKS = 20;
+    private static int baseHiveDurationTicks() { return SimplyBowsConfig.INSTANCE.beeBow.bountyHiveDuration.get(); }
+    private static int stringHiveDurationBonusTicks() { return SimplyBowsConfig.INSTANCE.beeBow.bountyHiveDurationBonusPerString.get(); }
+    private static int fireIntervalTicks() { return SimplyBowsConfig.INSTANCE.beeBow.bountyFireInterval.get(); }
+    private static int baseShots() { return SimplyBowsConfig.INSTANCE.beeBow.bountyBaseShots.get(); }
+    private static int frameBonusShots() { return SimplyBowsConfig.INSTANCE.beeBow.bountyFrameBonusShots.get(); }
+    private static double targetRadius() { return SimplyBowsConfig.INSTANCE.beeBow.bountyTargetRadius.get(); }
+
     private static final int SPRING_ANIM_TICKS = 8;
-    private static final int FIRE_INTERVAL_TICKS = 5;
     private static final int FIRE_INTERVAL_RANDOM_EXTRA_TICKS = 6;
-    private static final int BASE_SHOTS = 7;
-    private static final int FRAME_BONUS_SHOTS = 1;
-    private static final double TARGET_RADIUS = 14.0;
     private static final double START_OFFSET_Y = 0.45;
     private static final double TARGET_AIM_EXTRA_Y = 3.65;
     private static final double SHOT_SPEED = 0.55;
@@ -71,8 +73,8 @@ public final class BeeHiveSwarmManager {
         }
 
         long now = world.getTime();
-        int shots = BASE_SHOTS + swarmUpgrades.frameLevel() * FRAME_BONUS_SHOTS;
-        int hiveDurationTicks = BASE_HIVE_DURATION_TICKS + swarmUpgrades.stringLevel() * STRING_HIVE_DURATION_BONUS_TICKS;
+        int shots = baseShots() + swarmUpgrades.frameLevel() * frameBonusShots();
+        int hiveDurationTicks = baseHiveDurationTicks() + swarmUpgrades.stringLevel() * stringHiveDurationBonusTicks();
         ActiveBeeHive hive = new ActiveBeeHive(
                 hiveCenter,
                 owner.getUuid(),
@@ -153,7 +155,7 @@ public final class BeeHiveSwarmManager {
         }
 
         LivingEntity target = findRandomNearbyHostile(world, hive.center, owner);
-        hive.nextShotTick = world.getTime() + FIRE_INTERVAL_TICKS + world.random.nextInt(FIRE_INTERVAL_RANDOM_EXTRA_TICKS + 1);
+        hive.nextShotTick = world.getTime() + fireIntervalTicks() + world.random.nextInt(FIRE_INTERVAL_RANDOM_EXTRA_TICKS + 1);
         if (target == null) {
             return;
         }
@@ -184,7 +186,7 @@ public final class BeeHiveSwarmManager {
     }
 
     private static LivingEntity findRandomNearbyHostile(ServerWorld world, Vec3d center, LivingEntity owner) {
-        Box box = Box.of(center, TARGET_RADIUS * 2.0, 8.0, TARGET_RADIUS * 2.0);
+        Box box = Box.of(center, targetRadius() * 2.0, 8.0, targetRadius() * 2.0);
         List<LivingEntity> candidates = world.getEntitiesByClass(LivingEntity.class, box, entity ->
                 entity.isAlive()
                         && (entity instanceof HostileEntity || CombatTargeting.isTargetWhitelisted(entity))

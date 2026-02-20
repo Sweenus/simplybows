@@ -162,7 +162,7 @@ public abstract class DrawContextMixin {
 
     @Inject(method = "drawItemTooltip(Lnet/minecraft/client/font/TextRenderer;Lnet/minecraft/item/ItemStack;II)V", at = @At("HEAD"), cancellable = true)
     private void simplybows$drawModernTooltip(TextRenderer textRenderer, ItemStack stack, int x, int y, CallbackInfo ci) {
-        if (!SimplyBows.modernTooltipsEnabled || stack == null || stack.isEmpty() || !simplybows$isSimplyBowsItem(stack)) {
+        if (!SimplyBows.modernTooltipsEnabled() || stack == null || stack.isEmpty() || !simplybows$isSimplyBowsItem(stack)) {
             return;
         }
 
@@ -195,7 +195,7 @@ public abstract class DrawContextMixin {
 
     @Unique
     private void simplybows$tryRenderFromLines(TextRenderer textRenderer, List<Text> text, int x, int y, CallbackInfo ci) {
-        if (!SimplyBows.modernTooltipsEnabled || text == null || text.isEmpty()) {
+        if (!SimplyBows.modernTooltipsEnabled() || text == null || text.isEmpty()) {
             return;
         }
         MinecraftClient client = MinecraftClient.getInstance();

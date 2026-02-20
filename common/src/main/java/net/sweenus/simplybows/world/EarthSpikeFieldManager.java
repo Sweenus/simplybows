@@ -17,6 +17,7 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.entity.EarthSpikeVisualEntity;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
@@ -34,34 +35,35 @@ public final class EarthSpikeFieldManager {
     private static final int HOLD_TICKS = 0;
     private static final int SINK_TICKS = 11;
     private static final int FIELD_DURATION_TICKS = RAISE_TICKS + HOLD_TICKS + SINK_TICKS;
-    private static final double FIELD_RADIUS = 3.6;
     private static final double PATCH_VISUAL_RADIUS = 2.1;
     private static final int PATCH_VISUAL_POINTS = 20;
-    private static final float SPIKE_DAMAGE = 3.0F;
     private static final int GROUND_SCAN_UP = 4;
     private static final int GROUND_SCAN_DOWN = 16;
     private static final double SPIKE_SEGMENT_HEIGHT = 0.34;
     private static final double START_DEPTH = 3.2;
     private static final double BASE_GROUND_OFFSET = -0.18;
     private static final int PAIN_STAR_RAYS = 8;
-    private static final double PAIN_WAVE_MAX_DISTANCE = 4.0;
-    private static final double PAIN_WAVE_STEP_DISTANCE = 0.8;
     private static final int PAIN_WAVE_STEP_TICKS = 1;
-    private static final float PAIN_WAVE_DAMAGE_MULTIPLIER = 1.0F;
     private static final double PAIN_WAVE_DAMAGE_RADIUS = 0.8;
-    private static final double STRING_RADIUS_BONUS_PER_LEVEL = 0.45;
-    private static final double STRING_WAVE_DISTANCE_BONUS_PER_LEVEL = 1.2;
-    private static final double BASE_UPWARD_KNOCKBACK = 0.4;
-    private static final double FRAME_UPWARD_KNOCKBACK_PER_LEVEL = 0.10;
-    private static final int GRACE_RESISTANCE_DURATION_TICKS = 200;
-    private static final int GRACE_SLOW_FALLING_DURATION_TICKS = 160;
-    private static final int BOUNTY_CENTER_BASE_HEIGHT_SEGMENTS = 14;
-    private static final int BOUNTY_CENTER_EXTRA_HEIGHT_PER_FRAME = 2;
-    private static final float BOUNTY_CENTER_DAMAGE_BASE_MULTIPLIER = 1.15F;
-    private static final float BOUNTY_CENTER_DAMAGE_PROXIMITY_MULTIPLIER = 2.0F;
     private static final double BOUNTY_CENTER_KNOCKBACK_BASE_MULTIPLIER = 1.15;
     private static final double BOUNTY_CENTER_KNOCKBACK_PROXIMITY_MULTIPLIER = 1.9;
     private static final String SPIKE_VISUAL_TAG = "simplybows_earth_spike_visual";
+
+    private static double fieldRadius() { return SimplyBowsConfig.INSTANCE.earthBow.fieldRadius.get(); }
+    private static float spikeDamage() { return SimplyBowsConfig.INSTANCE.earthBow.spikeDamage.get(); }
+    private static double baseUpwardKnockback() { return SimplyBowsConfig.INSTANCE.earthBow.baseUpwardKnockback.get(); }
+    private static double frameUpwardKnockbackPerLevel() { return SimplyBowsConfig.INSTANCE.earthBow.frameUpwardKnockbackPerLevel.get(); }
+    private static double stringRadiusBonusPerLevel() { return SimplyBowsConfig.INSTANCE.earthBow.stringRadiusBonusPerLevel.get(); }
+    private static double painWaveMaxDistance() { return SimplyBowsConfig.INSTANCE.earthBow.painWaveMaxDistance.get(); }
+    private static double painWaveStepDistance() { return SimplyBowsConfig.INSTANCE.earthBow.painWaveStepDistance.get(); }
+    private static float painWaveDamageMultiplier() { return SimplyBowsConfig.INSTANCE.earthBow.painWaveDamageMultiplier.get(); }
+    private static double stringWaveDistanceBonusPerLevel() { return SimplyBowsConfig.INSTANCE.earthBow.painStringWaveDistanceBonusPerLevel.get(); }
+    private static int graceResistanceDurationTicks() { return SimplyBowsConfig.INSTANCE.earthBow.graceResistanceDuration.get(); }
+    private static int graceSlowFallingDurationTicks() { return SimplyBowsConfig.INSTANCE.earthBow.graceSlowFallingDuration.get(); }
+    private static int bountyCenterBaseHeightSegments() { return SimplyBowsConfig.INSTANCE.earthBow.bountyCenterBaseHeightSegments.get(); }
+    private static int bountyCenterExtraHeightPerFrame() { return SimplyBowsConfig.INSTANCE.earthBow.bountyCenterExtraHeightPerFrame.get(); }
+    private static float bountyCenterDamageBaseMultiplier() { return SimplyBowsConfig.INSTANCE.earthBow.bountyCenterDamageBaseMultiplier.get(); }
+    private static float bountyCenterDamageProximityMultiplier() { return SimplyBowsConfig.INSTANCE.earthBow.bountyCenterDamageProximityMultiplier.get(); }
     private static final Map<ServerWorld, List<ActiveSpikeField>> ACTIVE_FIELDS = new HashMap<>();
 
     private EarthSpikeFieldManager() {
@@ -171,7 +173,7 @@ public final class EarthSpikeFieldManager {
             }
 
             double proximity = 1.0 - MathHelper.clamp(dist / centerRadius, 0.0, 1.0);
-            float scaledDamage = tuning.damage() * (BOUNTY_CENTER_DAMAGE_BASE_MULTIPLIER + (float) (proximity * BOUNTY_CENTER_DAMAGE_PROXIMITY_MULTIPLIER));
+            float scaledDamage = tuning.damage() * (bountyCenterDamageBaseMultiplier() + (float) (proximity * bountyCenterDamageProximityMultiplier()));
             boolean damaged = CombatTargeting.applyDamage(world, owner, candidate, scaledDamage, true, false);
             if (damaged) {
                 double scaledKnockup = tuning.upwardKnockback() * (BOUNTY_CENTER_KNOCKBACK_BASE_MULTIPLIER + (proximity * BOUNTY_CENTER_KNOCKBACK_PROXIMITY_MULTIPLIER));
@@ -196,8 +198,8 @@ public final class EarthSpikeFieldManager {
             }
 
             applyUpwardKnockback(candidate, tuning.upwardKnockback());
-            candidate.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, GRACE_RESISTANCE_DURATION_TICKS, 0), owner);
-            candidate.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOW_FALLING, GRACE_SLOW_FALLING_DURATION_TICKS, 0), owner);
+            candidate.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, graceResistanceDurationTicks(), 0), owner);
+            candidate.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOW_FALLING, graceSlowFallingDurationTicks(), 0), owner);
         }
     }
 
@@ -224,15 +226,15 @@ public final class EarthSpikeFieldManager {
 
     private static FieldTuning buildTuning(BowUpgradeData upgrades) {
         double sizeMultiplier = upgrades.sizeMultiplier();
-        float damage = (float) (SPIKE_DAMAGE * upgrades.damageMultiplier());
+        float damage = (float) (spikeDamage() * upgrades.damageMultiplier());
         boolean painWaves = upgrades.runeEtching() == RuneEtching.PAIN;
         boolean graceSupport = upgrades.runeEtching() == RuneEtching.GRACE;
         boolean bountyCenterSpike = upgrades.runeEtching() == RuneEtching.BOUNTY;
-        double radius = FIELD_RADIUS * sizeMultiplier + upgrades.stringLevel() * STRING_RADIUS_BONUS_PER_LEVEL;
-        double visualRadius = PATCH_VISUAL_RADIUS * sizeMultiplier + upgrades.stringLevel() * (STRING_RADIUS_BONUS_PER_LEVEL * 0.45);
-        double painWaveDistance = PAIN_WAVE_MAX_DISTANCE + upgrades.stringLevel() * STRING_WAVE_DISTANCE_BONUS_PER_LEVEL;
-        double upwardKnockback = BASE_UPWARD_KNOCKBACK + upgrades.frameLevel() * FRAME_UPWARD_KNOCKBACK_PER_LEVEL;
-        int centerSpikeHeightSegments = BOUNTY_CENTER_BASE_HEIGHT_SEGMENTS + upgrades.frameLevel() * BOUNTY_CENTER_EXTRA_HEIGHT_PER_FRAME;
+        double radius = fieldRadius() * sizeMultiplier + upgrades.stringLevel() * stringRadiusBonusPerLevel();
+        double visualRadius = PATCH_VISUAL_RADIUS * sizeMultiplier + upgrades.stringLevel() * (stringRadiusBonusPerLevel() * 0.45);
+        double painWaveDistance = painWaveMaxDistance() + upgrades.stringLevel() * stringWaveDistanceBonusPerLevel();
+        double upwardKnockback = baseUpwardKnockback() + upgrades.frameLevel() * frameUpwardKnockbackPerLevel();
+        int centerSpikeHeightSegments = bountyCenterBaseHeightSegments() + upgrades.frameLevel() * bountyCenterExtraHeightPerFrame();
         return new FieldTuning(
                 radius,
                 visualRadius,
@@ -318,12 +320,12 @@ public final class EarthSpikeFieldManager {
                 return true;
             }
 
-            double distance = wave.nextStep() * PAIN_WAVE_STEP_DISTANCE;
+            double distance = wave.nextStep() * painWaveStepDistance();
             Vec3d pos = field.center().add(wave.direction().multiply(distance));
             double y = findGroundTopY(world, pos.x, pos.z, field.center().y) + BASE_GROUND_OFFSET;
             int heightSegments = 2 + (wave.nextStep() % 4);
             spawnSpikeVisual(world, field, pos.x, y, pos.z, heightSegments, world.getTime());
-            damageAtWaveStep(world, getOwnerEntity(world, field.ownerId()), pos.x, y, pos.z, field.tuning().damage() * PAIN_WAVE_DAMAGE_MULTIPLIER, field.tuning().upwardKnockback());
+            damageAtWaveStep(world, getOwnerEntity(world, field.ownerId()), pos.x, y, pos.z, field.tuning().damage() * painWaveDamageMultiplier(), field.tuning().upwardKnockback());
             world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.POINTED_DRIPSTONE.getDefaultState()), pos.x, y + 0.2, pos.z, 3, 0.1, 0.08, 0.1, 0.005);
             world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.DRIPSTONE_BLOCK.getDefaultState()), pos.x, y + 0.15, pos.z, 5, 0.16, 0.08, 0.16, 0.01);
             world.playSound(null, pos.x, y, pos.z, SoundEvents.BLOCK_POINTED_DRIPSTONE_LAND, SoundCategory.PLAYERS, 0.45F, 1.05F + world.random.nextFloat() * 0.15F);
@@ -364,7 +366,7 @@ public final class EarthSpikeFieldManager {
     }
 
     private static int getPainWaveMaxSteps(FieldTuning tuning) {
-        return Math.max(1, (int) Math.floor(tuning.painWaveDistance() / PAIN_WAVE_STEP_DISTANCE));
+        return Math.max(1, (int) Math.floor(tuning.painWaveDistance() / painWaveStepDistance()));
     }
 
     private static void applyUpwardKnockback(LivingEntity target, double upwardKnockback) {

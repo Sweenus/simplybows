@@ -9,15 +9,13 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.entity.BlossomArrowEntity;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 public class BlossomBowItem extends SimplyBowItem {
-
-    private static final float BLOSSOM_ARROW_SPEED_MULTIPLIER = 0.78F;
-    private static final float BLOSSOM_ARROW_DIVERGENCE = 0.85F;
 
     public BlossomBowItem(Settings settings) {
         super(settings);
@@ -39,7 +37,7 @@ public class BlossomBowItem extends SimplyBowItem {
                 0.8F,
                 1.05F + serverWorld.getRandom().nextFloat() * 0.15F
         );
-        this.shootAll(serverWorld, shooter, hand, stack, projectiles, f * BLOSSOM_ARROW_SPEED_MULTIPLIER, BLOSSOM_ARROW_DIVERGENCE, critical, target);
+        this.shootAll(serverWorld, shooter, hand, stack, projectiles, f * SimplyBowsConfig.INSTANCE.blossomBow.arrowSpeedMultiplier.get(), SimplyBowsConfig.INSTANCE.blossomBow.arrowDivergence.get(), critical, target);
     }
 
     @Override
@@ -54,7 +52,7 @@ public class BlossomBowItem extends SimplyBowItem {
         }
 
         BlossomArrowEntity arrowEntity = new BlossomArrowEntity(world, shooter, firedArrowStack, weaponStack);
-        arrowEntity.setDamage(1.5);
+        arrowEntity.setDamage(SimplyBowsConfig.INSTANCE.blossomBow.baseDamage.get());
         arrowEntity.setCritical(critical);
         return arrowEntity;
     }

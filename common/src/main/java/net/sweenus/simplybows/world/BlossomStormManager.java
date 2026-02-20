@@ -12,6 +12,7 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
 import net.sweenus.simplybows.util.CombatTargeting;
@@ -26,29 +27,30 @@ import java.util.UUID;
 
 public final class BlossomStormManager {
 
-    private static final int STORM_DURATION_TICKS = 200;
-    private static final int STORM_DURATION_BONUS_PER_STRING = 40;
-    private static final int DAMAGE_INTERVAL_TICKS = 10;
     private static final int JUMP_INTERVAL_TICKS = 25;
-    private static final float STORM_DAMAGE = 1.5F;
-    private static final double GRACE_AURA_DAMAGE_RADIUS = 3.25;
-    private static final double GRACE_AURA_RADIUS_PER_STRING = 0.45;
-    private static final int GRACE_BUFF_DURATION_TICKS = 60;
     private static final int GRACE_SWIFTNESS_AMPLIFIER = 0;
     private static final int GRACE_HASTE_AMPLIFIER = 0;
-    private static final int BOUNTY_BASE_MAX_TRAPS = 3;
-    private static final int BOUNTY_MAX_TRAPS_PER_STRING = 1;
-    private static final float BOUNTY_TRIGGER_DAMAGE_MULTIPLIER = 3.2F;
-    private static final double BOUNTY_TRIGGER_BASE_RADIUS = 1.75;
-    private static final double BOUNTY_TRIGGER_RADIUS_PER_STRING = 0.25;
     private static final double BOUNTY_TRIGGER_BASE_KNOCKUP = 0.22;
     private static final double BOUNTY_TRIGGER_KNOCKUP_PER_FRAME = 0.06;
-    private static final double PAIN_AREA_DAMAGE_RADIUS = 6.5;
-    private static final double PAIN_AREA_RADIUS_PER_STRING = 0.8;
     private static final int PAIN_VISUAL_RING_MIN_POINTS = 24;
     private static final int PAIN_VISUAL_RING_MAX_POINTS = 72;
-    private static final double JUMP_RANGE = 8.0;
     private static final int VORTEX_POINTS = 4;
+
+    private static int stormDurationTicks() { return SimplyBowsConfig.INSTANCE.blossomBow.stormDurationTicks.get(); }
+    private static int stormDurationBonusPerString() { return SimplyBowsConfig.INSTANCE.blossomBow.stormDurationBonusPerString.get(); }
+    private static int damageIntervalTicks() { return SimplyBowsConfig.INSTANCE.blossomBow.damageIntervalTicks.get(); }
+    private static float stormDamage() { return SimplyBowsConfig.INSTANCE.blossomBow.stormDamage.get(); }
+    private static double jumpRange() { return SimplyBowsConfig.INSTANCE.blossomBow.jumpRange.get(); }
+    private static double graceAuraDamageRadius() { return SimplyBowsConfig.INSTANCE.blossomBow.graceAuraDamageRadius.get(); }
+    private static double graceAuraRadiusPerString() { return SimplyBowsConfig.INSTANCE.blossomBow.graceAuraRadiusPerString.get(); }
+    private static int graceBuffDurationTicks() { return SimplyBowsConfig.INSTANCE.blossomBow.graceBuffDuration.get(); }
+    private static int bountyBaseMaxTraps() { return SimplyBowsConfig.INSTANCE.blossomBow.bountyBaseMaxTraps.get(); }
+    private static int bountyMaxTrapsPerString() { return SimplyBowsConfig.INSTANCE.blossomBow.bountyMaxTrapsPerString.get(); }
+    private static float bountyTriggerDamageMultiplier() { return SimplyBowsConfig.INSTANCE.blossomBow.bountyTriggerDamageMultiplier.get(); }
+    private static double bountyTriggerBaseRadius() { return SimplyBowsConfig.INSTANCE.blossomBow.bountyTriggerBaseRadius.get(); }
+    private static double bountyTriggerRadiusPerString() { return SimplyBowsConfig.INSTANCE.blossomBow.bountyTriggerRadiusPerString.get(); }
+    private static double painAreaDamageRadius() { return SimplyBowsConfig.INSTANCE.blossomBow.painAreaRadius.get(); }
+    private static double painAreaRadiusPerString() { return SimplyBowsConfig.INSTANCE.blossomBow.painAreaRadiusPerString.get(); }
     private static final Map<ServerWorld, List<ActiveStorm>> ACTIVE_STORMS = new HashMap<>();
 
     private BlossomStormManager() {
@@ -93,7 +95,7 @@ public final class BlossomStormManager {
 
         ActiveStorm storm = new ActiveStorm(
                 now + tuning.durationTicks(),
-                now + DAMAGE_INTERVAL_TICKS,
+                now + damageIntervalTicks(),
                 now + JUMP_INTERVAL_TICKS,
                 now,
                 initialCenter,
@@ -146,7 +148,7 @@ public final class BlossomStormManager {
             } else if (currentTarget != null && currentTarget.isAlive()) {
                 CombatTargeting.applyDamage(world, owner, currentTarget, storm.tuning.damage(), true, false);
             }
-            storm.nextDamageTick = now + DAMAGE_INTERVAL_TICKS;
+            storm.nextDamageTick = now + damageIntervalTicks();
         }
 
         if (!storm.tuning.painAreaMode() && !storm.tuning.bountyTrapMode() && now >= storm.nextJumpTick) {
@@ -167,7 +169,7 @@ public final class BlossomStormManager {
 
     private static boolean processBountyTrapTriggers(ServerWorld world, ActiveStorm storm, LivingEntity owner) {
         double radius = storm.tuning.bountyTriggerRadius();
-        float damage = storm.tuning.damage() * BOUNTY_TRIGGER_DAMAGE_MULTIPLIER;
+        float damage = storm.tuning.damage() * bountyTriggerDamageMultiplier();
         Box triggerBox = Box.of(storm.center, radius * 2.0, 3.5, radius * 2.0);
         for (LivingEntity candidate : world.getEntitiesByClass(
                 LivingEntity.class,
@@ -243,8 +245,8 @@ public final class BlossomStormManager {
 
         Vec3d anchorCenter = anchor.getPos().add(0.0, anchor.getHeight() * 0.5, 0.0);
         storm.center = anchorCenter;
-        anchor.addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, GRACE_BUFF_DURATION_TICKS, GRACE_SWIFTNESS_AMPLIFIER), owner);
-        anchor.addStatusEffect(new StatusEffectInstance(StatusEffects.HASTE, GRACE_BUFF_DURATION_TICKS, GRACE_HASTE_AMPLIFIER), owner);
+        anchor.addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, graceBuffDurationTicks(), GRACE_SWIFTNESS_AMPLIFIER), owner);
+        anchor.addStatusEffect(new StatusEffectInstance(StatusEffects.HASTE, graceBuffDurationTicks(), GRACE_HASTE_AMPLIFIER), owner);
 
         double radius = storm.tuning.graceAuraRadius();
         Box hitBox = Box.of(anchorCenter, radius * 2.0, 5.0, radius * 2.0);
@@ -268,7 +270,7 @@ public final class BlossomStormManager {
             return findNextGraceTarget(world, storm, currentTarget);
         }
 
-        Box search = Box.of(storm.center, JUMP_RANGE * 2.0, 5.0, JUMP_RANGE * 2.0);
+        Box search = Box.of(storm.center, jumpRange() * 2.0, 5.0, jumpRange() * 2.0);
         List<LivingEntity> candidates = world.getEntitiesByClass(
                 LivingEntity.class,
                 search,
@@ -303,7 +305,7 @@ public final class BlossomStormManager {
             return null;
         }
 
-        Box search = Box.of(storm.center, JUMP_RANGE * 2.0, 5.0, JUMP_RANGE * 2.0);
+        Box search = Box.of(storm.center, jumpRange() * 2.0, 5.0, jumpRange() * 2.0);
         List<LivingEntity> candidates = world.getEntitiesByClass(
                 LivingEntity.class,
                 search,
@@ -317,7 +319,7 @@ public final class BlossomStormManager {
             if (currentTarget != null && candidate.getUuid().equals(currentTarget.getUuid())) {
                 continue;
             }
-            if (candidate.squaredDistanceTo(storm.center) > JUMP_RANGE * JUMP_RANGE) {
+            if (candidate.squaredDistanceTo(storm.center) > jumpRange() * jumpRange()) {
                 continue;
             }
             double dist = candidate.squaredDistanceTo(storm.center);
@@ -435,16 +437,16 @@ public final class BlossomStormManager {
 
     private static StormTuning buildTuning(BowUpgradeData upgrades) {
         RuneEtching rune = upgrades.runeEtching();
-        float damage = (float) (STORM_DAMAGE * upgrades.damageMultiplier());
+        float damage = (float) (stormDamage() * upgrades.damageMultiplier());
         boolean painAreaMode = rune == RuneEtching.PAIN;
         boolean graceSupportMode = rune == RuneEtching.GRACE;
         boolean bountyTrapMode = rune == RuneEtching.BOUNTY;
-        double painAreaRadius = (PAIN_AREA_DAMAGE_RADIUS * upgrades.sizeMultiplier()) + upgrades.stringLevel() * PAIN_AREA_RADIUS_PER_STRING;
-        double graceAuraRadius = (GRACE_AURA_DAMAGE_RADIUS * upgrades.sizeMultiplier()) + upgrades.stringLevel() * GRACE_AURA_RADIUS_PER_STRING;
-        double bountyTriggerRadius = (BOUNTY_TRIGGER_BASE_RADIUS * upgrades.sizeMultiplier()) + upgrades.stringLevel() * BOUNTY_TRIGGER_RADIUS_PER_STRING;
-        int maxActiveBountyTraps = BOUNTY_BASE_MAX_TRAPS + upgrades.stringLevel() * BOUNTY_MAX_TRAPS_PER_STRING;
+        double painAreaRadius = (painAreaDamageRadius() * upgrades.sizeMultiplier()) + upgrades.stringLevel() * painAreaRadiusPerString();
+        double graceAuraRadius = (graceAuraDamageRadius() * upgrades.sizeMultiplier()) + upgrades.stringLevel() * graceAuraRadiusPerString();
+        double bountyTriggerRadius = (bountyTriggerBaseRadius() * upgrades.sizeMultiplier()) + upgrades.stringLevel() * bountyTriggerRadiusPerString();
+        int maxActiveBountyTraps = bountyBaseMaxTraps() + upgrades.stringLevel() * bountyMaxTrapsPerString();
         double bountyTriggerKnockup = BOUNTY_TRIGGER_BASE_KNOCKUP + upgrades.frameLevel() * BOUNTY_TRIGGER_KNOCKUP_PER_FRAME;
-        int durationTicks = STORM_DURATION_TICKS + upgrades.stringLevel() * STORM_DURATION_BONUS_PER_STRING;
+        int durationTicks = stormDurationTicks() + upgrades.stringLevel() * stormDurationBonusPerString();
         return new StormTuning(damage, painAreaMode, graceSupportMode, bountyTrapMode, painAreaRadius, graceAuraRadius, bountyTriggerRadius, maxActiveBountyTraps, bountyTriggerKnockup, durationTicks);
     }
 
