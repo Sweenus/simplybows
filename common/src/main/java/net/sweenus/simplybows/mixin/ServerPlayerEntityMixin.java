@@ -11,7 +11,7 @@ import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.sweenus.simplybows.SimplyBows;
-import net.sweenus.simplybows.item.unique.IceBowItem;
+import net.sweenus.simplybows.world.BowPassiveParticleManager;
 import net.sweenus.simplybows.world.EchoShoulderBowManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -36,7 +36,7 @@ public abstract class ServerPlayerEntityMixin {
     public void simplybows$tick(CallbackInfo ci) {
         PlayerEntity player = (PlayerEntity) (Object) this;
         if (player instanceof ServerPlayerEntity serverPlayer) {
-            IceBowItem.passiveParticles(serverPlayer, player, getServerWorld());
+            BowPassiveParticleManager.tick(serverPlayer, player, getServerWorld());
             EchoShoulderBowManager.tickPlayer(serverPlayer);
             simplybows$debugLogLookedEntity(serverPlayer);
         }
