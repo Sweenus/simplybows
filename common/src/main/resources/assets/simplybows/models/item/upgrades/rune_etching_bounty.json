@@ -1,6 +1,3 @@
 {
-  "parent": "item/generated",
-  "textures": {
-    "layer0": "minecraft:item/emerald"
-  }
+  "parent": "simplybows:item/runes/bounty_rune/bounty_rune"
 }
