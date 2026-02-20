@@ -1,5 +1,5 @@
 {
-    "parent": "item/bow",
+    "parent": "simplybows:item/bow_large_template",
     "textures": {
         "layer0": "simplybows:item/earth_bow/earth_bow_pulling_1"
     }
