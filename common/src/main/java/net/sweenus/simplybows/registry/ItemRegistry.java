@@ -128,6 +128,11 @@ public class ItemRegistry {
             BowUpgradeComponentItem.UpgradeKind.RUNE_ETCHING,
             RuneEtching.BOUNTY
     ));
+    public static final RegistrySupplier<Item> RUNE_ETCHING_CHAOS = ITEM.register("upgrades/rune_etching_chaos", () -> new BowUpgradeComponentItem(
+            new Item.Settings(),
+            BowUpgradeComponentItem.UpgradeKind.RUNE_ETCHING,
+            RuneEtching.CHAOS
+    ));
 
 
     public static void registerItems() {

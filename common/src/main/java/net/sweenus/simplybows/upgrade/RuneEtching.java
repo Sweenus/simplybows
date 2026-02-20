@@ -4,7 +4,8 @@ public enum RuneEtching {
     NONE("none"),
     PAIN("pain"),
     GRACE("grace"),
-    BOUNTY("bounty");
+    BOUNTY("bounty"),
+    CHAOS("chaos");
 
     private final String id;
 

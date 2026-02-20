@@ -15,6 +15,7 @@ import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
 import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.util.HelperMethods;
+import net.sweenus.simplybows.world.BubbleChaosWaveManager;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -37,6 +38,13 @@ public class BubbleBowItem extends SimplyBowItem {
 
     public void performStoppedUsing(ServerWorld serverWorld, LivingEntity shooter, Hand hand, ItemStack stack, List<ItemStack> projectiles, float f, float g, boolean critical, @Nullable LivingEntity target) {
         BowUpgradeData upgrades = BowUpgradeData.from(stack);
+        if (upgrades.runeEtching() == RuneEtching.CHAOS) {
+            BubbleChaosWaveManager.cast(serverWorld, shooter, upgrades);
+            ItemStack ammoReference = projectiles.isEmpty() ? ItemStack.EMPTY : projectiles.getFirst();
+            stack.damage(this.getWeaponStackDamage(ammoReference), shooter, LivingEntity.getSlotForHand(hand));
+            return;
+        }
+
         float speed = f * SimplyBowsConfig.INSTANCE.bubbleBow.arrowSpeedMultiplier.get();
         if (upgrades.runeEtching() == RuneEtching.PAIN && critical) {
             float painSpeedMultiplier = shooter.isTouchingWater() ? SimplyBowsConfig.INSTANCE.bubbleBow.painSpeedMultiplierWater.get() : SimplyBowsConfig.INSTANCE.bubbleBow.painSpeedMultiplierLand.get();

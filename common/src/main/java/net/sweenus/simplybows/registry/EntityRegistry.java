@@ -14,6 +14,7 @@ import net.sweenus.simplybows.entity.BlossomArrowEntity;
 import net.sweenus.simplybows.SimplyBows;
 import net.sweenus.simplybows.entity.BubbleArrowEntity;
 import net.sweenus.simplybows.entity.BubbleBountyVisualEntity;
+import net.sweenus.simplybows.entity.BubbleChaosWaveVisualEntity;
 import net.sweenus.simplybows.entity.BubbleGraceVisualEntity;
 import net.sweenus.simplybows.entity.BubblePainArrowEntity;
 import net.sweenus.simplybows.entity.EchoArrowEntity;
@@ -117,6 +118,13 @@ public class EntityRegistry {
                     .maxTrackingRange(64)
                     .trackingTickInterval(1)
                     .build(SimplyBows.MOD_ID + ":bubble_grace_visual"));
+
+    public static final RegistrySupplier<EntityType<BubbleChaosWaveVisualEntity>> BUBBLE_CHAOS_WAVE_VISUAL = ENTITY_TYPES.register("bubble_chaos_wave_visual",
+            () -> EntityType.Builder.<BubbleChaosWaveVisualEntity>create(BubbleChaosWaveVisualEntity::new, SpawnGroup.MISC)
+                    .dimensions(1.0F, 1.0F)
+                    .maxTrackingRange(64)
+                    .trackingTickInterval(1)
+                    .build(SimplyBows.MOD_ID + ":bubble_chaos_wave_visual"));
 
     public static void registerEntities() {
         ENTITY_TYPES.register();

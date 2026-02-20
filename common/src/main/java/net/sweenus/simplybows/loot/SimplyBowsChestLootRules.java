@@ -43,7 +43,8 @@ public final class SimplyBowsChestLootRules {
                 baseRuneChance(),
                 ItemRegistry.RUNE_ETCHING_PAIN.get(),
                 ItemRegistry.RUNE_ETCHING_GRACE.get(),
-                ItemRegistry.RUNE_ETCHING_BOUNTY.get()
+                ItemRegistry.RUNE_ETCHING_BOUNTY.get(),
+                ItemRegistry.RUNE_ETCHING_CHAOS.get()
         ));
         pools.add(oneOfChancePool(
                 baseUniqueBowChance(),
@@ -84,7 +85,8 @@ public final class SimplyBowsChestLootRules {
                     boostedRuneChanceAncientCity(),
                     ItemRegistry.RUNE_ETCHING_PAIN.get(),
                     ItemRegistry.RUNE_ETCHING_GRACE.get(),
-                    ItemRegistry.RUNE_ETCHING_BOUNTY.get()
+                    ItemRegistry.RUNE_ETCHING_BOUNTY.get(),
+                    ItemRegistry.RUNE_ETCHING_CHAOS.get()
             ));
         }
     }

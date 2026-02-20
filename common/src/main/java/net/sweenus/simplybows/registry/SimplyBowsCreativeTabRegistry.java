@@ -29,6 +29,7 @@ public final class SimplyBowsCreativeTabRegistry {
                         entries.add(new ItemStack(ItemRegistry.RUNE_ETCHING_PAIN.get()));
                         entries.add(new ItemStack(ItemRegistry.RUNE_ETCHING_GRACE.get()));
                         entries.add(new ItemStack(ItemRegistry.RUNE_ETCHING_BOUNTY.get()));
+                        entries.add(new ItemStack(ItemRegistry.RUNE_ETCHING_CHAOS.get()));
                     })
                     .build()
     );

@@ -140,6 +140,22 @@ public class SimplyBowsConfig extends Config {
         public ValidatedInt bountyDamageIntervalTicks = new ValidatedInt(10, 100, 1);
         @ConfigGroup.Pop
         public ValidatedFloat bountyBaseDamage = new ValidatedFloat(3.75F, 30.0F, 0.1F);
+
+        // Chaos
+        public ConfigGroup chaosGroup = new ConfigGroup("chaos");
+        public ValidatedDouble chaosWaveWidthBlocks = new ValidatedDouble(3.0, 7.0, 1.0);
+        public ValidatedDouble chaosWaveSegmentThickness = new ValidatedDouble(1.25, 3.0, 0.25);
+        public ValidatedDouble chaosWaveStepDistance = new ValidatedDouble(0.8, 2.0, 0.1);
+        public ValidatedInt chaosWaveStepIntervalTicks = new ValidatedInt(1, 10, 1);
+        public ValidatedDouble chaosWaveForwardStartOffset = new ValidatedDouble(1.2, 5.0, 0.1);
+        public ValidatedInt chaosBaseLengthSteps = new ValidatedInt(7, 30, 1);
+        public ValidatedInt chaosLengthStepsPerString = new ValidatedInt(2, 10, 0);
+        public ValidatedFloat chaosBaseDamage = new ValidatedFloat(3.5F, 40.0F, 0.1F);
+        public ValidatedFloat chaosDamagePerFrame = new ValidatedFloat(1.35F, 10.0F, 0.1F);
+        public ValidatedDouble chaosBaseKnockback = new ValidatedDouble(0.52, 3.0, 0.0);
+        public ValidatedDouble chaosKnockbackPerFrame = new ValidatedDouble(0.08, 1.0, 0.0);
+        @ConfigGroup.Pop
+        public ValidatedDouble chaosKnockUp = new ValidatedDouble(0.14, 2.0, 0.0);
     }
 
     // ── Bee Bow ──────────────────────────────────────────────

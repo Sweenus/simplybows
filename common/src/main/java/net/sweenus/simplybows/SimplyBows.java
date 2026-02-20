@@ -8,6 +8,7 @@ import net.sweenus.simplybows.client.renderer.BeeArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BeeGraceVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BeeHiveVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BubbleBountyVisualEntityRenderer;
+import net.sweenus.simplybows.client.renderer.BubbleChaosWaveVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BubbleGraceVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BubblePainArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.EarthSpikeVisualEntityRenderer;
@@ -67,6 +68,7 @@ public final class SimplyBows {
             EntityRendererRegistry.register(EntityRegistry.BEE_GRACE_VISUAL, BeeGraceVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.BUBBLE_BOUNTY_VISUAL, BubbleBountyVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.BUBBLE_GRACE_VISUAL, BubbleGraceVisualEntityRenderer::new);
+            EntityRendererRegistry.register(EntityRegistry.BUBBLE_CHAOS_WAVE_VISUAL, BubbleChaosWaveVisualEntityRenderer::new);
 
         }
     }
