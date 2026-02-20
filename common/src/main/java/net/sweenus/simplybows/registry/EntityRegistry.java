@@ -22,6 +22,7 @@ import net.sweenus.simplybows.entity.EarthArrowEntity;
 import net.sweenus.simplybows.entity.EarthSpikeVisualEntity;
 import net.sweenus.simplybows.entity.HomingArrowEntity;
 import net.sweenus.simplybows.entity.HomingSpectralArrowEntity;
+import net.sweenus.simplybows.entity.IceChaosWallVisualEntity;
 import net.sweenus.simplybows.entity.ShoulderBowEntity;
 import net.sweenus.simplybows.entity.VineArrowEntity;
 import net.sweenus.simplybows.entity.VineFlowerVisualEntity;
@@ -87,6 +88,13 @@ public class EntityRegistry {
             () -> EntityType.Builder.<EarthSpikeVisualEntity>create(EarthSpikeVisualEntity::new, SpawnGroup.MISC)
                     .dimensions(0.9F, 2.5F)
                     .build(SimplyBows.MOD_ID + ":earth_spike_visual"));
+
+    public static final RegistrySupplier<EntityType<IceChaosWallVisualEntity>> ICE_CHAOS_WALL_VISUAL = ENTITY_TYPES.register("ice_chaos_wall_visual",
+            () -> EntityType.Builder.<IceChaosWallVisualEntity>create(IceChaosWallVisualEntity::new, SpawnGroup.MISC)
+                    .dimensions(0.95F, 3.2F)
+                    .maxTrackingRange(64)
+                    .trackingTickInterval(1)
+                    .build(SimplyBows.MOD_ID + ":ice_chaos_wall_visual"));
 
     public static final RegistrySupplier<EntityType<VineFlowerVisualEntity>> VINE_FLOWER_VISUAL = ENTITY_TYPES.register("vine_flower_visual",
             () -> EntityType.Builder.<VineFlowerVisualEntity>create(VineFlowerVisualEntity::new, SpawnGroup.MISC)

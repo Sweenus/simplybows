@@ -23,6 +23,7 @@ import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
 import net.sweenus.simplybows.util.CombatTargeting;
 import net.sweenus.simplybows.util.HelperMethods;
+import net.sweenus.simplybows.world.IceChaosWallManager;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -37,6 +38,9 @@ public class IceBowItem extends SimplyBowItem {
     private static final String NBT_LOCK_TARGET = "simplybows_ice_lock_target";
     private static final String NBT_SLOW_STACK = "simplybows_ice_stacking_slow";
     private static final String NBT_TARGET_UUID = "simplybows_ice_target_uuid";
+    private static final String NBT_CHAOS_WALL_ON_IMPACT = "simplybows_ice_chaos_wall_on_impact";
+    private static final String NBT_CHAOS_WALL_STRING_LEVEL = "simplybows_ice_chaos_wall_string_level";
+    private static final String NBT_CHAOS_WALL_FRAME_LEVEL = "simplybows_ice_chaos_wall_frame_level";
 
     public IceBowItem(Settings settings) {
         super(settings);
@@ -59,9 +63,11 @@ public class IceBowItem extends SimplyBowItem {
 
     public void performStoppedUsing(ServerWorld serverWorld, PlayerEntity player, Hand hand, ItemStack stack, List<ItemStack> list, float f, float g, boolean bl, @Nullable LivingEntity livingEntity) {
         BowUpgradeData upgrades = BowUpgradeData.from(stack);
+        RuneEtching rune = upgrades.runeEtching();
+        boolean chaosWallReady = rune == RuneEtching.CHAOS && IceChaosWallManager.isWallReady(serverWorld, player.getUuid());
+
         int quantity = getArrowQuantity(upgrades);
         double damageMultiplier = upgrades.damageMultiplier();
-        RuneEtching rune = upgrades.runeEtching();
         if (rune == RuneEtching.PAIN) {
             damageMultiplier *= SimplyBowsConfig.INSTANCE.iceBow.painDamageMultiplier.get();
         } else if (rune == RuneEtching.BOUNTY) {
@@ -79,6 +85,14 @@ public class IceBowItem extends SimplyBowItem {
         // If no target is found, keep normal homing fallback behavior.
         customData.putBoolean(NBT_LOCK_TARGET, rune == RuneEtching.PAIN && painTarget != null);
         customData.putBoolean(NBT_SLOW_STACK, rune == RuneEtching.GRACE);
+        customData.putBoolean(NBT_CHAOS_WALL_ON_IMPACT, chaosWallReady);
+        if (chaosWallReady) {
+            customData.putInt(NBT_CHAOS_WALL_STRING_LEVEL, upgrades.stringLevel());
+            customData.putInt(NBT_CHAOS_WALL_FRAME_LEVEL, upgrades.frameLevel());
+        } else {
+            customData.remove(NBT_CHAOS_WALL_STRING_LEVEL);
+            customData.remove(NBT_CHAOS_WALL_FRAME_LEVEL);
+        }
         if (painTarget != null) {
             customData.putUuid(NBT_TARGET_UUID, painTarget.getUuid());
         } else {
@@ -86,7 +100,12 @@ public class IceBowItem extends SimplyBowItem {
         }
         stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(customData));
 
-        this.shootFan(this, serverWorld, player, player.getActiveHand(), stack, list, f * SimplyBowsConfig.INSTANCE.iceBow.arrowSpeed.get(), SimplyBowsConfig.INSTANCE.iceBow.arrowDivergence.get(), f == 1.0F, null, quantity);
+        if (chaosWallReady) {
+            IceChaosWallManager.consumeWallCooldown(serverWorld, player.getUuid());
+            this.shootAll(serverWorld, player, player.getActiveHand(), stack, list, f * SimplyBowsConfig.INSTANCE.iceBow.arrowSpeed.get(), SimplyBowsConfig.INSTANCE.iceBow.chaosWallArrowDivergence.get() * 0.01F, f == 1.0F, null);
+        } else {
+            this.shootFan(this, serverWorld, player, player.getActiveHand(), stack, list, f * SimplyBowsConfig.INSTANCE.iceBow.arrowSpeed.get(), SimplyBowsConfig.INSTANCE.iceBow.arrowDivergence.get(), f == 1.0F, null, quantity);
+        }
         HelperMethods.spawnParticlesInFrontOfPlayer(serverWorld, player, ParticleTypes.SNOWFLAKE, 6);
         HelperMethods.spawnParticlesInFrontOfPlayer(serverWorld, player, ParticleTypes.WHITE_ASH, 8);
 
@@ -99,8 +118,18 @@ public class IceBowItem extends SimplyBowItem {
             //return super.use(world, user, hand);
         }
 
-        int quantity = getArrowQuantity(BowUpgradeData.from(itemStack));
+        BowUpgradeData upgrades = BowUpgradeData.from(itemStack);
+        int quantity = getArrowQuantity(upgrades);
         Map<ItemStack, Integer> arrowStacks = HelperMethods.findArrowStacks(user);
+
+        if (upgrades.runeEtching() == RuneEtching.CHAOS) {
+            for (Map.Entry<ItemStack, Integer> entry : arrowStacks.entrySet()) {
+                if (entry.getValue() > 0) {
+                    return super.use(world, user, hand);
+                }
+            }
+            return TypedActionResult.fail(itemStack);
+        }
         for (Map.Entry<ItemStack, Integer> entry : arrowStacks.entrySet()) {
             ItemStack arrowStack = entry.getKey();
             int arrowCount = entry.getValue();
@@ -119,6 +148,9 @@ public class IceBowItem extends SimplyBowItem {
         double damageMultiplier = 1.0;
         boolean lockTarget = false;
         boolean stackSlow = false;
+        boolean chaosWallOnImpact = false;
+        int chaosWallStringLevel = 0;
+        int chaosWallFrameLevel = 0;
         UUID targetUuid = null;
         NbtComponent customData = weaponStack.get(DataComponentTypes.CUSTOM_DATA);
         if (customData != null) {
@@ -129,6 +161,9 @@ public class IceBowItem extends SimplyBowItem {
             }
             lockTarget = nbt.getBoolean(NBT_LOCK_TARGET);
             stackSlow = nbt.getBoolean(NBT_SLOW_STACK);
+            chaosWallOnImpact = nbt.getBoolean(NBT_CHAOS_WALL_ON_IMPACT);
+            chaosWallStringLevel = nbt.getInt(NBT_CHAOS_WALL_STRING_LEVEL);
+            chaosWallFrameLevel = nbt.getInt(NBT_CHAOS_WALL_FRAME_LEVEL);
             if (nbt.containsUuid(NBT_TARGET_UUID)) {
                 targetUuid = nbt.getUuid(NBT_TARGET_UUID);
             }
@@ -144,6 +179,11 @@ public class IceBowItem extends SimplyBowItem {
             if (targetUuid != null) {
                 spectralArrow.setLockedTargetUuid(targetUuid);
             }
+            spectralArrow.setChaosWallOnImpact(chaosWallOnImpact);
+            if (chaosWallOnImpact) {
+                spectralArrow.setHomingEnabled(false);
+                spectralArrow.setChaosWallUpgradeLevels(chaosWallStringLevel, chaosWallFrameLevel);
+            }
             spectralArrow.setCritical(critical);
             arrowEntity = spectralArrow;
         } else {
@@ -154,6 +194,11 @@ public class IceBowItem extends SimplyBowItem {
             homingArrow.setStackingSlowness(stackSlow);
             if (targetUuid != null) {
                 homingArrow.setLockedTargetUuid(targetUuid);
+            }
+            homingArrow.setChaosWallOnImpact(chaosWallOnImpact);
+            if (chaosWallOnImpact) {
+                homingArrow.setHomingEnabled(false);
+                homingArrow.setChaosWallUpgradeLevels(chaosWallStringLevel, chaosWallFrameLevel);
             }
             homingArrow.setCritical(critical);
             arrowEntity = homingArrow;

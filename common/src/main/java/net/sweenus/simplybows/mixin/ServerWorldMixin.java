@@ -8,6 +8,7 @@ import net.sweenus.simplybows.world.BubbleColumnFieldManager;
 import net.sweenus.simplybows.world.BubbleChaosWaveManager;
 import net.sweenus.simplybows.world.EarthSpikeFieldManager;
 import net.sweenus.simplybows.world.EchoShoulderBowManager;
+import net.sweenus.simplybows.world.IceChaosWallManager;
 import net.sweenus.simplybows.world.VineFlowerFieldManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -25,6 +26,7 @@ public abstract class ServerWorldMixin {
         VineFlowerFieldManager.tick(world);
         BubbleColumnFieldManager.tick(world);
         BubbleChaosWaveManager.tick(world);
+        IceChaosWallManager.tick(world);
         BlossomStormManager.tick(world);
         EarthSpikeFieldManager.tick(world);
         BeeHiveSwarmManager.tick(world);

@@ -66,6 +66,17 @@ public class SimplyBowsConfig extends Config {
         public ValidatedDouble bountyDamageMultiplier = new ValidatedDouble(0.75, 5.0, 0.1);
         @ConfigGroup.Pop
         public ValidatedInt bountyExtraArrowMultiplier = new ValidatedInt(2, 10, 1);
+
+        // Rune: Chaos
+        public ConfigGroup chaosGroup = new ConfigGroup("chaos");
+        public ValidatedInt chaosWallDurationTicks = new ValidatedInt(160, 1200, 20);
+        public ValidatedInt chaosWallCooldownTicks = new ValidatedInt(240, 2400, 20);
+        public ValidatedInt chaosWallWidth = new ValidatedInt(5, 15, 1);
+        public ValidatedInt chaosWallWidthPerString = new ValidatedInt(1, 5, 0);
+        public ValidatedInt chaosWallHeight = new ValidatedInt(3, 10, 1);
+        public ValidatedInt chaosWallDurationPerFrameTicks = new ValidatedInt(20, 400, 0);
+        @ConfigGroup.Pop
+        public ValidatedInt chaosWallArrowDivergence = new ValidatedInt(1, 20, 0);
     }
 
     // ── Vine Bow ─────────────────────────────────────────────

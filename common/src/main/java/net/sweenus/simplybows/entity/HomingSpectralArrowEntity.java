@@ -10,10 +10,13 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.sweenus.simplybows.util.CombatTargeting;
+import net.sweenus.simplybows.world.IceChaosWallManager;
 
 import java.util.HashSet;
 import java.util.List;
@@ -34,6 +37,11 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
     private boolean initialSpreadApplied;
     private boolean lockSingleTarget;
     private boolean stackingSlowness;
+    private boolean chaosWallOnImpact;
+    private boolean homingEnabled = true;
+    private int chaosWallStringLevel;
+    private int chaosWallFrameLevel;
+    private boolean spawnedChaosWall;
     private UUID lockedTargetUuid;
 
     public HomingSpectralArrowEntity(EntityType<? extends HomingSpectralArrowEntity> type, World world) {
@@ -48,6 +56,11 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
     @Override
     public void tick() {
         super.tick(); // Ensure the arrow continues to behave like a normal arrow
+
+        if (!this.homingEnabled) {
+            this.setNoGravity(false);
+            return;
+        }
 
         if (this.getWorld() instanceof ServerWorld serverWorld && !this.inGround) {
             spawnTrailParticles(serverWorld);
@@ -277,6 +290,24 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
         target.timeUntilRegen = 0;
     }
 
+    @Override
+    protected void onEntityHit(EntityHitResult entityHitResult) {
+        if (!this.spawnedChaosWall && this.chaosWallOnImpact && this.getWorld() instanceof ServerWorld serverWorld) {
+            IceChaosWallManager.spawnAtImpact(serverWorld, entityHitResult.getPos(), this.getVelocity(), this.getOwner() != null ? this.getOwner().getUuid() : null, this.chaosWallStringLevel, this.chaosWallFrameLevel);
+            this.spawnedChaosWall = true;
+        }
+        super.onEntityHit(entityHitResult);
+    }
+
+    @Override
+    protected void onBlockHit(BlockHitResult blockHitResult) {
+        if (!this.spawnedChaosWall && this.chaosWallOnImpact && this.getWorld() instanceof ServerWorld serverWorld) {
+            IceChaosWallManager.spawnAtImpact(serverWorld, blockHitResult.getPos(), this.getVelocity(), this.getOwner() != null ? this.getOwner().getUuid() : null, this.chaosWallStringLevel, this.chaosWallFrameLevel);
+            this.spawnedChaosWall = true;
+        }
+        super.onBlockHit(blockHitResult);
+    }
+
     LivingEntity getTargetEntity() {
         return this.target;
     }
@@ -291,6 +322,19 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
 
     public void setStackingSlowness(boolean stackingSlowness) {
         this.stackingSlowness = stackingSlowness;
+    }
+
+    public void setChaosWallOnImpact(boolean chaosWallOnImpact) {
+        this.chaosWallOnImpact = chaosWallOnImpact;
+    }
+
+    public void setHomingEnabled(boolean homingEnabled) {
+        this.homingEnabled = homingEnabled;
+    }
+
+    public void setChaosWallUpgradeLevels(int stringLevel, int frameLevel) {
+        this.chaosWallStringLevel = Math.max(0, stringLevel);
+        this.chaosWallFrameLevel = Math.max(0, frameLevel);
     }
 
     private void applyStackingSlow(LivingEntity target) {
