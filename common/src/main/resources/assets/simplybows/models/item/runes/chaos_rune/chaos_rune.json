@@ -1,8 +1,8 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "simplybows:item/runes/pain_rune/pain_rune",
+    "layer0": "simplybows:item/runes/chaos_rune/chaos_rune",
     "layer1": "simplybows:item/runes/rune_grass",
-    "layer2": "simplybows:item/runes/pain_rune/pain_rune_lights"
+    "layer2": "simplybows:item/runes/chaos_rune/chaos_rune_lights"
   }
 }

@@ -302,19 +302,21 @@ public class SimplyBowsConfig extends Config {
     // ── Loot ─────────────────────────────────────────────────
 
     public static class LootSection extends ConfigSection {
+        private static final float CHANCE_SCALE = 1000.0F;
+
         // Global Drops
         public ConfigGroup globalGroup = new ConfigGroup("globalDrops");
-        public ValidatedFloat baseStringChance = new ValidatedFloat(0.02F, 1.0F, 0.0F);
-        public ValidatedFloat baseFrameChance = new ValidatedFloat(0.02F, 1.0F, 0.0F);
-        public ValidatedFloat baseRuneChance = new ValidatedFloat(0.003F, 1.0F, 0.0F);
+        public ValidatedFloat baseStringChance = new ValidatedFloat(20.0F, CHANCE_SCALE, 0.0F);
+        public ValidatedFloat baseFrameChance = new ValidatedFloat(20.0F, CHANCE_SCALE, 0.0F);
+        public ValidatedFloat baseRuneChance = new ValidatedFloat(3.0F, CHANCE_SCALE, 0.0F);
         @ConfigGroup.Pop
-        public ValidatedFloat baseUniqueBowChance = new ValidatedFloat(0.002F, 1.0F, 0.0F);
+        public ValidatedFloat baseUniqueBowChance = new ValidatedFloat(2.0F, CHANCE_SCALE, 0.0F);
 
         // Biome Boosts
         public ConfigGroup biomeGroup = new ConfigGroup("biomeBoosts");
-        public ValidatedFloat boostedBowChance = new ValidatedFloat(0.015F, 1.0F, 0.0F);
+        public ValidatedFloat boostedBowChance = new ValidatedFloat(15.0F, CHANCE_SCALE, 0.0F);
         @ConfigGroup.Pop
-        public ValidatedFloat boostedRuneChanceAncientCity = new ValidatedFloat(0.02F, 1.0F, 0.0F);
+        public ValidatedFloat boostedRuneChanceAncientCity = new ValidatedFloat(20.0F, CHANCE_SCALE, 0.0F);
     }
 
     // ── Upgrades ─────────────────────────────────────────────
@@ -327,20 +329,20 @@ public class SimplyBowsConfig extends Config {
 
         // Draw speeds
         public ConfigGroup drawSpeedGroup = new ConfigGroup("drawSpeeds");
-        public ValidatedFloat drawSpeedVine = new ValidatedFloat(20.0F, 100.0F, 1.0F);
+        public ValidatedFloat drawSpeedVine = new ValidatedFloat(30.0F, 100.0F, 1.0F);
         public ValidatedFloat drawSpeedIce = new ValidatedFloat(40.0F, 100.0F, 1.0F);
         public ValidatedFloat drawSpeedBubble = new ValidatedFloat(20.0F, 100.0F, 1.0F);
         public ValidatedFloat drawSpeedBee = new ValidatedFloat(20.0F, 100.0F, 1.0F);
         public ValidatedFloat drawSpeedBlossom = new ValidatedFloat(20.0F, 100.0F, 1.0F);
-        public ValidatedFloat drawSpeedEarth = new ValidatedFloat(20.0F, 100.0F, 1.0F);
+        public ValidatedFloat drawSpeedEarth = new ValidatedFloat(40.0F, 100.0F, 1.0F);
         @ConfigGroup.Pop
-        public ValidatedFloat drawSpeedEcho = new ValidatedFloat(20.0F, 100.0F, 1.0F);
+        public ValidatedFloat drawSpeedEcho = new ValidatedFloat(30.0F, 100.0F, 1.0F);
     }
 
     // ── General ──────────────────────────────────────────────
 
     public static class GeneralSection extends ConfigSection {
-        public ValidatedBoolean debugMode = new ValidatedBoolean(true);
+        public ValidatedBoolean debugMode = new ValidatedBoolean(false);
         public ValidatedBoolean modernTooltipsEnabled = new ValidatedBoolean(true);
     }
 }

@@ -13,12 +13,14 @@ import java.util.List;
 
 public final class SimplyBowsChestLootRules {
 
-    private static float baseStringChance() { return SimplyBowsConfig.INSTANCE.loot.baseStringChance.get(); }
-    private static float baseFrameChance() { return SimplyBowsConfig.INSTANCE.loot.baseFrameChance.get(); }
-    private static float baseRuneChance() { return SimplyBowsConfig.INSTANCE.loot.baseRuneChance.get(); }
-    private static float baseUniqueBowChance() { return SimplyBowsConfig.INSTANCE.loot.baseUniqueBowChance.get(); }
-    private static float boostedBowChance() { return SimplyBowsConfig.INSTANCE.loot.boostedBowChance.get(); }
-    private static float boostedRuneChanceAncientCity() { return SimplyBowsConfig.INSTANCE.loot.boostedRuneChanceAncientCity.get(); }
+    private static final float LOOT_UI_CHANCE_SCALE = 1000.0F;
+
+    private static float baseStringChance() { return normalizeLootChance(SimplyBowsConfig.INSTANCE.loot.baseStringChance.get()); }
+    private static float baseFrameChance() { return normalizeLootChance(SimplyBowsConfig.INSTANCE.loot.baseFrameChance.get()); }
+    private static float baseRuneChance() { return normalizeLootChance(SimplyBowsConfig.INSTANCE.loot.baseRuneChance.get()); }
+    private static float baseUniqueBowChance() { return normalizeLootChance(SimplyBowsConfig.INSTANCE.loot.baseUniqueBowChance.get()); }
+    private static float boostedBowChance() { return normalizeLootChance(SimplyBowsConfig.INSTANCE.loot.boostedBowChance.get()); }
+    private static float boostedRuneChanceAncientCity() { return normalizeLootChance(SimplyBowsConfig.INSTANCE.loot.boostedRuneChanceAncientCity.get()); }
 
     private SimplyBowsChestLootRules() {
     }
@@ -111,5 +113,16 @@ public final class SimplyBowsChestLootRules {
             }
         }
         return false;
+    }
+
+    private static float normalizeLootChance(float configuredValue) {
+        if (configuredValue <= 0.0F) {
+            return 0.0F;
+        }
+        // Backward compatibility: legacy configs used raw [0..1] chance values.
+        if (configuredValue <= 1.0F) {
+            return Math.min(1.0F, configuredValue);
+        }
+        return Math.min(1.0F, configuredValue / LOOT_UI_CHANCE_SCALE);
     }
 }
