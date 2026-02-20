@@ -18,6 +18,7 @@ import net.sweenus.simplybows.client.renderer.VineFlowerVisualEntityRenderer;
 import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.registry.EntityRegistry;
 import net.sweenus.simplybows.registry.ItemRegistry;
+import net.sweenus.simplybows.registry.SimplyBowsCreativeTabRegistry;
 import net.sweenus.simplybows.registry.SimplyBowsItemProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,7 @@ public final class SimplyBows {
         LOGGER.info("Simply Bows config loaded: {}", SimplyBowsConfig.INSTANCE.getId());
 
         ItemRegistry.ITEM.register();
+        SimplyBowsCreativeTabRegistry.register();
         EntityRegistry.registerEntities();
         SimplyBowsItemProperties.addSimplyBowsItemProperties();
 
