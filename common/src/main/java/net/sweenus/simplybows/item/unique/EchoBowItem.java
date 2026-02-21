@@ -56,10 +56,6 @@ public class EchoBowItem extends SimplyBowItem {
                 && ownerId != null
                 && EchoChaosBlackHoleManager.isBlackHoleReady(serverWorld, ownerId);
 
-        if (chaosBlackHoleReady) {
-            EchoChaosBlackHoleManager.consumeBlackHoleCooldown(serverWorld, ownerId);
-        }
-
         CHAOS_BLACK_HOLE_ON_IMPACT.set(chaosBlackHoleReady);
         try {
             this.shootAll(serverWorld, shooter, hand, stack, projectiles, f * SimplyBowsConfig.INSTANCE.echoBow.arrowSpeedMultiplier.get(), SimplyBowsConfig.INSTANCE.echoBow.arrowDivergence.get(), critical, target);

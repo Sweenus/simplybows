@@ -355,9 +355,11 @@ public class SimplyBowsConfig extends Config {
         // Rune: Chaos
         public ConfigGroup chaosGroup = new ConfigGroup("chaos");
         public ValidatedInt chaosBlackHoleDurationTicks = new ValidatedInt(320, 1200, 20);
+        public ValidatedInt chaosBlackHoleDurationPerStringTicks = new ValidatedInt(40, 400, 0);
         public ValidatedInt chaosBlackHoleCooldownTicks = new ValidatedInt(480, 2400, 20);
         public ValidatedDouble chaosBlackHoleRadius = new ValidatedDouble(5.0, 12.0, 0.5);
         public ValidatedDouble chaosBlackHolePullStrength = new ValidatedDouble(0.09, 1.0, 0.01);
+        public ValidatedDouble chaosBlackHolePullStrengthPerFrame = new ValidatedDouble(0.025, 1.0, 0.0);
         public ValidatedInt chaosBlackHoleDamageIntervalTicks = new ValidatedInt(10, 100, 1);
         @ConfigGroup.Pop
         public ValidatedFloat chaosBlackHoleDamagePerTick = new ValidatedFloat(2.0F, 20.0F, 0.1F);

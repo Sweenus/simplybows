@@ -101,7 +101,6 @@ public class IceBowItem extends SimplyBowItem {
         stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(customData));
 
         if (chaosWallReady) {
-            IceChaosWallManager.consumeWallCooldown(serverWorld, player.getUuid());
             this.shootAll(serverWorld, player, player.getActiveHand(), stack, list, f * SimplyBowsConfig.INSTANCE.iceBow.arrowSpeed.get(), SimplyBowsConfig.INSTANCE.iceBow.chaosWallArrowDivergence.get() * 0.01F, f == 1.0F, null);
         } else {
             this.shootFan(this, serverWorld, player, player.getActiveHand(), stack, list, f * SimplyBowsConfig.INSTANCE.iceBow.arrowSpeed.get(), SimplyBowsConfig.INSTANCE.iceBow.arrowDivergence.get(), f == 1.0F, null, quantity);

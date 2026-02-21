@@ -44,15 +44,6 @@ public final class IceChaosWallManager {
         return cooldownEnd == null || cooldownEnd <= now;
     }
 
-    public static void consumeWallCooldown(ServerWorld world, UUID ownerId) {
-        if (world == null || ownerId == null) {
-            return;
-        }
-        long now = getServerTick(world);
-        int cooldownTicks = Math.max(20, SimplyBowsConfig.INSTANCE.iceBow.chaosWallCooldownTicks.get());
-        WALL_COOLDOWNS.put(ownerId, now + cooldownTicks);
-    }
-
     public static void spawnAtImpact(ServerWorld world, Vec3d center, Vec3d travelDir, UUID ownerId, int stringLevel, int frameLevel) {
         if (world == null || center == null) {
             return;
@@ -69,6 +60,7 @@ public final class IceChaosWallManager {
         int durationTicks = Math.max(20,
                 SimplyBowsConfig.INSTANCE.iceBow.chaosWallDurationTicks.get()
                         + Math.max(0, frameLevel) * SimplyBowsConfig.INSTANCE.iceBow.chaosWallDurationPerFrameTicks.get());
+        int cooldownTicks = Math.max(20, SimplyBowsConfig.INSTANCE.iceBow.chaosWallCooldownTicks.get());
         int widthBlocks = Math.max(1,
                 SimplyBowsConfig.INSTANCE.iceBow.chaosWallWidth.get()
                         + Math.max(0, stringLevel) * SimplyBowsConfig.INSTANCE.iceBow.chaosWallWidthPerString.get());
@@ -77,6 +69,11 @@ public final class IceChaosWallManager {
 
         ActiveWall wall = new ActiveWall(center, right, horizontal, ownerId, world.getTime(), world.getTime() + durationTicks, halfLength, heightBlocks + 0.05);
         ACTIVE_WALLS.computeIfAbsent(world, w -> new ArrayList<>()).add(wall);
+
+        if (ownerId != null) {
+            long now = getServerTick(world);
+            WALL_COOLDOWNS.put(ownerId, now + durationTicks + cooldownTicks);
+        }
 
         spawnVisuals(world, wall);
 

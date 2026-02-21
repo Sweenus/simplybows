@@ -1,6 +1,8 @@
 package net.sweenus.simplybows.world;
 
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.ExperienceOrbEntity;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.particle.DustParticleEffect;
 import net.minecraft.particle.ParticleTypes;
@@ -40,16 +42,7 @@ public final class EchoChaosBlackHoleManager {
         return cooldownEnd == null || cooldownEnd <= now;
     }
 
-    public static void consumeBlackHoleCooldown(ServerWorld world, UUID ownerId) {
-        if (world == null || ownerId == null) {
-            return;
-        }
-        long now = getServerTick(world);
-        int cooldownTicks = Math.max(20, SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHoleCooldownTicks.get());
-        BLACK_HOLE_COOLDOWNS.put(ownerId, now + cooldownTicks);
-    }
-
-    public static void spawnAtImpact(ServerWorld world, Vec3d center, UUID ownerId) {
+    public static void spawnAtImpact(ServerWorld world, Vec3d center, UUID ownerId, int stringLevel, int frameLevel) {
         if (world == null || center == null) {
             return;
         }
@@ -65,12 +58,23 @@ public final class EchoChaosBlackHoleManager {
             });
         }
 
-        int durationTicks = Math.max(20, SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHoleDurationTicks.get());
+        int durationTicks = Math.max(20,
+                SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHoleDurationTicks.get()
+                        + Math.max(0, stringLevel) * SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHoleDurationPerStringTicks.get());
+        int cooldownTicks = Math.max(20, SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHoleCooldownTicks.get());
         double radius = Math.max(1.0, SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHoleRadius.get());
+        double pullStrength = Math.max(0.0,
+                SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHolePullStrength.get()
+                        + Math.max(0, frameLevel) * SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHolePullStrengthPerFrame.get());
         Vec3d floatCenter = new Vec3d(center.x, center.y + 1.0, center.z);
-        ActiveBlackHole hole = new ActiveBlackHole(floatCenter, ownerId, world.getTime(), world.getTime() + durationTicks, radius);
+        ActiveBlackHole hole = new ActiveBlackHole(floatCenter, ownerId, world.getTime(), world.getTime() + durationTicks, radius, pullStrength);
         spawnVisual(world, hole);
         holes.add(hole);
+
+        if (ownerId != null) {
+            long now = getServerTick(world);
+            BLACK_HOLE_COOLDOWNS.put(ownerId, now + durationTicks + cooldownTicks);
+        }
 
         world.playSound(null, center.x, center.y, center.z, SoundEvents.BLOCK_RESPAWN_ANCHOR_CHARGE, SoundCategory.PLAYERS, 0.8F, 0.55F);
         world.playSound(null, center.x, center.y, center.z, SoundEvents.ENTITY_ENDERMAN_STARE, SoundCategory.PLAYERS, 0.35F, 0.5F + world.random.nextFloat() * 0.05F);
@@ -114,7 +118,9 @@ public final class EchoChaosBlackHoleManager {
     }
 
     private static void applyPullAndDamage(ServerWorld world, ActiveBlackHole hole) {
-        double pullStrength = SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHolePullStrength.get();
+        double pullStrength = hole.pullStrength;
+        double itemPullStrength = pullStrength * 0.35;
+        double orbPullStrength = pullStrength * 0.40;
         int damageInterval = Math.max(1, SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHoleDamageIntervalTicks.get());
         float damage = SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHoleDamagePerTick.get();
         LivingEntity owner = getOwnerEntity(world, hole.ownerId);
@@ -134,7 +140,11 @@ public final class EchoChaosBlackHoleManager {
 
             Vec3d pullDir = toCenter.normalize();
             double falloff = 1.0 - MathHelper.clamp(dist / hole.radius, 0.0, 1.0);
-            Vec3d velocity = target.getVelocity().multiply(0.7).add(pullDir.multiply(pullStrength * (0.45 + falloff)));
+            double sizeMultiplier = getSizePullMultiplier(target);
+            if (sizeMultiplier <= 0.0) {
+                continue;
+            }
+            Vec3d velocity = target.getVelocity().multiply(0.7).add(pullDir.multiply(pullStrength * sizeMultiplier * (0.45 + falloff)));
             target.setVelocity(velocity.x, Math.max(velocity.y, -0.05), velocity.z);
             target.velocityDirty = true;
 
@@ -146,6 +156,67 @@ public final class EchoChaosBlackHoleManager {
                 }
             }
         }
+
+        for (ItemEntity itemEntity : world.getEntitiesByClass(
+                ItemEntity.class,
+                effectBounds,
+                Entity::isAlive
+        )) {
+            Vec3d toCenter = hole.center.subtract(itemEntity.getPos());
+            double dist = toCenter.length();
+            if (dist > hole.radius || dist <= 1.0E-6) {
+                continue;
+            }
+
+            Vec3d pullDir = toCenter.normalize();
+            double falloff = 1.0 - MathHelper.clamp(dist / hole.radius, 0.0, 1.0);
+            double sizeMultiplier = getSizePullMultiplier(itemEntity);
+            if (sizeMultiplier <= 0.0) {
+                continue;
+            }
+            Vec3d velocity = itemEntity.getVelocity().multiply(0.82).add(pullDir.multiply(itemPullStrength * sizeMultiplier * (0.45 + falloff)));
+            itemEntity.setVelocity(velocity.x, Math.max(velocity.y, -0.08), velocity.z);
+            itemEntity.velocityDirty = true;
+        }
+
+        for (ExperienceOrbEntity orbEntity : world.getEntitiesByClass(
+                ExperienceOrbEntity.class,
+                effectBounds,
+                Entity::isAlive
+        )) {
+            Vec3d toCenter = hole.center.subtract(orbEntity.getPos());
+            double dist = toCenter.length();
+            if (dist > hole.radius || dist <= 1.0E-6) {
+                continue;
+            }
+
+            Vec3d pullDir = toCenter.normalize();
+            double falloff = 1.0 - MathHelper.clamp(dist / hole.radius, 0.0, 1.0);
+            double sizeMultiplier = getSizePullMultiplier(orbEntity);
+            if (sizeMultiplier <= 0.0) {
+                continue;
+            }
+            Vec3d velocity = orbEntity.getVelocity().multiply(0.82).add(pullDir.multiply(orbPullStrength * sizeMultiplier * (0.45 + falloff)));
+            orbEntity.setVelocity(velocity.x, Math.max(velocity.y, -0.08), velocity.z);
+            orbEntity.velocityDirty = true;
+        }
+    }
+
+    private static double getSizePullMultiplier(Entity entity) {
+        if (entity == null) {
+            return 0.0;
+        }
+        double size = Math.max(entity.getWidth(), entity.getHeight());
+        final double fullPullAtOrBelow = 0.9;
+        final double noPullAtOrAbove = 3.0;
+        if (size <= fullPullAtOrBelow) {
+            return 1.0;
+        }
+        if (size >= noPullAtOrAbove) {
+            return 0.0;
+        }
+        double t = (size - fullPullAtOrBelow) / (noPullAtOrAbove - fullPullAtOrBelow);
+        return 1.0 - MathHelper.clamp(t, 0.0, 1.0);
     }
 
     private static final Vector3f INFILL_COLOR = new Vector3f(1.0F, 0.42F, 0.0F);
@@ -249,15 +320,17 @@ public final class EchoChaosBlackHoleManager {
         private final long spawnTick;
         private final long expiryTick;
         private final double baseRadius;
+        private final double pullStrength;
         private double radius;
         private UUID visualId;
 
-        private ActiveBlackHole(Vec3d center, UUID ownerId, long spawnTick, long expiryTick, double radius) {
+        private ActiveBlackHole(Vec3d center, UUID ownerId, long spawnTick, long expiryTick, double radius, double pullStrength) {
             this.center = center;
             this.ownerId = ownerId;
             this.spawnTick = spawnTick;
             this.expiryTick = expiryTick;
             this.baseRadius = radius;
+            this.pullStrength = pullStrength;
             this.radius = radius;
         }
     }

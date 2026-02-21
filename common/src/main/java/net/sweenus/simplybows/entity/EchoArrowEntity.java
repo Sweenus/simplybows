@@ -147,7 +147,13 @@ public class EchoArrowEntity extends ArrowEntity {
         if (!this.chaosBlackHoleOnImpact || world == null || pos == null) {
             return;
         }
-        EchoChaosBlackHoleManager.spawnAtImpact(world, pos, this.getOwner() != null ? this.getOwner().getUuid() : null);
+        EchoChaosBlackHoleManager.spawnAtImpact(
+                world,
+                pos,
+                this.getOwner() != null ? this.getOwner().getUuid() : null,
+                this.upgrades.stringLevel(),
+                this.upgrades.frameLevel()
+        );
         this.chaosBlackHoleOnImpact = false;
     }
 
