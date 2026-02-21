@@ -110,6 +110,33 @@ public class SimplyBowsConfig extends Config {
         public ConfigGroup bountyGroup = new ConfigGroup("bounty");
         @ConfigGroup.Pop
         public ValidatedDouble bountyLootChance = new ValidatedDouble(0.25, 1.0, 0.0);
+
+        // Rune: Chaos
+        public ConfigGroup chaosGroup = new ConfigGroup("chaos");
+        public ValidatedDouble chaosBaseRadius = new ValidatedDouble(5.5, 30.0, 1.0);
+        public ValidatedDouble chaosRadiusPerString = new ValidatedDouble(1.25, 6.0, 0.0);
+        public ValidatedInt chaosBaseDurationTicks = new ValidatedInt(220, 2400, 20);
+        public ValidatedInt chaosCooldownTicks = new ValidatedInt(480, 2400, 20);
+        public ValidatedInt chaosDurationPerFrameTicks = new ValidatedInt(80, 1200, 0);
+        public ValidatedInt chaosDrainIntervalTicks = new ValidatedInt(60, 400, 1);
+        public ValidatedInt chaosRootDurationTicks = new ValidatedInt(60, 400, 1);
+        public ValidatedDouble chaosNodeTriggerRadius = new ValidatedDouble(0.75, 3.0, 0.1);
+        public ValidatedFloat chaosBaseDrainDamage = new ValidatedFloat(2.0F, 50.0F, 0.1F);
+        public ValidatedFloat chaosDrainDamagePerEnergy = new ValidatedFloat(0.3F, 10.0F, 0.0F);
+        public ValidatedFloat chaosMaxDrainDamage = new ValidatedFloat(12.0F, 200.0F, 0.1F);
+        public ValidatedInt chaosEnergyDurationExtendTicks = new ValidatedInt(25, 600, 0);
+        public ValidatedInt chaosMaxDurationTicks = new ValidatedInt(700, 4800, 20);
+        public ValidatedFloat chaosCoreScalePerEnergy = new ValidatedFloat(0.05F, 1.0F, 0.0F);
+        public ValidatedFloat chaosCoreMaxScaleBonus = new ValidatedFloat(1.6F, 5.0F, 0.0F);
+        public ValidatedInt chaosTendrilCount = new ValidatedInt(7, 24, 1);
+        public ValidatedInt chaosNodesPerTendrilMin = new ValidatedInt(3, 20, 1);
+        public ValidatedInt chaosNodesPerTendrilMax = new ValidatedInt(7, 30, 1);
+        public ValidatedDouble chaosBurstRadius = new ValidatedDouble(6.0, 30.0, 1.0);
+        public ValidatedInt chaosBurstBaseBuffDuration = new ValidatedInt(120, 2400, 1);
+        public ValidatedInt chaosBurstBuffDurationPerEnergy = new ValidatedInt(8, 300, 0);
+        public ValidatedInt chaosBurstEnergyPerAmplifier = new ValidatedInt(5, 100, 1);
+        @ConfigGroup.Pop
+        public ValidatedInt chaosBurstMaxAmplifier = new ValidatedInt(2, 5, 0);
     }
 
     // ── Bubble Bow ───────────────────────────────────────────

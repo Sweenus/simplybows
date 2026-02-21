@@ -6,6 +6,8 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.loot.LootTable;
@@ -63,11 +65,27 @@ public final class VineFlowerFieldManager {
     private static final int FLOWER_TYPE_POPPY = 3;
     private static final int FLOWER_TYPE_CHERRY_LOG = 4;
     private static final int FLOWER_TYPE_CHERRY_LEAVES = 5;
+    private static final int FLOWER_TYPE_SPORE_BLOSSOM = 6;
+    private static final int FLOWER_TYPE_GLOW_LICHEN = 7;
+    private static final int FLOWER_TYPE_GLOW_LICHEN_ACTIVE = 8;
+    private static final int FLOWER_TYPE_GLOW_LICHEN_VERTICAL_EAST = 9;
+    private static final int FLOWER_TYPE_GLOW_LICHEN_VERTICAL_WEST = 10;
+    private static final int FLOWER_TYPE_GLOW_LICHEN_VERTICAL_NORTH = 11;
+    private static final int FLOWER_TYPE_GLOW_LICHEN_VERTICAL_SOUTH = 12;
+    private static final int FLOWER_TYPE_GLOW_LICHEN_VERTICAL_EAST_ACTIVE = 13;
+    private static final int FLOWER_TYPE_GLOW_LICHEN_VERTICAL_WEST_ACTIVE = 14;
+    private static final int FLOWER_TYPE_GLOW_LICHEN_VERTICAL_NORTH_ACTIVE = 15;
+    private static final int FLOWER_TYPE_GLOW_LICHEN_VERTICAL_SOUTH_ACTIVE = 16;
     private static final int MAX_VISUAL_POINTS = 180;
     private static final int FIELD_PULSE_INTERVAL_TICKS = 24;
     private static final int FIELD_PULSE_CUTOFF_TICKS = 80;
     private static final String FIELD_VISUAL_TAG = "simplybows_vine_field_visual";
+    private static final int CHAOS_ROOT_SLOWNESS_AMPLIFIER = 10;
+    private static final int CHAOS_LARGE_TARGET_SLOWNESS_AMPLIFIER = 1; // Slowness II
+    private static final float CHAOS_ROOT_MAX_TARGET_WIDTH = 0.65F;
+    private static final float CHAOS_ROOT_MAX_TARGET_HEIGHT = 2.0F;
     private static final Map<ServerWorld, List<ActiveFlowerField>> ACTIVE_FIELDS = new HashMap<>();
+    private static final Map<UUID, Long> CHAOS_FIELD_COOLDOWNS = new HashMap<>();
 
     private VineFlowerFieldManager() {
     }
@@ -79,6 +97,12 @@ public final class VineFlowerFieldManager {
     public static void createOrReplaceField(ServerWorld world, Vec3d center, Entity owner, BowUpgradeData upgrades) {
         List<ActiveFlowerField> fields = ACTIVE_FIELDS.computeIfAbsent(world, w -> new ArrayList<>());
         UUID ownerId = owner != null ? owner.getUuid() : null;
+        FieldTuning tuning = buildTuning(upgrades);
+
+        if (tuning.chaosMode() && ownerId != null && !isChaosFieldReady(world, ownerId, fields)) {
+            return;
+        }
+
         if (ownerId != null) {
             fields.removeIf(field -> {
                 if (ownerId.equals(field.ownerId())) {
@@ -88,14 +112,25 @@ public final class VineFlowerFieldManager {
                 return false;
             });
         }
+        long baseDuration = tuning.chaosMode() ? tuning.chaosBaseDurationTicks() : fieldDurationTicks();
+        long expiryTick = world.getTime() + baseDuration;
 
-        long expiryTick = world.getTime() + fieldDurationTicks();
-        FieldTuning tuning = buildTuning(upgrades);
+        if (tuning.chaosMode()) {
+            ActiveFlowerField chaosField = new ActiveFlowerField(center, expiryTick, ownerId, tuning, (int) baseDuration);
+            initializeChaosField(world, chaosField, upgrades);
+            fields.add(chaosField);
+            playChaosFieldCreationSound(world, center);
+            spawnChaosCreationParticles(world, center, tuning);
+            return;
+        }
+
         List<FlowerPoint> pendingPoints = buildPatchPoints(world, center, tuning.visualPoints(), tuning.visualRadius());
         if (tuning.cherryTreeVisual()) {
             pendingPoints.addAll(buildCherryTreeVisualPoints(world, center));
         }
-        fields.add(new ActiveFlowerField(center, expiryTick, pendingPoints, ownerId, tuning));
+        ActiveFlowerField field = new ActiveFlowerField(center, expiryTick, ownerId, tuning, (int) baseDuration);
+        field.pendingPoints.addAll(pendingPoints);
+        fields.add(field);
         playFieldCreationSound(world, center);
         spawnBurstParticles(world, center, tuning);
     }
@@ -105,6 +140,11 @@ public final class VineFlowerFieldManager {
     }
 
     public static void tick(ServerWorld world) {
+        if (world.getTime() % 40L == 0L) {
+            long now = getServerTick(world);
+            CHAOS_FIELD_COOLDOWNS.entrySet().removeIf(entry -> entry.getValue() <= now);
+        }
+
         List<ActiveFlowerField> fields = ACTIVE_FIELDS.get(world);
         if (fields == null || fields.isEmpty()) {
             if (world.getTime() % 20L == 0L) {
@@ -114,8 +154,8 @@ public final class VineFlowerFieldManager {
         }
 
         fields.removeIf(field -> {
-            if (world.getTime() >= field.expiryTick()) {
-                removeField(world, field);
+            if (world.getTime() >= field.effectiveExpiryTick()) {
+                expireField(world, field);
                 return true;
             }
             return false;
@@ -126,6 +166,11 @@ public final class VineFlowerFieldManager {
         }
 
         for (ActiveFlowerField field : fields) {
+            if (field.tuning().chaosMode()) {
+                tickChaosField(world, field);
+                continue;
+            }
+
             growFieldVisuals(world, field);
             animateFieldVisuals(world, field);
             spawnAmbientParticles(world, field.center(), field.tuning());
@@ -139,6 +184,411 @@ public final class VineFlowerFieldManager {
                 applyAuraEffects(world, field);
             }
         }
+    }
+
+    private static void initializeChaosField(ServerWorld world, ActiveFlowerField field, BowUpgradeData upgrades) {
+        Vec3d center = field.center();
+        double centerX = alignToBlockCenter(center.x);
+        double centerZ = alignToBlockCenter(center.z);
+        double groundY = findGroundTopY(world, centerX, centerZ, center.y) + 0.03;
+        UUID coreId = spawnFlowerVisual(world, field.displayIds, centerX, groundY, centerZ, FLOWER_TYPE_SPORE_BLOSSOM, true, 0.9F);
+        field.chaosCoreVisualId = coreId;
+
+        int tendrilCount = Math.max(1, field.tuning().chaosTendrilCount());
+        int minNodes = Math.max(1, field.tuning().chaosNodesPerTendrilMin());
+        int maxNodes = Math.max(minNodes, field.tuning().chaosNodesPerTendrilMax());
+        double radius = field.tuning().fieldRadius();
+
+        for (int tendril = 0; tendril < tendrilCount; tendril++) {
+            // Keep each tendril axis stable so nodes read as a connected path,
+            // not scattered points. Small per-tendril offsets preserve organic variation.
+            double baseAngle = (Math.PI * 2.0 / tendrilCount) * tendril + (world.random.nextDouble() - 0.5) * 0.28;
+            double curveStrength = 0.12 + world.random.nextDouble() * 0.16;
+            double curveFrequency = 1.1 + world.random.nextDouble() * 0.5;
+            double curveSign = world.random.nextBoolean() ? 1.0 : -1.0;
+            int nodeCount = minNodes + world.random.nextInt(maxNodes - minNodes + 1);
+            double maxReach = radius * (0.88 + world.random.nextDouble() * 0.08);
+            double radialStep = maxReach / (nodeCount + 1.0);
+            Vec3d previousPos = new Vec3d(centerX, groundY, centerZ);
+            int segmentIndex = 0;
+
+            for (int nodeIndex = 0; nodeIndex < nodeCount; nodeIndex++) {
+                double segment = nodeIndex + 1.0;
+                double progress = segment / (nodeCount + 1.0);
+                double angle = baseAngle + (Math.sin(progress * Math.PI * curveFrequency) * curveStrength * curveSign);
+                double stepRadius = radialStep * segment;
+                double x = alignToBlockCenter(centerX + Math.cos(angle) * stepRadius);
+                double z = alignToBlockCenter(centerZ + Math.sin(angle) * stepRadius);
+                double y = findGroundTopY(world, x, z, center.y) + 0.03;
+                Vec3d nodePos = new Vec3d(x, y, z);
+
+                segmentIndex = appendChaosConnectorNodes(world, field, tendril, previousPos, nodePos, segmentIndex);
+                UUID nodeVisualId = spawnFlowerVisual(world, field.displayIds, x, y, z, FLOWER_TYPE_GLOW_LICHEN, false, 0.75F);
+                field.chaosNodes.add(new ChaosNode(nodePos, tendril, segmentIndex, nodeVisualId));
+                segmentIndex++;
+                previousPos = nodePos;
+            }
+        }
+    }
+
+    private static int appendChaosConnectorNodes(
+            ServerWorld world,
+            ActiveFlowerField field,
+            int tendrilId,
+            Vec3d from,
+            Vec3d to,
+            int segmentIndexStart
+    ) {
+        BlockPos fromBlock = BlockPos.ofFloored(from.x, from.y - 0.03, from.z);
+        BlockPos toBlock = BlockPos.ofFloored(to.x, to.y - 0.03, to.z);
+        int dx = toBlock.getX() - fromBlock.getX();
+        int dy = toBlock.getY() - fromBlock.getY();
+        int dz = toBlock.getZ() - fromBlock.getZ();
+        int connectorCount = Math.max(Math.max(Math.abs(dx), Math.abs(dy)), Math.abs(dz));
+        if (connectorCount <= 1) {
+            return segmentIndexStart;
+        }
+
+        Direction preferredFace = null;
+        if (Math.abs(dx) >= Math.abs(dz) && dx != 0) {
+            preferredFace = dx > 0 ? Direction.EAST : Direction.WEST;
+        } else if (dz != 0) {
+            preferredFace = dz > 0 ? Direction.SOUTH : Direction.NORTH;
+        }
+
+        int segmentIndex = segmentIndexStart;
+        Direction lastSupportFace = null;
+        BlockPos lastPlacedPos = null;
+        BlockPos current = fromBlock;
+
+        // Step through block cells toward the target so vertical connectors are attached
+        // to real walls in a deterministic, grid-aligned path.
+        while (true) {
+            Direction stepDirection = nextConnectorStep(current, toBlock);
+            if (stepDirection == null) {
+                break;
+            }
+
+            current = current.offset(stepDirection);
+            if (current.equals(toBlock)) {
+                break;
+            }
+
+            Direction preferred = lastSupportFace != null ? lastSupportFace : preferredFace;
+            LichenPlacement placement = resolveLichenPlacement(
+                    world,
+                    current,
+                    stepDirection,
+                    fromBlock,
+                    toBlock,
+                    lastPlacedPos,
+                    preferred
+            );
+            if (placement == null) {
+                continue;
+            }
+
+            BlockPos lichenPos = placement.pos();
+            Direction supportFace = placement.face();
+            lastSupportFace = supportFace;
+            lastPlacedPos = lichenPos;
+
+            int flowerType = switch (supportFace) {
+                case EAST -> FLOWER_TYPE_GLOW_LICHEN_VERTICAL_EAST;
+                case WEST -> FLOWER_TYPE_GLOW_LICHEN_VERTICAL_WEST;
+                case NORTH -> FLOWER_TYPE_GLOW_LICHEN_VERTICAL_NORTH;
+                case SOUTH -> FLOWER_TYPE_GLOW_LICHEN_VERTICAL_SOUTH;
+                default -> FLOWER_TYPE_GLOW_LICHEN;
+            };
+
+            double x = lichenPos.getX() + 0.5;
+            double y = lichenPos.getY() + 0.03;
+            double z = lichenPos.getZ() + 0.5;
+            UUID connectorId = spawnFlowerVisual(world, field.displayIds, x, y, z, flowerType, false, 0.75F);
+            field.chaosNodes.add(new ChaosNode(new Vec3d(x, y, z), tendrilId, segmentIndex, connectorId));
+            segmentIndex++;
+        }
+
+        return segmentIndex;
+    }
+
+    private static LichenPlacement resolveLichenPlacement(
+            ServerWorld world,
+            BlockPos current,
+            Direction stepDirection,
+            BlockPos fromBlock,
+            BlockPos toBlock,
+            BlockPos lastPlacedPos,
+            Direction preferredFace
+    ) {
+        List<BlockPos> candidates = new ArrayList<>();
+        if (lastPlacedPos != null && (stepDirection == Direction.UP || stepDirection == Direction.DOWN)) {
+            candidates.add(new BlockPos(lastPlacedPos.getX(), current.getY(), lastPlacedPos.getZ()));
+        }
+        candidates.add(current);
+        if (stepDirection == Direction.UP || stepDirection == Direction.DOWN) {
+            candidates.add(new BlockPos(fromBlock.getX(), current.getY(), fromBlock.getZ()));
+            candidates.add(new BlockPos(toBlock.getX(), current.getY(), toBlock.getZ()));
+        }
+
+        for (BlockPos candidate : candidates) {
+            Direction supportFace = resolveLichenSupportFace(world, candidate, preferredFace);
+            if (supportFace != null) {
+                return new LichenPlacement(candidate, supportFace);
+            }
+        }
+        return null;
+    }
+
+    private static Direction nextConnectorStep(BlockPos current, BlockPos target) {
+        int remY = target.getY() - current.getY();
+        if (remY != 0) {
+            return remY > 0 ? Direction.UP : Direction.DOWN;
+        }
+
+        int remX = target.getX() - current.getX();
+        int remZ = target.getZ() - current.getZ();
+        if (remX == 0 && remZ == 0) {
+            return null;
+        }
+        if (Math.abs(remX) >= Math.abs(remZ) && remX != 0) {
+            return remX > 0 ? Direction.EAST : Direction.WEST;
+        }
+        if (remZ != 0) {
+            return remZ > 0 ? Direction.SOUTH : Direction.NORTH;
+        }
+        return null;
+    }
+
+    private static Direction resolveLichenSupportFace(ServerWorld world, BlockPos lichenPos, Direction preferredFace) {
+        if (preferredFace != null && hasLichenSupport(world, lichenPos, preferredFace)) {
+            return preferredFace;
+        }
+
+        for (Direction dir : new Direction[]{Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST}) {
+            if (hasLichenSupport(world, lichenPos, dir)) {
+                return dir;
+            }
+        }
+        return null;
+    }
+
+    private static boolean hasLichenSupport(ServerWorld world, BlockPos lichenPos, Direction face) {
+        BlockPos supportPos = lichenPos.offset(face);
+        BlockState supportState = world.getBlockState(supportPos);
+        return supportState.isSideSolidFullSquare(world, supportPos, face.getOpposite());
+    }
+
+    private static double alignToBlockCenter(double value) {
+        return Math.floor(value) + 0.5;
+    }
+
+    private static void tickChaosField(ServerWorld world, ActiveFlowerField field) {
+        Vec3d center = field.center();
+        FieldTuning tuning = field.tuning();
+        LivingEntity owner = getOwnerEntity(world, field.ownerId());
+        long now = world.getTime();
+
+        applyChaosRootMaintenance(world, field, now);
+        updateChaosCoreVisual(world, field);
+        updateChaosLichenGlowVisuals(world, field, now);
+        spawnChaosAmbientParticles(world, center, tuning);
+
+        Box box = Box.of(center, tuning.fieldRadius() * 2.0, 4.0, tuning.fieldRadius() * 2.0);
+        for (LivingEntity entity : world.getEntitiesByClass(LivingEntity.class, box, LivingEntity::isAlive)) {
+            if (!(entity instanceof HostileEntity) && !CombatTargeting.isTargetWhitelisted(entity)) {
+                continue;
+            }
+            if (owner != null && !CombatTargeting.checkFriendlyFire(entity, owner)) {
+                continue;
+            }
+
+            ChaosNode nearestNode = findNearestTriggeredNode(field, entity.getPos(), tuning.chaosNodeTriggerRadius());
+            if (nearestNode == null) {
+                continue;
+            }
+
+            Long nextTick = field.victimNextDrainTick.get(entity.getUuid());
+            if (nextTick != null && now < nextTick) {
+                continue;
+            }
+
+            float damage = Math.min(
+                    tuning.chaosMaxDrainDamage(),
+                    tuning.chaosBaseDrainDamage() + field.energyStacks * tuning.chaosDrainDamagePerEnergy()
+            );
+            CombatTargeting.applyDamage(world, owner, entity, damage, true, false);
+            if (isLargeTendrilTarget(entity)) {
+                entity.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, tuning.chaosRootDurationTicks(), CHAOS_LARGE_TARGET_SLOWNESS_AMPLIFIER), owner);
+                field.rootedUntilTick.remove(entity.getUuid());
+            } else {
+                entity.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, tuning.chaosRootDurationTicks(), CHAOS_ROOT_SLOWNESS_AMPLIFIER), owner);
+                field.rootedUntilTick.put(entity.getUuid(), now + tuning.chaosRootDurationTicks());
+            }
+            field.victimNextDrainTick.put(entity.getUuid(), now + tuning.chaosDrainIntervalTicks());
+
+            applyChaosEnergyGain(field);
+            animateChaosEnergyPull(world, field, nearestNode, entity.getPos());
+            spawnChaosDrainEffects(world, entity.getPos());
+        }
+    }
+
+    private static void applyChaosRootMaintenance(ServerWorld world, ActiveFlowerField field, long now) {
+        field.rootedUntilTick.entrySet().removeIf(entry -> {
+            Entity entity = world.getEntity(entry.getKey());
+            if (!(entity instanceof LivingEntity living) || !living.isAlive()) {
+                return true;
+            }
+            if (now >= entry.getValue()) {
+                return true;
+            }
+            living.setVelocity(0.0, Math.min(0.0, living.getVelocity().y), 0.0);
+            living.velocityModified = true;
+            return false;
+        });
+        field.victimNextDrainTick.entrySet().removeIf(entry -> {
+            Entity entity = world.getEntity(entry.getKey());
+            return !(entity instanceof LivingEntity living) || !living.isAlive();
+        });
+    }
+
+    private static boolean isLargeTendrilTarget(LivingEntity entity) {
+        return entity.getWidth() > CHAOS_ROOT_MAX_TARGET_WIDTH || entity.getHeight() > CHAOS_ROOT_MAX_TARGET_HEIGHT;
+    }
+
+    private static void updateChaosCoreVisual(ServerWorld world, ActiveFlowerField field) {
+        if (field.chaosCoreVisualId == null) {
+            return;
+        }
+        Entity entity = world.getEntity(field.chaosCoreVisualId);
+        if (!(entity instanceof VineFlowerVisualEntity visual)) {
+            return;
+        }
+        float scale = 1.0F + Math.min(field.tuning().chaosCoreMaxScaleBonus(), field.energyStacks * field.tuning().chaosCoreScalePerEnergy());
+        visual.setHeightScale(scale);
+        if (world.getTime() % 12L == 0L) {
+            Vec3d center = field.center();
+            world.spawnParticles(ParticleTypes.SPORE_BLOSSOM_AIR, center.x, center.y + 0.95 + scale * 0.4, center.z, 2, 0.18, 0.18, 0.18, 0.0);
+        }
+    }
+
+    private static void spawnChaosAmbientParticles(ServerWorld world, Vec3d center, FieldTuning tuning) {
+        world.spawnParticles(ParticleTypes.SPORE_BLOSSOM_AIR, center.x, center.y + 0.6, center.z, 2, 0.4, 0.22, 0.4, 0.0);
+        world.spawnParticles(ParticleTypes.FALLING_SPORE_BLOSSOM, center.x, center.y + 0.55, center.z, 2, 0.35, 0.16, 0.35, 0.0);
+        if (world.getTime() % 4L == 0L) {
+            world.spawnParticles(ParticleTypes.GLOW, center.x, center.y + 0.2, center.z, 2, tuning.fieldRadius() * 0.36, 0.08, tuning.fieldRadius() * 0.36, 0.0);
+        }
+    }
+
+    private static void spawnChaosDrainEffects(ServerWorld world, Vec3d targetPos) {
+        world.spawnParticles(ParticleTypes.ENCHANT, targetPos.x, targetPos.y + 0.4, targetPos.z, 8, 0.25, 0.25, 0.25, 0.05);
+        world.spawnParticles(ParticleTypes.GLOW, targetPos.x, targetPos.y + 0.2, targetPos.z, 6, 0.18, 0.12, 0.18, 0.01);
+        world.playSound(null, targetPos.x, targetPos.y, targetPos.z, SoundEvents.BLOCK_AZALEA_LEAVES_HIT, SoundCategory.PLAYERS, 0.8F, 1.05F + world.random.nextFloat() * 0.18F);
+    }
+
+    private static void animateChaosEnergyPull(ServerWorld world, ActiveFlowerField field, ChaosNode startNode, Vec3d targetPos) {
+        Vec3d center = field.center();
+        List<ChaosNode> nodes = field.chaosNodes.stream()
+                .filter(node -> node.tendrilId() == startNode.tendrilId() && node.segmentIndex() <= startNode.segmentIndex())
+                .sorted((a, b) -> Integer.compare(b.segmentIndex(), a.segmentIndex()))
+                .toList();
+
+        Vec3d from = targetPos.add(0.0, 0.35, 0.0);
+        for (ChaosNode node : nodes) {
+            Vec3d to = node.pos().add(0.0, 0.08, 0.0);
+            spawnLineParticles(world, from, to, 4, ParticleTypes.GLOW);
+            field.activeLichenUntilTick.put(node.visualId(), world.getTime() + 40L);
+            from = to;
+        }
+        spawnLineParticles(world, from, center.add(0.0, 0.8, 0.0), 8, ParticleTypes.ENCHANT);
+    }
+
+    private static void updateChaosLichenGlowVisuals(ServerWorld world, ActiveFlowerField field, long now) {
+        field.activeLichenUntilTick.entrySet().removeIf(entry -> now >= entry.getValue());
+        for (ChaosNode node : field.chaosNodes) {
+            if (node.visualId() == null) {
+                continue;
+            }
+            Entity entity = world.getEntity(node.visualId());
+            if (!(entity instanceof VineFlowerVisualEntity visual)) {
+                continue;
+            }
+            boolean active = field.activeLichenUntilTick.containsKey(node.visualId());
+            int expectedType = active ? toActiveLichenType(visual.getFlowerType()) : toPassiveLichenType(visual.getFlowerType());
+            if (visual.getFlowerType() != expectedType) {
+                visual.setFlowerType(expectedType);
+                if (active) {
+                    Vec3d p = node.pos();
+                    world.playSound(null, p.x, p.y, p.z, SoundEvents.BLOCK_AMETHYST_CLUSTER_HIT, SoundCategory.BLOCKS, 0.5F, 1.15F + world.random.nextFloat() * 0.18F);
+                }
+            }
+        }
+    }
+
+    private static int toActiveLichenType(int type) {
+        return switch (type) {
+            case FLOWER_TYPE_GLOW_LICHEN_VERTICAL_EAST, FLOWER_TYPE_GLOW_LICHEN_VERTICAL_EAST_ACTIVE -> FLOWER_TYPE_GLOW_LICHEN_VERTICAL_EAST_ACTIVE;
+            case FLOWER_TYPE_GLOW_LICHEN_VERTICAL_WEST, FLOWER_TYPE_GLOW_LICHEN_VERTICAL_WEST_ACTIVE -> FLOWER_TYPE_GLOW_LICHEN_VERTICAL_WEST_ACTIVE;
+            case FLOWER_TYPE_GLOW_LICHEN_VERTICAL_NORTH, FLOWER_TYPE_GLOW_LICHEN_VERTICAL_NORTH_ACTIVE -> FLOWER_TYPE_GLOW_LICHEN_VERTICAL_NORTH_ACTIVE;
+            case FLOWER_TYPE_GLOW_LICHEN_VERTICAL_SOUTH, FLOWER_TYPE_GLOW_LICHEN_VERTICAL_SOUTH_ACTIVE -> FLOWER_TYPE_GLOW_LICHEN_VERTICAL_SOUTH_ACTIVE;
+            default -> FLOWER_TYPE_GLOW_LICHEN_ACTIVE;
+        };
+    }
+
+    private static int toPassiveLichenType(int type) {
+        return switch (type) {
+            case FLOWER_TYPE_GLOW_LICHEN_VERTICAL_EAST, FLOWER_TYPE_GLOW_LICHEN_VERTICAL_EAST_ACTIVE -> FLOWER_TYPE_GLOW_LICHEN_VERTICAL_EAST;
+            case FLOWER_TYPE_GLOW_LICHEN_VERTICAL_WEST, FLOWER_TYPE_GLOW_LICHEN_VERTICAL_WEST_ACTIVE -> FLOWER_TYPE_GLOW_LICHEN_VERTICAL_WEST;
+            case FLOWER_TYPE_GLOW_LICHEN_VERTICAL_NORTH, FLOWER_TYPE_GLOW_LICHEN_VERTICAL_NORTH_ACTIVE -> FLOWER_TYPE_GLOW_LICHEN_VERTICAL_NORTH;
+            case FLOWER_TYPE_GLOW_LICHEN_VERTICAL_SOUTH, FLOWER_TYPE_GLOW_LICHEN_VERTICAL_SOUTH_ACTIVE -> FLOWER_TYPE_GLOW_LICHEN_VERTICAL_SOUTH;
+            default -> FLOWER_TYPE_GLOW_LICHEN;
+        };
+    }
+
+    private static boolean isLichenType(int type) {
+        return type == FLOWER_TYPE_GLOW_LICHEN
+                || type == FLOWER_TYPE_GLOW_LICHEN_ACTIVE
+                || (type >= FLOWER_TYPE_GLOW_LICHEN_VERTICAL_EAST && type <= FLOWER_TYPE_GLOW_LICHEN_VERTICAL_SOUTH_ACTIVE);
+    }
+
+    private static void spawnLineParticles(ServerWorld world, Vec3d from, Vec3d to, int steps, net.minecraft.particle.ParticleEffect effect) {
+        for (int i = 0; i <= steps; i++) {
+            double t = (double) i / (double) steps;
+            double x = MathHelper.lerp(t, from.x, to.x);
+            double y = MathHelper.lerp(t, from.y, to.y);
+            double z = MathHelper.lerp(t, from.z, to.z);
+            world.spawnParticles(effect, x, y, z, 1, 0.01, 0.01, 0.01, 0.0);
+        }
+    }
+
+    private static ChaosNode findNearestTriggeredNode(ActiveFlowerField field, Vec3d pos, double triggerRadius) {
+        double bestSq = triggerRadius * triggerRadius;
+        ChaosNode best = null;
+        for (ChaosNode node : field.chaosNodes) {
+            double sq = node.pos().squaredDistanceTo(pos.x, node.pos().y, pos.z);
+            if (sq <= bestSq) {
+                bestSq = sq;
+                best = node;
+            }
+        }
+        return best;
+    }
+
+    private static void applyChaosEnergyGain(ActiveFlowerField field) {
+        field.energyStacks++;
+        long maxExtra = Math.max(0, field.tuning().chaosMaxDurationTicks() - field.baseDurationTicks);
+        field.bonusDurationTicks = Math.min(maxExtra, field.bonusDurationTicks + field.tuning().chaosEnergyDurationExtendTicks());
+    }
+
+    private static void playChaosFieldCreationSound(ServerWorld world, Vec3d center) {
+        world.playSound(null, center.x, center.y, center.z, SoundEvents.BLOCK_MOSS_PLACE, SoundCategory.BLOCKS, 1.0F, 0.9F + world.random.nextFloat() * 0.15F);
+        world.playSound(null, center.x, center.y, center.z, SoundEvents.BLOCK_AZALEA_LEAVES_HIT, SoundCategory.BLOCKS, 0.8F, 1.2F + world.random.nextFloat() * 0.15F);
+    }
+
+    private static void spawnChaosCreationParticles(ServerWorld world, Vec3d center, FieldTuning tuning) {
+        world.spawnParticles(ParticleTypes.SPORE_BLOSSOM_AIR, center.x, center.y + 0.4, center.z, 20, 0.65, 0.35, 0.65, 0.0);
+        world.spawnParticles(ParticleTypes.CHERRY_LEAVES, center.x, center.y + 0.55, center.z, 16, 0.7, 0.28, 0.7, 0.0);
+        world.spawnParticles(ParticleTypes.GLOW, center.x, center.y + 0.2, center.z, 12, tuning.fieldRadius() * 0.22, 0.12, tuning.fieldRadius() * 0.22, 0.0);
     }
 
     private static void attractPassiveMobs(ServerWorld world, Vec3d center, FieldTuning tuning) {
@@ -328,9 +778,60 @@ public final class VineFlowerFieldManager {
             cherryTreeVisual = true;
         } else if (rune == RuneEtching.BOUNTY) {
             bountyLootChance = SimplyBowsConfig.INSTANCE.vineBow.bountyLootChance.get();
+        } else if (rune == RuneEtching.CHAOS) {
+            healFriendlies = false;
+            damageHostiles = false;
+            friendlyHeal = 0.0F;
+            hostileDamage = 0.0F;
+            undeadBonusDamage = 0.0F;
         }
 
         double fieldRadius = fieldRadius() * sizeMultiplier + stringLevel * STRING_FIELD_RADIUS_BONUS_PER_LEVEL;
+        int chaosBaseDurationTicks = 0;
+        int chaosDurationPerFrameTicks = 0;
+        int chaosDrainIntervalTicks = 0;
+        int chaosRootDurationTicks = 0;
+        double chaosNodeTriggerRadius = 0.0;
+        float chaosBaseDrainDamage = 0.0F;
+        float chaosDrainDamagePerEnergy = 0.0F;
+        float chaosMaxDrainDamage = 0.0F;
+        int chaosEnergyDurationExtendTicks = 0;
+        int chaosMaxDurationTicks = 0;
+        float chaosCoreScalePerEnergy = 0.0F;
+        float chaosCoreMaxScaleBonus = 0.0F;
+        int chaosTendrilCount = 0;
+        int chaosNodesPerTendrilMin = 0;
+        int chaosNodesPerTendrilMax = 0;
+        double chaosBurstRadius = 0.0;
+        int chaosBurstBaseBuffDuration = 0;
+        int chaosBurstBuffDurationPerEnergy = 0;
+        int chaosBurstEnergyPerAmplifier = 1;
+        int chaosBurstMaxAmplifier = 0;
+
+        if (rune == RuneEtching.CHAOS) {
+            fieldRadius = SimplyBowsConfig.INSTANCE.vineBow.chaosBaseRadius.get() + stringLevel * SimplyBowsConfig.INSTANCE.vineBow.chaosRadiusPerString.get();
+            chaosBaseDurationTicks = SimplyBowsConfig.INSTANCE.vineBow.chaosBaseDurationTicks.get();
+            chaosDurationPerFrameTicks = SimplyBowsConfig.INSTANCE.vineBow.chaosDurationPerFrameTicks.get();
+            chaosDrainIntervalTicks = SimplyBowsConfig.INSTANCE.vineBow.chaosDrainIntervalTicks.get();
+            chaosRootDurationTicks = SimplyBowsConfig.INSTANCE.vineBow.chaosRootDurationTicks.get();
+            chaosNodeTriggerRadius = SimplyBowsConfig.INSTANCE.vineBow.chaosNodeTriggerRadius.get();
+            chaosBaseDrainDamage = SimplyBowsConfig.INSTANCE.vineBow.chaosBaseDrainDamage.get();
+            chaosDrainDamagePerEnergy = SimplyBowsConfig.INSTANCE.vineBow.chaosDrainDamagePerEnergy.get();
+            chaosMaxDrainDamage = SimplyBowsConfig.INSTANCE.vineBow.chaosMaxDrainDamage.get();
+            chaosEnergyDurationExtendTicks = SimplyBowsConfig.INSTANCE.vineBow.chaosEnergyDurationExtendTicks.get();
+            chaosMaxDurationTicks = SimplyBowsConfig.INSTANCE.vineBow.chaosMaxDurationTicks.get();
+            chaosCoreScalePerEnergy = SimplyBowsConfig.INSTANCE.vineBow.chaosCoreScalePerEnergy.get();
+            chaosCoreMaxScaleBonus = SimplyBowsConfig.INSTANCE.vineBow.chaosCoreMaxScaleBonus.get();
+            chaosTendrilCount = SimplyBowsConfig.INSTANCE.vineBow.chaosTendrilCount.get();
+            chaosNodesPerTendrilMin = SimplyBowsConfig.INSTANCE.vineBow.chaosNodesPerTendrilMin.get();
+            chaosNodesPerTendrilMax = SimplyBowsConfig.INSTANCE.vineBow.chaosNodesPerTendrilMax.get();
+            chaosBurstRadius = SimplyBowsConfig.INSTANCE.vineBow.chaosBurstRadius.get();
+            chaosBurstBaseBuffDuration = SimplyBowsConfig.INSTANCE.vineBow.chaosBurstBaseBuffDuration.get();
+            chaosBurstBuffDurationPerEnergy = SimplyBowsConfig.INSTANCE.vineBow.chaosBurstBuffDurationPerEnergy.get();
+            chaosBurstEnergyPerAmplifier = SimplyBowsConfig.INSTANCE.vineBow.chaosBurstEnergyPerAmplifier.get();
+            chaosBurstMaxAmplifier = SimplyBowsConfig.INSTANCE.vineBow.chaosBurstMaxAmplifier.get();
+        }
+
         double attractionRadius = ATTRACTION_RADIUS * sizeMultiplier + stringLevel * STRING_ATTRACTION_RADIUS_BONUS_PER_LEVEL;
         double visualRadius = PATCH_VISUAL_RADIUS * sizeMultiplier + stringLevel * STRING_VISUAL_RADIUS_BONUS_PER_LEVEL;
         double radiusRatio = visualRadius / PATCH_VISUAL_RADIUS;
@@ -354,7 +855,27 @@ public final class VineFlowerFieldManager {
                 cherryTreeVisual,
                 bountyLootChance,
                 Math.max(5, auraInterval),
-                visualPoints
+                visualPoints,
+                rune == RuneEtching.CHAOS,
+                chaosBaseDurationTicks + upgrades.frameLevel() * chaosDurationPerFrameTicks,
+                chaosDrainIntervalTicks,
+                chaosRootDurationTicks,
+                chaosNodeTriggerRadius,
+                chaosBaseDrainDamage,
+                chaosDrainDamagePerEnergy,
+                chaosMaxDrainDamage,
+                chaosEnergyDurationExtendTicks,
+                chaosMaxDurationTicks,
+                chaosCoreScalePerEnergy,
+                chaosCoreMaxScaleBonus,
+                chaosTendrilCount,
+                chaosNodesPerTendrilMin,
+                chaosNodesPerTendrilMax,
+                chaosBurstRadius,
+                chaosBurstBaseBuffDuration,
+                chaosBurstBuffDurationPerEnergy,
+                chaosBurstEnergyPerAmplifier,
+                chaosBurstMaxAmplifier
         );
     }
 
@@ -514,13 +1035,18 @@ public final class VineFlowerFieldManager {
     }
 
     private static UUID spawnFlowerVisual(ServerWorld world, List<UUID> ids, double x, double y, double z, int flowerType) {
-        VineFlowerVisualEntity visual = new VineFlowerVisualEntity(world, x, y + SPRING_START_OFFSET_Y, z, flowerType);
-        if (flowerType == FLOWER_TYPE_CHERRY_LOG) {
+        return spawnFlowerVisual(world, ids, x, y, z, flowerType, false, 0.0F);
+    }
+
+    private static UUID spawnFlowerVisual(ServerWorld world, List<UUID> ids, double x, double y, double z, int flowerType, boolean upFacing, float initialHeightScale) {
+        double spawnY = initialHeightScale <= 0.01F ? y + SPRING_START_OFFSET_Y : y;
+        VineFlowerVisualEntity visual = new VineFlowerVisualEntity(world, x, spawnY, z, flowerType);
+        if (upFacing || flowerType == FLOWER_TYPE_CHERRY_LOG || flowerType == FLOWER_TYPE_SPORE_BLOSSOM || isLichenType(flowerType)) {
             visual.setYaw(0.0F);
         } else {
             visual.setYaw(world.random.nextFloat() * 360.0F);
         }
-        visual.setHeightScale(0.0F);
+        visual.setHeightScale(Math.max(0.0F, initialHeightScale));
         visual.addCommandTag(FIELD_VISUAL_TAG);
         if (!world.spawnEntity(visual)) {
             return null;
@@ -536,6 +1062,12 @@ public final class VineFlowerFieldManager {
             case FLOWER_TYPE_FERN -> Blocks.FERN.getDefaultState();
             case FLOWER_TYPE_CHERRY_LOG -> Blocks.CHERRY_LOG.getDefaultState();
             case FLOWER_TYPE_CHERRY_LEAVES -> Blocks.CHERRY_LEAVES.getDefaultState();
+            case FLOWER_TYPE_SPORE_BLOSSOM -> Blocks.SPORE_BLOSSOM.getDefaultState();
+            case FLOWER_TYPE_GLOW_LICHEN, FLOWER_TYPE_GLOW_LICHEN_ACTIVE,
+                 FLOWER_TYPE_GLOW_LICHEN_VERTICAL_EAST, FLOWER_TYPE_GLOW_LICHEN_VERTICAL_WEST,
+                 FLOWER_TYPE_GLOW_LICHEN_VERTICAL_NORTH, FLOWER_TYPE_GLOW_LICHEN_VERTICAL_SOUTH,
+                 FLOWER_TYPE_GLOW_LICHEN_VERTICAL_EAST_ACTIVE, FLOWER_TYPE_GLOW_LICHEN_VERTICAL_WEST_ACTIVE,
+                 FLOWER_TYPE_GLOW_LICHEN_VERTICAL_NORTH_ACTIVE, FLOWER_TYPE_GLOW_LICHEN_VERTICAL_SOUTH_ACTIVE -> Blocks.GLOW_LICHEN.getDefaultState();
             default -> Blocks.SHORT_GRASS.getDefaultState();
         };
     }
@@ -569,6 +1101,68 @@ public final class VineFlowerFieldManager {
         }
     }
 
+    private static void expireField(ServerWorld world, ActiveFlowerField field) {
+        if (field != null && field.tuning().chaosMode()) {
+            triggerChaosExpiryBurst(world, field);
+            startChaosCooldown(world, field.ownerId());
+        }
+        removeField(world, field);
+    }
+
+    private static boolean isChaosFieldReady(ServerWorld world, UUID ownerId, List<ActiveFlowerField> fields) {
+        long now = getServerTick(world);
+        Long cooldownEnd = CHAOS_FIELD_COOLDOWNS.get(ownerId);
+        if (cooldownEnd != null && cooldownEnd > now) {
+            return false;
+        }
+
+        for (ActiveFlowerField field : fields) {
+            if (ownerId.equals(field.ownerId()) && field.tuning().chaosMode() && now < field.effectiveExpiryTick()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static void startChaosCooldown(ServerWorld world, UUID ownerId) {
+        if (ownerId == null) {
+            return;
+        }
+        long now = getServerTick(world);
+        int cooldownTicks = Math.max(20, SimplyBowsConfig.INSTANCE.vineBow.chaosCooldownTicks.get());
+        CHAOS_FIELD_COOLDOWNS.put(ownerId, now + cooldownTicks);
+    }
+
+    private static long getServerTick(ServerWorld world) {
+        return world.getServer() != null ? world.getServer().getTicks() : world.getTime();
+    }
+
+    private static void triggerChaosExpiryBurst(ServerWorld world, ActiveFlowerField field) {
+        FieldTuning tuning = field.tuning();
+        Vec3d center = field.center();
+        LivingEntity owner = getOwnerEntity(world, field.ownerId());
+        int amplifier = Math.min(tuning.chaosBurstMaxAmplifier(), field.energyStacks / Math.max(1, tuning.chaosBurstEnergyPerAmplifier()));
+        int duration = tuning.chaosBurstBaseBuffDuration() + field.energyStacks * tuning.chaosBurstBuffDurationPerEnergy();
+
+        Box box = Box.of(center, tuning.chaosBurstRadius() * 2.0, 5.0, tuning.chaosBurstRadius() * 2.0);
+        for (LivingEntity entity : world.getEntitiesByClass(LivingEntity.class, box, LivingEntity::isAlive)) {
+            if (entity.squaredDistanceTo(center) > tuning.chaosBurstRadius() * tuning.chaosBurstRadius()) {
+                continue;
+            }
+            if (owner == null || CombatTargeting.isFriendlyTo(entity, owner)) {
+                entity.addStatusEffect(new StatusEffectInstance(StatusEffects.STRENGTH, duration, amplifier), owner);
+                entity.addStatusEffect(new StatusEffectInstance(StatusEffects.HASTE, duration, amplifier), owner);
+                entity.addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, duration, amplifier), owner);
+            }
+        }
+
+        world.spawnParticles(ParticleTypes.SPORE_BLOSSOM_AIR, center.x, center.y + 0.7, center.z, 46, tuning.chaosBurstRadius() * 0.35, 0.45, tuning.chaosBurstRadius() * 0.35, 0.0);
+        world.spawnParticles(ParticleTypes.GLOW, center.x, center.y + 0.8, center.z, 36, tuning.chaosBurstRadius() * 0.32, 0.4, tuning.chaosBurstRadius() * 0.32, 0.0);
+        world.spawnParticles(ParticleTypes.CHERRY_LEAVES, center.x, center.y + 0.9, center.z, 40, tuning.chaosBurstRadius() * 0.36, 0.45, tuning.chaosBurstRadius() * 0.36, 0.0);
+        world.playSound(null, center.x, center.y, center.z, SoundEvents.BLOCK_AMETHYST_CLUSTER_BREAK, SoundCategory.PLAYERS, 1.0F, 0.85F + world.random.nextFloat() * 0.15F);
+        world.playSound(null, center.x, center.y, center.z, SoundEvents.BLOCK_MOSS_BREAK, SoundCategory.PLAYERS, 0.9F, 1.1F + world.random.nextFloat() * 0.15F);
+    }
+
     private static void purgeOrphanFieldVisuals(ServerWorld world) {
         for (Entity entity : world.iterateEntities()) {
             if (entity instanceof VineFlowerVisualEntity && entity.getCommandTags().contains(FIELD_VISUAL_TAG)) {
@@ -580,19 +1174,27 @@ public final class VineFlowerFieldManager {
     private static final class ActiveFlowerField {
         private final Vec3d center;
         private final long expiryTick;
-        private final List<FlowerPoint> pendingPoints;
         private final UUID ownerId;
         private final FieldTuning tuning;
+        private final List<FlowerPoint> pendingPoints = new ArrayList<>();
         private final List<UUID> displayIds = new ArrayList<>();
         private final List<SpringVisual> springVisuals = new ArrayList<>();
+        private final List<ChaosNode> chaosNodes = new ArrayList<>();
+        private final Map<UUID, Long> victimNextDrainTick = new HashMap<>();
+        private final Map<UUID, Long> rootedUntilTick = new HashMap<>();
+        private final Map<UUID, Long> activeLichenUntilTick = new HashMap<>();
+        private final int baseDurationTicks;
+        private UUID chaosCoreVisualId;
+        private int energyStacks;
+        private long bonusDurationTicks;
         private int spawnCursor;
 
-        private ActiveFlowerField(Vec3d center, long expiryTick, List<FlowerPoint> pendingPoints, UUID ownerId, FieldTuning tuning) {
+        private ActiveFlowerField(Vec3d center, long expiryTick, UUID ownerId, FieldTuning tuning, int baseDurationTicks) {
             this.center = center;
             this.expiryTick = expiryTick;
-            this.pendingPoints = pendingPoints;
             this.ownerId = ownerId;
             this.tuning = tuning;
+            this.baseDurationTicks = baseDurationTicks;
         }
 
         private Vec3d center() {
@@ -603,6 +1205,10 @@ public final class VineFlowerFieldManager {
             return this.expiryTick;
         }
 
+        private long effectiveExpiryTick() {
+            return this.expiryTick + this.bonusDurationTicks;
+        }
+
         private UUID ownerId() {
             return this.ownerId;
         }
@@ -610,6 +1216,12 @@ public final class VineFlowerFieldManager {
         private FieldTuning tuning() {
             return this.tuning;
         }
+    }
+
+    private record ChaosNode(Vec3d pos, int tendrilId, int segmentIndex, UUID visualId) {
+    }
+
+    private record LichenPlacement(BlockPos pos, Direction face) {
     }
 
     private record FlowerPoint(double x, double y, double z, int flowerType) {
@@ -631,7 +1243,27 @@ public final class VineFlowerFieldManager {
             boolean cherryTreeVisual,
             double bountyLootChance,
             int auraIntervalTicks,
-            int visualPoints
+            int visualPoints,
+            boolean chaosMode,
+            int chaosBaseDurationTicks,
+            int chaosDrainIntervalTicks,
+            int chaosRootDurationTicks,
+            double chaosNodeTriggerRadius,
+            float chaosBaseDrainDamage,
+            float chaosDrainDamagePerEnergy,
+            float chaosMaxDrainDamage,
+            int chaosEnergyDurationExtendTicks,
+            int chaosMaxDurationTicks,
+            float chaosCoreScalePerEnergy,
+            float chaosCoreMaxScaleBonus,
+            int chaosTendrilCount,
+            int chaosNodesPerTendrilMin,
+            int chaosNodesPerTendrilMax,
+            double chaosBurstRadius,
+            int chaosBurstBaseBuffDuration,
+            int chaosBurstBuffDurationPerEnergy,
+            int chaosBurstEnergyPerAmplifier,
+            int chaosBurstMaxAmplifier
     ) {
     }
 }
