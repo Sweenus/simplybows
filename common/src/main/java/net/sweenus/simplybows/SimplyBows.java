@@ -3,7 +3,7 @@ package net.sweenus.simplybows;
 import dev.architectury.registry.client.level.entity.EntityRendererRegistry;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.render.entity.ArrowEntityRenderer;
+import net.minecraft.util.Identifier;
 import net.sweenus.simplybows.client.renderer.BeeArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BeeGraceVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BeeHiveVisualEntityRenderer;
@@ -17,6 +17,7 @@ import net.sweenus.simplybows.client.renderer.HomingArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.HomingSpectralArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.IceChaosWallVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.ShoulderBowEntityRenderer;
+import net.sweenus.simplybows.client.renderer.SimplyBowsArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.VineFlowerVisualEntityRenderer;
 import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.registry.EntityRegistry;
@@ -56,13 +57,18 @@ public final class SimplyBows {
         public static void initializeClient() {
             EntityRendererRegistry.register(EntityRegistry.HOMING_ARROW, HomingArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.HOMING_SPECTRAL_ARROW, HomingSpectralArrowEntityRenderer::new);
-            EntityRendererRegistry.register(EntityRegistry.VINE_ARROW, ArrowEntityRenderer::new);
-            EntityRendererRegistry.register(EntityRegistry.BUBBLE_ARROW, ArrowEntityRenderer::new);
+            EntityRendererRegistry.register(EntityRegistry.VINE_ARROW, context ->
+                    new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/vine_bow/vine_bow.png")));
+            EntityRendererRegistry.register(EntityRegistry.BUBBLE_ARROW, context ->
+                    new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/bubble_bow/bubble_bow.png")));
             EntityRendererRegistry.register(EntityRegistry.BUBBLE_PAIN_ARROW, BubblePainArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.BEE_ARROW, BeeArrowEntityRenderer::new);
-            EntityRendererRegistry.register(EntityRegistry.BLOSSOM_ARROW, ArrowEntityRenderer::new);
-            EntityRendererRegistry.register(EntityRegistry.EARTH_ARROW, ArrowEntityRenderer::new);
-            EntityRendererRegistry.register(EntityRegistry.ECHO_ARROW, ArrowEntityRenderer::new);
+            EntityRendererRegistry.register(EntityRegistry.BLOSSOM_ARROW, context ->
+                    new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/blossom_bow/blossom_bow.png")));
+            EntityRendererRegistry.register(EntityRegistry.EARTH_ARROW, context ->
+                    new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/earth_bow/earth_bow.png")));
+            EntityRendererRegistry.register(EntityRegistry.ECHO_ARROW, context ->
+                    new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/echo_bow/echo_bow.png")));
             EntityRendererRegistry.register(EntityRegistry.SHOULDER_BOW, ShoulderBowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.EARTH_SPIKE_VISUAL, EarthSpikeVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.ICE_CHAOS_WALL_VISUAL, IceChaosWallVisualEntityRenderer::new);
