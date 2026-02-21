@@ -324,6 +324,16 @@ public class SimplyBowsConfig extends Config {
         public ValidatedFloat graceBaseSplashRadius = new ValidatedFloat(2.25F, 10.0F, 0.5F);
         @ConfigGroup.Pop
         public ValidatedFloat graceSplashRadiusPerFrame = new ValidatedFloat(0.5F, 5.0F, 0.0F);
+
+        // Rune: Chaos
+        public ConfigGroup chaosGroup = new ConfigGroup("chaos");
+        public ValidatedInt chaosBlackHoleDurationTicks = new ValidatedInt(320, 1200, 20);
+        public ValidatedInt chaosBlackHoleCooldownTicks = new ValidatedInt(480, 2400, 20);
+        public ValidatedDouble chaosBlackHoleRadius = new ValidatedDouble(5.0, 12.0, 0.5);
+        public ValidatedDouble chaosBlackHolePullStrength = new ValidatedDouble(0.09, 1.0, 0.01);
+        public ValidatedInt chaosBlackHoleDamageIntervalTicks = new ValidatedInt(10, 100, 1);
+        @ConfigGroup.Pop
+        public ValidatedFloat chaosBlackHoleDamagePerTick = new ValidatedFloat(2.0F, 20.0F, 0.1F);
     }
 
     // ── Loot ─────────────────────────────────────────────────

@@ -18,6 +18,7 @@ import net.sweenus.simplybows.entity.BubbleChaosWaveVisualEntity;
 import net.sweenus.simplybows.entity.BubbleGraceVisualEntity;
 import net.sweenus.simplybows.entity.BubblePainArrowEntity;
 import net.sweenus.simplybows.entity.EchoArrowEntity;
+import net.sweenus.simplybows.entity.EchoChaosBlackHoleVisualEntity;
 import net.sweenus.simplybows.entity.EarthArrowEntity;
 import net.sweenus.simplybows.entity.EarthSpikeVisualEntity;
 import net.sweenus.simplybows.entity.HomingArrowEntity;
@@ -95,6 +96,13 @@ public class EntityRegistry {
                     .maxTrackingRange(64)
                     .trackingTickInterval(1)
                     .build(SimplyBows.MOD_ID + ":ice_chaos_wall_visual"));
+
+    public static final RegistrySupplier<EntityType<EchoChaosBlackHoleVisualEntity>> ECHO_CHAOS_BLACK_HOLE_VISUAL = ENTITY_TYPES.register("echo_chaos_black_hole_visual",
+            () -> EntityType.Builder.<EchoChaosBlackHoleVisualEntity>create(EchoChaosBlackHoleVisualEntity::new, SpawnGroup.MISC)
+                    .dimensions(1.2F, 1.2F)
+                    .maxTrackingRange(64)
+                    .trackingTickInterval(1)
+                    .build(SimplyBows.MOD_ID + ":echo_chaos_black_hole_visual"));
 
     public static final RegistrySupplier<EntityType<VineFlowerVisualEntity>> VINE_FLOWER_VISUAL = ENTITY_TYPES.register("vine_flower_visual",
             () -> EntityType.Builder.<VineFlowerVisualEntity>create(VineFlowerVisualEntity::new, SpawnGroup.MISC)

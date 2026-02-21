@@ -16,11 +16,17 @@ import net.minecraft.world.World;
 import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.entity.EchoArrowEntity;
 import net.sweenus.simplybows.world.EchoShoulderBowManager;
+import net.sweenus.simplybows.world.EchoChaosBlackHoleManager;
+import net.sweenus.simplybows.upgrade.BowUpgradeData;
+import net.sweenus.simplybows.upgrade.RuneEtching;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.UUID;
 
 public class EchoBowItem extends SimplyBowItem {
+
+    private static final ThreadLocal<Boolean> CHAOS_BLACK_HOLE_ON_IMPACT = ThreadLocal.withInitial(() -> false);
 
     public EchoBowItem(Settings settings) {
         super(settings);
@@ -44,7 +50,23 @@ public class EchoBowItem extends SimplyBowItem {
     }
 
     public void performStoppedUsing(ServerWorld serverWorld, LivingEntity shooter, Hand hand, ItemStack stack, List<ItemStack> projectiles, float f, float g, boolean critical, @Nullable LivingEntity target) {
-        this.shootAll(serverWorld, shooter, hand, stack, projectiles, f * SimplyBowsConfig.INSTANCE.echoBow.arrowSpeedMultiplier.get(), SimplyBowsConfig.INSTANCE.echoBow.arrowDivergence.get(), critical, target);
+        BowUpgradeData upgrades = BowUpgradeData.from(stack);
+        UUID ownerId = shooter != null ? shooter.getUuid() : null;
+        boolean chaosBlackHoleReady = upgrades.runeEtching() == RuneEtching.CHAOS
+                && ownerId != null
+                && EchoChaosBlackHoleManager.isBlackHoleReady(serverWorld, ownerId);
+
+        if (chaosBlackHoleReady) {
+            EchoChaosBlackHoleManager.consumeBlackHoleCooldown(serverWorld, ownerId);
+        }
+
+        CHAOS_BLACK_HOLE_ON_IMPACT.set(chaosBlackHoleReady);
+        try {
+            this.shootAll(serverWorld, shooter, hand, stack, projectiles, f * SimplyBowsConfig.INSTANCE.echoBow.arrowSpeedMultiplier.get(), SimplyBowsConfig.INSTANCE.echoBow.arrowDivergence.get(), critical, target);
+        } finally {
+            CHAOS_BLACK_HOLE_ON_IMPACT.set(false);
+        }
+
         if (shooter instanceof ServerPlayerEntity serverPlayer) {
             EchoShoulderBowManager.onPlayerFired(serverPlayer);
         }
@@ -59,6 +81,7 @@ public class EchoBowItem extends SimplyBowItem {
 
         EchoArrowEntity arrowEntity = new EchoArrowEntity(world, shooter, firedArrowStack, weaponStack);
         arrowEntity.setDamage(SimplyBowsConfig.INSTANCE.echoBow.baseDamage.get());
+        arrowEntity.setChaosBlackHoleOnImpact(CHAOS_BLACK_HOLE_ON_IMPACT.get());
         arrowEntity.setCritical(critical);
         return arrowEntity;
     }

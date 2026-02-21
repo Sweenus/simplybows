@@ -21,6 +21,7 @@ import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
 import net.sweenus.simplybows.util.CombatTargeting;
+import net.sweenus.simplybows.world.EchoChaosBlackHoleManager;
 import net.sweenus.simplybows.world.EchoShoulderBowManager;
 
 import java.util.ArrayDeque;
@@ -41,6 +42,7 @@ public class EchoArrowEntity extends ArrowEntity {
     private List<StatusEffectInstance> gracePotionEffects = List.of();
     private boolean graceSupportArrow;
     private float graceSplashRadius = defaultGraceSplashRadius();
+    private boolean chaosBlackHoleOnImpact;
 
     public EchoArrowEntity(EntityType<? extends EchoArrowEntity> type, World world) {
         super(type, world);
@@ -81,6 +83,10 @@ public class EchoArrowEntity extends ArrowEntity {
         this.graceSplashRadius = Math.max(1.0F, splashRadius);
     }
 
+    public void setChaosBlackHoleOnImpact(boolean chaosBlackHoleOnImpact) {
+        this.chaosBlackHoleOnImpact = chaosBlackHoleOnImpact;
+    }
+
     @Override
     protected void onEntityHit(EntityHitResult entityHitResult) {
         if (!this.gracePotionEffects.isEmpty() && this.graceSupportArrow) {
@@ -104,13 +110,16 @@ public class EchoArrowEntity extends ArrowEntity {
             living.timeUntilRegen = 0;
         }
 
-        if (this.getWorld() instanceof ServerWorld serverWorld && hitLiving != null) {
-            if (this.getOwner() instanceof ServerPlayerEntity player && this.upgrades.runeEtching() == RuneEtching.PAIN) {
-                EchoShoulderBowManager.setFocusedTarget(player, hitLiving);
+        if (this.getWorld() instanceof ServerWorld serverWorld) {
+            if (hitLiving != null) {
+                if (this.getOwner() instanceof ServerPlayerEntity player && this.upgrades.runeEtching() == RuneEtching.PAIN) {
+                    EchoShoulderBowManager.setFocusedTarget(player, hitLiving);
+                }
+                if (this.upgrades.runeEtching() == RuneEtching.PAIN && wasAliveBeforeHit && !hitLiving.isAlive()) {
+                    triggerPainArcaneChain(serverWorld, hitLiving);
+                }
             }
-            if (this.upgrades.runeEtching() == RuneEtching.PAIN && wasAliveBeforeHit && !hitLiving.isAlive()) {
-                triggerPainArcaneChain(serverWorld, hitLiving);
-            }
+            triggerChaosBlackHole(serverWorld, entityHitResult.getPos());
         }
 
         if (this.getWorld() instanceof ServerWorld serverWorld) {
@@ -130,7 +139,16 @@ public class EchoArrowEntity extends ArrowEntity {
             if (!this.gracePotionEffects.isEmpty()) {
                 applyGracePotionSplash(serverWorld, blockHitResult.getPos());
             }
+            triggerChaosBlackHole(serverWorld, blockHitResult.getPos());
         }
+    }
+
+    private void triggerChaosBlackHole(ServerWorld world, Vec3d pos) {
+        if (!this.chaosBlackHoleOnImpact || world == null || pos == null) {
+            return;
+        }
+        EchoChaosBlackHoleManager.spawnAtImpact(world, pos, this.getOwner() != null ? this.getOwner().getUuid() : null);
+        this.chaosBlackHoleOnImpact = false;
     }
 
     @Override
