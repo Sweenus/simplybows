@@ -17,6 +17,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.sweenus.simplybows.registry.EntityRegistry;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
+import net.sweenus.simplybows.world.EarthChaosSunderManager;
 import net.sweenus.simplybows.world.EarthSpikeFieldManager;
 
 public class EarthArrowEntity extends ArrowEntity {
@@ -24,6 +25,7 @@ public class EarthArrowEntity extends ArrowEntity {
     private static final String EARTH_VISUAL_TAG = "simplybows_earth_spike_visual";
     private final BowUpgradeData upgrades;
     private boolean spawnedField;
+    private boolean chaosSunderOnImpact;
 
     public EarthArrowEntity(EntityType<? extends EarthArrowEntity> type, World world) {
         super(type, world);
@@ -86,9 +88,24 @@ public class EarthArrowEntity extends ArrowEntity {
             return;
         }
         if (this.getWorld() instanceof ServerWorld serverWorld) {
-            EarthSpikeFieldManager.createOrReplaceField(serverWorld, pos, this.getOwner(), this.upgrades);
+            if (this.chaosSunderOnImpact) {
+                EarthChaosSunderManager.spawnAtImpact(
+                        serverWorld,
+                        pos,
+                        this.getOwner() != null ? this.getOwner().getUuid() : null,
+                        this.upgrades.stringLevel(),
+                        this.upgrades.frameLevel(),
+                        this.getVelocity()
+                );
+            } else {
+                EarthSpikeFieldManager.createOrReplaceField(serverWorld, pos, this.getOwner(), this.upgrades);
+            }
             this.spawnedField = true;
         }
+    }
+
+    public void setChaosSunderOnImpact(boolean chaosSunderOnImpact) {
+        this.chaosSunderOnImpact = chaosSunderOnImpact;
     }
 
     @Override

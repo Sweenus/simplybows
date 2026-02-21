@@ -317,6 +317,14 @@ public class SimplyBowsConfig extends Config {
         public ValidatedInt bountyCenterBaseHeightSegments = new ValidatedInt(14, 50, 1);
         @ConfigGroup.Pop
         public ValidatedInt bountyCenterExtraHeightPerFrame = new ValidatedInt(2, 10, 0);
+
+        // Rune: Chaos
+        public ConfigGroup chaosGroup = new ConfigGroup("chaos");
+        public ValidatedInt chaosSunderDurationTicks = new ValidatedInt(220, 1200, 20);
+        public ValidatedInt chaosSunderDurationPerStringTicks = new ValidatedInt(32, 400, 0);
+        public ValidatedDouble chaosSunderAcquisitionRange = new ValidatedDouble(12.0, 24.0, 0.5);
+        @ConfigGroup.Pop
+        public ValidatedDouble chaosSunderAcquisitionRangePerFrame = new ValidatedDouble(1.0, 8.0, 0.0);
     }
 
     // ── Echo Bow ─────────────────────────────────────────────

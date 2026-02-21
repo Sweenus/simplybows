@@ -38,7 +38,7 @@ public class BubbleBowItem extends SimplyBowItem {
 
     public void performStoppedUsing(ServerWorld serverWorld, LivingEntity shooter, Hand hand, ItemStack stack, List<ItemStack> projectiles, float f, float g, boolean critical, @Nullable LivingEntity target) {
         BowUpgradeData upgrades = BowUpgradeData.from(stack);
-        if (upgrades.runeEtching() == RuneEtching.CHAOS) {
+        if (upgrades.runeEtching() == RuneEtching.CHAOS && critical) {
             BubbleChaosWaveManager.cast(serverWorld, shooter, upgrades);
             ItemStack ammoReference = projectiles.isEmpty() ? ItemStack.EMPTY : projectiles.getFirst();
             stack.damage(this.getWeaponStackDamage(ammoReference), shooter, LivingEntity.getSlotForHand(hand));

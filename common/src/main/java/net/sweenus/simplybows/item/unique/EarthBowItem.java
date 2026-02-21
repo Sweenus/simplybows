@@ -10,11 +10,16 @@ import net.minecraft.world.World;
 import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.entity.EarthArrowEntity;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
+import net.sweenus.simplybows.upgrade.RuneEtching;
+import net.sweenus.simplybows.world.EarthChaosSunderManager;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.UUID;
 
 public class EarthBowItem extends SimplyBowItem {
+
+    private static final ThreadLocal<Boolean> CHAOS_SUNDER_ON_IMPACT = ThreadLocal.withInitial(() -> false);
 
     public EarthBowItem(Settings settings) {
         super(settings);
@@ -28,7 +33,17 @@ public class EarthBowItem extends SimplyBowItem {
     public void performStoppedUsing(ServerWorld serverWorld, LivingEntity shooter, Hand hand, ItemStack stack, List<ItemStack> projectiles, float f, float g, boolean critical, @Nullable LivingEntity target) {
         BowUpgradeData upgrades = BowUpgradeData.from(stack);
         float speed = (float) (f * SimplyBowsConfig.INSTANCE.earthBow.arrowSpeedMultiplier.get() * (1.0 + upgrades.stringLevel() * 0.05));
-        this.shootAll(serverWorld, shooter, hand, stack, projectiles, speed, SimplyBowsConfig.INSTANCE.earthBow.arrowDivergence.get(), critical, target);
+        UUID ownerId = shooter != null ? shooter.getUuid() : null;
+        boolean chaosSunderReady = upgrades.runeEtching() == RuneEtching.CHAOS
+                && ownerId != null
+                && EarthChaosSunderManager.isSunderReady(serverWorld, ownerId);
+
+        CHAOS_SUNDER_ON_IMPACT.set(chaosSunderReady);
+        try {
+            this.shootAll(serverWorld, shooter, hand, stack, projectiles, speed, SimplyBowsConfig.INSTANCE.earthBow.arrowDivergence.get(), critical, target);
+        } finally {
+            CHAOS_SUNDER_ON_IMPACT.set(false);
+        }
     }
 
     @Override
@@ -45,6 +60,7 @@ public class EarthBowItem extends SimplyBowItem {
         BowUpgradeData upgrades = BowUpgradeData.from(weaponStack);
         EarthArrowEntity arrowEntity = new EarthArrowEntity(world, shooter, firedArrowStack, weaponStack);
         arrowEntity.setDamage(SimplyBowsConfig.INSTANCE.earthBow.baseDamage.get() * upgrades.damageMultiplier());
+        arrowEntity.setChaosSunderOnImpact(CHAOS_SUNDER_ON_IMPACT.get());
         //arrowEntity.setPunch(upgrades.bonusKnockback());
         arrowEntity.setCritical(critical);
         return arrowEntity;

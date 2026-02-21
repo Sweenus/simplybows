@@ -6,6 +6,7 @@ import net.sweenus.simplybows.world.BeeGraceShieldManager;
 import net.sweenus.simplybows.world.BeeHiveSwarmManager;
 import net.sweenus.simplybows.world.BubbleColumnFieldManager;
 import net.sweenus.simplybows.world.BubbleChaosWaveManager;
+import net.sweenus.simplybows.world.EarthChaosSunderManager;
 import net.sweenus.simplybows.world.EarthSpikeFieldManager;
 import net.sweenus.simplybows.world.EchoChaosBlackHoleManager;
 import net.sweenus.simplybows.world.EchoShoulderBowManager;
@@ -29,6 +30,7 @@ public abstract class ServerWorldMixin {
         BubbleChaosWaveManager.tick(world);
         IceChaosWallManager.tick(world);
         BlossomStormManager.tick(world);
+        EarthChaosSunderManager.tick(world);
         EarthSpikeFieldManager.tick(world);
         EchoChaosBlackHoleManager.tick(world);
         BeeHiveSwarmManager.tick(world);
