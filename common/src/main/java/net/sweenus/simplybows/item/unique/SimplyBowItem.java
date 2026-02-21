@@ -27,7 +27,7 @@ public class SimplyBowItem extends BowItem {
     private static final ThreadLocal<Boolean> FORCE_VANILLA_ARROW = ThreadLocal.withInitial(() -> false);
 
     public SimplyBowItem(Settings settings) {
-        super(settings);
+        super(settings.maxCount(1));
     }
 
     @Override
