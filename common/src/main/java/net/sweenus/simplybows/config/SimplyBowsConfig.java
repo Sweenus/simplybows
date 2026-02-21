@@ -233,6 +233,25 @@ public class SimplyBowsConfig extends Config {
         public ValidatedInt bountyFrameBonusShots = new ValidatedInt(1, 10, 0);
         @ConfigGroup.Pop
         public ValidatedDouble bountyTargetRadius = new ValidatedDouble(14.0, 50.0, 1.0);
+
+        // Rune: Chaos (honey storm)
+        public ConfigGroup chaosGroup = new ConfigGroup("chaos");
+        public ValidatedInt chaosBaseDurationTicks = new ValidatedInt(260, 2400, 20);
+        public ValidatedInt chaosDurationPerStringTicks = new ValidatedInt(80, 800, 0);
+        public ValidatedInt chaosCooldownTicks = new ValidatedInt(320, 2400, 20);
+        public ValidatedDouble chaosBaseRadius = new ValidatedDouble(4.5, 24.0, 0.5);
+        public ValidatedDouble chaosRadiusPerString = new ValidatedDouble(1.0, 8.0, 0.0);
+        public ValidatedInt chaosAuraIntervalTicks = new ValidatedInt(20, 200, 1);
+        public ValidatedInt chaosRegenDurationTicks = new ValidatedInt(60, 400, 1);
+        public ValidatedInt chaosRegenAmplifier = new ValidatedInt(0, 4, 0);
+        public ValidatedInt chaosSlownessDurationTicks = new ValidatedInt(60, 400, 1);
+        public ValidatedInt chaosSlownessAmplifier = new ValidatedInt(1, 5, 0);
+        public ValidatedInt chaosBaseDiveIntervalTicks = new ValidatedInt(50, 400, 1);
+        public ValidatedInt chaosDiveIntervalReductionPerFrameTicks = new ValidatedInt(6, 100, 0);
+        public ValidatedInt chaosMinDiveIntervalTicks = new ValidatedInt(12, 100, 1);
+        public ValidatedDouble chaosDiveImpactRadius = new ValidatedDouble(2.25, 10.0, 0.25);
+        @ConfigGroup.Pop
+        public ValidatedFloat chaosDiveDamage = new ValidatedFloat(16.0F, 50.0F, 0.1F);
     }
 
     // ── Blossom Bow ──────────────────────────────────────────

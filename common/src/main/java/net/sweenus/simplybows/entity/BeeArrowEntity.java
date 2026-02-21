@@ -25,6 +25,7 @@ import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
 import net.sweenus.simplybows.util.CombatTargeting;
+import net.sweenus.simplybows.world.BeeChaosHoneyStormManager;
 import net.sweenus.simplybows.world.BeeGraceShieldManager;
 import net.sweenus.simplybows.world.BeeHiveSwarmManager;
 
@@ -47,6 +48,11 @@ public class BeeArrowEntity extends ArrowEntity {
     private final BowUpgradeData upgrades;
     private boolean spawnSoundPlayed;
     private boolean spawnedBountyHive;
+    private boolean chaosHoneyStormOnImpact;
+    private boolean spawnedChaosHoneyStorm;
+    private boolean chaosDiveBomb;
+    private float chaosDiveBombDamage;
+    private double chaosDiveBombRadius;
     private LivingEntity homingTarget;
 
     public BeeArrowEntity(EntityType<? extends BeeArrowEntity> type, World world) {
@@ -157,6 +163,15 @@ public class BeeArrowEntity extends ArrowEntity {
 
     @Override
     protected void onEntityHit(EntityHitResult entityHitResult) {
+        if (this.chaosDiveBomb) {
+            if (this.getWorld() instanceof ServerWorld serverWorld) {
+                performChaosDiveBombImpact(serverWorld, entityHitResult.getPos());
+            } else {
+                this.discard();
+            }
+            return;
+        }
+
         if (entityHitResult.getEntity() instanceof LivingEntity livingEntity && shouldIgnoreGraceDamage(livingEntity)) {
             tryApplyGraceShield(entityHitResult.getPos());
             if (this.getWorld() instanceof ServerWorld serverWorld) {
@@ -179,6 +194,7 @@ public class BeeArrowEntity extends ArrowEntity {
         }
 
         if (!(entityHitResult.getEntity() instanceof LivingEntity livingEntity)) {
+            trySpawnChaosHoneyStorm(entityHitResult.getPos());
             return;
         }
 
@@ -187,6 +203,7 @@ public class BeeArrowEntity extends ArrowEntity {
         if (!isFriendlyToOwner(livingEntity)) {
             applyStackingPoison(livingEntity);
         }
+        trySpawnChaosHoneyStorm(entityHitResult.getPos());
         trySpawnBountyHive(entityHitResult.getPos());
 
         if (this.getWorld() instanceof ServerWorld serverWorld) {
@@ -199,8 +216,18 @@ public class BeeArrowEntity extends ArrowEntity {
 
     @Override
     protected void onBlockHit(BlockHitResult blockHitResult) {
+        if (this.chaosDiveBomb) {
+            if (this.getWorld() instanceof ServerWorld serverWorld) {
+                performChaosDiveBombImpact(serverWorld, blockHitResult.getPos());
+            } else {
+                this.discard();
+            }
+            return;
+        }
+
         super.onBlockHit(blockHitResult);
         tryApplyGraceShield(blockHitResult.getPos());
+        trySpawnChaosHoneyStorm(blockHitResult.getPos());
         trySpawnBountyHive(blockHitResult.getPos());
     }
 
@@ -224,6 +251,57 @@ public class BeeArrowEntity extends ArrowEntity {
         }
         BeeHiveSwarmManager.createHive(serverWorld, hitPos, ownerLiving, this.upgrades);
         this.spawnedBountyHive = true;
+    }
+
+    private void trySpawnChaosHoneyStorm(Vec3d hitPos) {
+        if (this.spawnedChaosHoneyStorm || !this.chaosHoneyStormOnImpact) {
+            return;
+        }
+        if (!(this.getWorld() instanceof ServerWorld serverWorld)) {
+            return;
+        }
+        BeeChaosHoneyStormManager.spawnAtImpact(
+                serverWorld,
+                hitPos,
+                this.getOwner() != null ? this.getOwner().getUuid() : null,
+                this.upgrades.stringLevel(),
+                this.upgrades.frameLevel()
+        );
+        this.spawnedChaosHoneyStorm = true;
+        this.chaosHoneyStormOnImpact = false;
+    }
+
+    public void setChaosHoneyStormOnImpact(boolean chaosHoneyStormOnImpact) {
+        this.chaosHoneyStormOnImpact = chaosHoneyStormOnImpact;
+    }
+
+    public void setChaosDiveBomb(float damage, double radius) {
+        this.chaosDiveBomb = true;
+        this.chaosDiveBombDamage = Math.max(0.0F, damage);
+        this.chaosDiveBombRadius = Math.max(0.25, radius);
+    }
+
+    private void performChaosDiveBombImpact(ServerWorld world, Vec3d impactPos) {
+        LivingEntity owner = this.getOwner() instanceof LivingEntity living ? living : null;
+
+        Box box = Box.of(impactPos, this.chaosDiveBombRadius * 2.0, 3.0, this.chaosDiveBombRadius * 2.0);
+        for (LivingEntity candidate : world.getEntitiesByClass(LivingEntity.class, box, entity ->
+                entity.isAlive() && (entity instanceof HostileEntity || CombatTargeting.isTargetWhitelisted(entity)))) {
+            if (candidate.squaredDistanceTo(impactPos) > this.chaosDiveBombRadius * this.chaosDiveBombRadius) {
+                continue;
+            }
+            if (owner != null && !CombatTargeting.checkFriendlyFire(candidate, owner)) {
+                continue;
+            }
+            CombatTargeting.applyDamage(world, owner, candidate, this.chaosDiveBombDamage, true, false);
+        }
+
+        world.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.ENTITY_BEE_STING, SoundCategory.PLAYERS, 0.95F, 0.85F + this.random.nextFloat() * 0.2F);
+        world.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.ENTITY_GENERIC_EXPLODE, SoundCategory.PLAYERS, 0.5F, 1.5F + this.random.nextFloat() * 0.1F);
+        world.spawnParticles(ParticleTypes.EXPLOSION, impactPos.x, impactPos.y, impactPos.z, 1, 0.0, 0.0, 0.0, 0.0);
+        world.spawnParticles(ParticleTypes.POOF, impactPos.x, impactPos.y + 0.1, impactPos.z, 12, this.chaosDiveBombRadius * 0.4, 0.1, this.chaosDiveBombRadius * 0.4, 0.01);
+        world.spawnParticles(ParticleTypes.FALLING_HONEY, impactPos.x, impactPos.y + 0.2, impactPos.z, 9, this.chaosDiveBombRadius * 0.35, 0.1, this.chaosDiveBombRadius * 0.35, 0.0);
+        this.discard();
     }
 
     private void applyStackingPoison(LivingEntity target) {
