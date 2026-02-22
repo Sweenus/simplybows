@@ -47,9 +47,9 @@ public class HelperMethods {
         Vec3d bowDirection = player.getRotationVec(1.0F).normalize();
 
         for (int i = 0; i < particleCount; i++) {
-            double lengthOffset = (Math.random() - 0.5) * bowLength;
-            double widthOffsetX = (Math.random() - 0.5) * bowWidth;
-            double widthOffsetZ = (Math.random() - 0.5) * bowWidth;
+            double lengthOffset = (serverWorld.random.nextDouble() - 0.5) * bowLength;
+            double widthOffsetX = (serverWorld.random.nextDouble() - 0.5) * bowWidth;
+            double widthOffsetZ = (serverWorld.random.nextDouble() - 0.5) * bowWidth;
 
             Vec3d particlePosition = handPosition
                     .add(bowDirection.multiply(lengthOffset))
@@ -77,9 +77,9 @@ public class HelperMethods {
         Vec3d particleStartPosition = eyePosition.add(lookDirection.multiply(0.5));
 
         for (int i = 0; i < particleCount; i++) {
-            double offsetX = (Math.random() - 0.5) * 0.2;
-            double offsetY = (Math.random() - 0.5) * 0.2;
-            double offsetZ = (Math.random() - 0.5) * 0.2;
+            double offsetX = (serverWorld.random.nextDouble() - 0.5) * 0.2;
+            double offsetY = (serverWorld.random.nextDouble() - 0.5) * 0.2;
+            double offsetZ = (serverWorld.random.nextDouble() - 0.5) * 0.2;
 
             Vec3d particlePosition = particleStartPosition.add(offsetX, offsetY, offsetZ);
 

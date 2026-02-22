@@ -52,6 +52,11 @@ public final class EarthChaosSunderManager {
     private EarthChaosSunderManager() {
     }
 
+    public static boolean hasActive(ServerWorld world) {
+        List<ActiveSunderField> fields = ACTIVE_FIELDS.get(world);
+        return (fields != null && !fields.isEmpty()) || (world.getTime() % 20L == 0L);
+    }
+
     public static boolean isSunderReady(ServerWorld world, UUID ownerId) {
         if (world == null || ownerId == null) {
             return false;

@@ -42,6 +42,11 @@ public final class BeeGraceShieldManager {
     private BeeGraceShieldManager() {
     }
 
+    public static boolean hasActive(ServerWorld world) {
+        List<ActiveGraceShield> shields = ACTIVE_SHIELDS.get(world);
+        return (shields != null && !shields.isEmpty()) || (world.getTime() % 20L == 0L);
+    }
+
     public static void tryApplyFromImpact(ServerWorld world, Vec3d impactPos, LivingEntity owner, BowUpgradeData upgrades) {
         if (world == null || impactPos == null || owner == null) {
             return;

@@ -5,6 +5,7 @@ import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -25,7 +26,7 @@ import java.util.UUID;
 public final class IceChaosWallManager {
 
     private static final Map<ServerWorld, List<ActiveWall>> ACTIVE_WALLS = new HashMap<>();
-    private static final Map<UUID, Long> WALL_COOLDOWNS = new HashMap<>();
+    private static final Map<MinecraftServer, Map<UUID, Long>> WALL_COOLDOWNS_BY_SERVER = CooldownStorage.newServerScopedStore();
     private static final String WALL_VISUAL_TAG = "simplybows_ice_chaos_wall_visual";
     private static final double WALL_THICKNESS = 0.9;
     private static final double SEGMENT_SPACING = 0.85;
@@ -35,12 +36,17 @@ public final class IceChaosWallManager {
     private IceChaosWallManager() {
     }
 
+    public static boolean hasActive(ServerWorld world) {
+        List<ActiveWall> walls = ACTIVE_WALLS.get(world);
+        return (walls != null && !walls.isEmpty()) || !getCooldowns(world).isEmpty() || (world.getTime() % 20L == 0L);
+    }
+
     public static boolean isWallReady(ServerWorld world, UUID ownerId) {
         if (world == null || ownerId == null) {
             return false;
         }
-        long now = getServerTick(world);
-        Long cooldownEnd = WALL_COOLDOWNS.get(ownerId);
+        long now = CooldownStorage.currentTick(world);
+        Long cooldownEnd = getCooldowns(world).get(ownerId);
         return cooldownEnd == null || cooldownEnd <= now;
     }
 
@@ -71,8 +77,8 @@ public final class IceChaosWallManager {
         ACTIVE_WALLS.computeIfAbsent(world, w -> new ArrayList<>()).add(wall);
 
         if (ownerId != null) {
-            long now = getServerTick(world);
-            WALL_COOLDOWNS.put(ownerId, now + durationTicks + cooldownTicks);
+            long now = CooldownStorage.currentTick(world);
+            getCooldowns(world).put(ownerId, now + durationTicks + cooldownTicks);
         }
 
         spawnVisuals(world, wall);
@@ -85,8 +91,8 @@ public final class IceChaosWallManager {
 
     public static void tick(ServerWorld world) {
         if (world.getTime() % 40L == 0L) {
-            long now = getServerTick(world);
-            WALL_COOLDOWNS.entrySet().removeIf(entry -> entry.getValue() <= now);
+            long now = CooldownStorage.currentTick(world);
+            getCooldowns(world).entrySet().removeIf(entry -> entry.getValue() <= now);
         }
 
         List<ActiveWall> walls = ACTIVE_WALLS.get(world);
@@ -239,8 +245,8 @@ public final class IceChaosWallManager {
         }
     }
 
-    private static long getServerTick(ServerWorld world) {
-        return world.getServer() != null ? world.getServer().getTicks() : world.getTime();
+    private static Map<UUID, Long> getCooldowns(ServerWorld world) {
+        return CooldownStorage.forWorld(WALL_COOLDOWNS_BY_SERVER, world);
     }
 
     private static final class ActiveWall {

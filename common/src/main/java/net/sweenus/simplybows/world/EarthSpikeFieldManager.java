@@ -69,6 +69,11 @@ public final class EarthSpikeFieldManager {
     private EarthSpikeFieldManager() {
     }
 
+    public static boolean hasActive(ServerWorld world) {
+        List<ActiveSpikeField> fields = ACTIVE_FIELDS.get(world);
+        return (fields != null && !fields.isEmpty()) || (world.getTime() % 20L == 0L);
+    }
+
     public static void createOrReplaceField(ServerWorld world, Vec3d center, Entity owner) {
         createOrReplaceField(world, center, owner, BowUpgradeData.none());
     }

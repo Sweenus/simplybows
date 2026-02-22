@@ -45,6 +45,11 @@ public final class BubbleChaosWaveManager {
     private BubbleChaosWaveManager() {
     }
 
+    public static boolean hasActive(ServerWorld world) {
+        List<ActiveWave> waves = ACTIVE_WAVES.get(world);
+        return (waves != null && !waves.isEmpty()) || (world.getTime() % 20L == 0L);
+    }
+
     public static void cast(ServerWorld world, LivingEntity caster, BowUpgradeData upgrades) {
         if (world == null || caster == null || !caster.isAlive()) {
             return;

@@ -6,6 +6,7 @@ import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.particle.DustParticleEffect;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import org.joml.Vector3f;
 import net.minecraft.sound.SoundCategory;
@@ -27,18 +28,23 @@ import java.util.UUID;
 public final class EchoChaosBlackHoleManager {
 
     private static final Map<ServerWorld, List<ActiveBlackHole>> ACTIVE_BLACK_HOLES = new HashMap<>();
-    private static final Map<UUID, Long> BLACK_HOLE_COOLDOWNS = new HashMap<>();
+    private static final Map<MinecraftServer, Map<UUID, Long>> BLACK_HOLE_COOLDOWNS_BY_SERVER = CooldownStorage.newServerScopedStore();
     private static final String BLACK_HOLE_VISUAL_TAG = "simplybows_echo_chaos_black_hole_visual";
 
     private EchoChaosBlackHoleManager() {
+    }
+
+    public static boolean hasActive(ServerWorld world) {
+        List<ActiveBlackHole> holes = ACTIVE_BLACK_HOLES.get(world);
+        return (holes != null && !holes.isEmpty()) || !getCooldowns(world).isEmpty() || (world.getTime() % 20L == 0L);
     }
 
     public static boolean isBlackHoleReady(ServerWorld world, UUID ownerId) {
         if (world == null || ownerId == null) {
             return false;
         }
-        long now = getServerTick(world);
-        Long cooldownEnd = BLACK_HOLE_COOLDOWNS.get(ownerId);
+        long now = CooldownStorage.currentTick(world);
+        Long cooldownEnd = getCooldowns(world).get(ownerId);
         return cooldownEnd == null || cooldownEnd <= now;
     }
 
@@ -72,8 +78,8 @@ public final class EchoChaosBlackHoleManager {
         holes.add(hole);
 
         if (ownerId != null) {
-            long now = getServerTick(world);
-            BLACK_HOLE_COOLDOWNS.put(ownerId, now + durationTicks + cooldownTicks);
+            long now = CooldownStorage.currentTick(world);
+            getCooldowns(world).put(ownerId, now + durationTicks + cooldownTicks);
         }
 
         world.playSound(null, center.x, center.y, center.z, SoundEvents.BLOCK_RESPAWN_ANCHOR_CHARGE, SoundCategory.PLAYERS, 0.8F, 0.55F);
@@ -85,8 +91,8 @@ public final class EchoChaosBlackHoleManager {
 
     public static void tick(ServerWorld world) {
         if (world.getTime() % 40L == 0L) {
-            long now = getServerTick(world);
-            BLACK_HOLE_COOLDOWNS.entrySet().removeIf(entry -> entry.getValue() <= now);
+            long now = CooldownStorage.currentTick(world);
+            getCooldowns(world).entrySet().removeIf(entry -> entry.getValue() <= now);
         }
 
         List<ActiveBlackHole> holes = ACTIVE_BLACK_HOLES.get(world);
@@ -310,8 +316,8 @@ public final class EchoChaosBlackHoleManager {
         return entity instanceof LivingEntity living ? living : null;
     }
 
-    private static long getServerTick(ServerWorld world) {
-        return world.getServer() != null ? world.getServer().getTicks() : world.getTime();
+    private static Map<UUID, Long> getCooldowns(ServerWorld world) {
+        return CooldownStorage.forWorld(BLACK_HOLE_COOLDOWNS_BY_SERVER, world);
     }
 
     private static final class ActiveBlackHole {

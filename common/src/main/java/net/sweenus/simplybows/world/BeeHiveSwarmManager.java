@@ -51,6 +51,11 @@ public final class BeeHiveSwarmManager {
     private BeeHiveSwarmManager() {
     }
 
+    public static boolean hasActive(ServerWorld world) {
+        List<ActiveBeeHive> hives = ACTIVE_HIVES.get(world);
+        return (hives != null && !hives.isEmpty()) || (world.getTime() % 20L == 0L);
+    }
+
     public static void createHive(ServerWorld world, Vec3d center, LivingEntity owner, BowUpgradeData upgrades) {
         if (world == null || center == null || owner == null) {
             return;

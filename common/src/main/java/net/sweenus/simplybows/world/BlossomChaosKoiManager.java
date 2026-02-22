@@ -56,6 +56,11 @@ public final class BlossomChaosKoiManager {
     private BlossomChaosKoiManager() {
     }
 
+    public static boolean hasActive(ServerWorld world) {
+        List<ActiveKoiEffect> effects = ACTIVE_EFFECTS.get(world);
+        return (effects != null && !effects.isEmpty()) || (world.getTime() % 20L == 0L);
+    }
+
     // ── Public API ──────────────────────────────────────────────────────────────
 
     public static void createEffect(ServerWorld world, Vec3d impactPos, LivingEntity directTarget,

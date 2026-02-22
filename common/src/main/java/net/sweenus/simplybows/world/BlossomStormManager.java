@@ -56,6 +56,11 @@ public final class BlossomStormManager {
     private BlossomStormManager() {
     }
 
+    public static boolean hasActive(ServerWorld world) {
+        List<ActiveStorm> storms = ACTIVE_STORMS.get(world);
+        return storms != null && !storms.isEmpty();
+    }
+
     public static void createStorm(ServerWorld world, Vec3d startPos, LivingEntity directTarget, Entity owner) {
         createStorm(world, startPos, directTarget, owner, BowUpgradeData.none());
     }

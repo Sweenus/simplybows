@@ -8,6 +8,7 @@ import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
@@ -29,19 +30,24 @@ import java.util.UUID;
 public final class BeeChaosHoneyStormManager {
 
     private static final Map<ServerWorld, List<ActiveHoneyStorm>> ACTIVE_STORMS = new HashMap<>();
-    private static final Map<UUID, Long> STORM_COOLDOWNS = new HashMap<>();
+    private static final Map<MinecraftServer, Map<UUID, Long>> STORM_COOLDOWNS_BY_SERVER = CooldownStorage.newServerScopedStore();
     private static final double STORM_HEIGHT_OFFSET = 6.0;
     private static final long TARGET_HIT_COOLDOWN_TICKS = 10L;
 
     private BeeChaosHoneyStormManager() {
     }
 
+    public static boolean hasActive(ServerWorld world) {
+        List<ActiveHoneyStorm> storms = ACTIVE_STORMS.get(world);
+        return (storms != null && !storms.isEmpty()) || !getCooldowns(world).isEmpty();
+    }
+
     public static boolean isStormReady(ServerWorld world, UUID ownerId) {
         if (world == null || ownerId == null) {
             return false;
         }
-        long now = getServerTick(world);
-        Long cooldownEnd = STORM_COOLDOWNS.get(ownerId);
+        long now = CooldownStorage.currentTick(world);
+        Long cooldownEnd = getCooldowns(world).get(ownerId);
         return cooldownEnd == null || cooldownEnd <= now;
     }
 
@@ -83,7 +89,7 @@ public final class BeeChaosHoneyStormManager {
         storms.add(storm);
 
         if (ownerId != null) {
-            STORM_COOLDOWNS.put(ownerId, getServerTick(world) + durationTicks + cooldownTicks);
+            getCooldowns(world).put(ownerId, CooldownStorage.currentTick(world) + durationTicks + cooldownTicks);
         }
 
         world.playSound(null, cloudCenter.x, cloudCenter.y, cloudCenter.z, SoundEvents.ITEM_HONEY_BOTTLE_DRINK, SoundCategory.PLAYERS, 0.8F, 0.8F + world.random.nextFloat() * 0.1F);
@@ -95,8 +101,8 @@ public final class BeeChaosHoneyStormManager {
 
     public static void tick(ServerWorld world) {
         if (world.getTime() % 40L == 0L) {
-            long now = getServerTick(world);
-            STORM_COOLDOWNS.entrySet().removeIf(entry -> entry.getValue() <= now);
+            long now = CooldownStorage.currentTick(world);
+            getCooldowns(world).entrySet().removeIf(entry -> entry.getValue() <= now);
         }
 
         List<ActiveHoneyStorm> storms = ACTIVE_STORMS.get(world);
@@ -280,8 +286,8 @@ public final class BeeChaosHoneyStormManager {
         return owner instanceof LivingEntity living ? living : null;
     }
 
-    private static long getServerTick(ServerWorld world) {
-        return world.getServer() != null ? world.getServer().getTicks() : world.getTime();
+    private static Map<UUID, Long> getCooldowns(ServerWorld world) {
+        return CooldownStorage.forWorld(STORM_COOLDOWNS_BY_SERVER, world);
     }
 
     private static double horizontalDistanceSquared(Vec3d a, Vec3d b) {

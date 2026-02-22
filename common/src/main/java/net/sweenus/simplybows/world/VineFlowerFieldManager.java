@@ -18,6 +18,7 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.tag.EntityTypeTags;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -85,9 +86,14 @@ public final class VineFlowerFieldManager {
     private static final float CHAOS_ROOT_MAX_TARGET_WIDTH = 0.65F;
     private static final float CHAOS_ROOT_MAX_TARGET_HEIGHT = 2.0F;
     private static final Map<ServerWorld, List<ActiveFlowerField>> ACTIVE_FIELDS = new HashMap<>();
-    private static final Map<UUID, Long> CHAOS_FIELD_COOLDOWNS = new HashMap<>();
+    private static final Map<MinecraftServer, Map<UUID, Long>> CHAOS_FIELD_COOLDOWNS_BY_SERVER = CooldownStorage.newServerScopedStore();
 
     private VineFlowerFieldManager() {
+    }
+
+    public static boolean hasActive(ServerWorld world) {
+        List<ActiveFlowerField> fields = ACTIVE_FIELDS.get(world);
+        return (fields != null && !fields.isEmpty()) || !getCooldowns(world).isEmpty() || (world.getTime() % 20L == 0L);
     }
 
     public static void createOrReplaceField(ServerWorld world, Vec3d center, Entity owner) {
@@ -141,8 +147,8 @@ public final class VineFlowerFieldManager {
 
     public static void tick(ServerWorld world) {
         if (world.getTime() % 40L == 0L) {
-            long now = getServerTick(world);
-            CHAOS_FIELD_COOLDOWNS.entrySet().removeIf(entry -> entry.getValue() <= now);
+            long now = CooldownStorage.currentTick(world);
+            getCooldowns(world).entrySet().removeIf(entry -> entry.getValue() <= now);
         }
 
         List<ActiveFlowerField> fields = ACTIVE_FIELDS.get(world);
@@ -488,13 +494,12 @@ public final class VineFlowerFieldManager {
 
     private static void animateChaosEnergyPull(ServerWorld world, ActiveFlowerField field, ChaosNode startNode, Vec3d targetPos) {
         Vec3d center = field.center();
-        List<ChaosNode> nodes = field.chaosNodes.stream()
-                .filter(node -> node.tendrilId() == startNode.tendrilId() && node.segmentIndex() <= startNode.segmentIndex())
-                .sorted((a, b) -> Integer.compare(b.segmentIndex(), a.segmentIndex()))
-                .toList();
-
         Vec3d from = targetPos.add(0.0, 0.35, 0.0);
-        for (ChaosNode node : nodes) {
+        for (int i = field.chaosNodes.size() - 1; i >= 0; i--) {
+            ChaosNode node = field.chaosNodes.get(i);
+            if (node.tendrilId() != startNode.tendrilId() || node.segmentIndex() > startNode.segmentIndex()) {
+                continue;
+            }
             Vec3d to = node.pos().add(0.0, 0.08, 0.0);
             spawnLineParticles(world, from, to, 4, ParticleTypes.GLOW);
             field.activeLichenUntilTick.put(node.visualId(), world.getTime() + 40L);
@@ -1110,8 +1115,8 @@ public final class VineFlowerFieldManager {
     }
 
     private static boolean isChaosFieldReady(ServerWorld world, UUID ownerId, List<ActiveFlowerField> fields) {
-        long now = getServerTick(world);
-        Long cooldownEnd = CHAOS_FIELD_COOLDOWNS.get(ownerId);
+        long now = CooldownStorage.currentTick(world);
+        Long cooldownEnd = getCooldowns(world).get(ownerId);
         if (cooldownEnd != null && cooldownEnd > now) {
             return false;
         }
@@ -1128,13 +1133,13 @@ public final class VineFlowerFieldManager {
         if (ownerId == null) {
             return;
         }
-        long now = getServerTick(world);
+        long now = CooldownStorage.currentTick(world);
         int cooldownTicks = Math.max(20, SimplyBowsConfig.INSTANCE.vineBow.chaosCooldownTicks.get());
-        CHAOS_FIELD_COOLDOWNS.put(ownerId, now + cooldownTicks);
+        getCooldowns(world).put(ownerId, now + cooldownTicks);
     }
 
-    private static long getServerTick(ServerWorld world) {
-        return world.getServer() != null ? world.getServer().getTicks() : world.getTime();
+    private static Map<UUID, Long> getCooldowns(ServerWorld world) {
+        return CooldownStorage.forWorld(CHAOS_FIELD_COOLDOWNS_BY_SERVER, world);
     }
 
     private static void triggerChaosExpiryBurst(ServerWorld world, ActiveFlowerField field) {

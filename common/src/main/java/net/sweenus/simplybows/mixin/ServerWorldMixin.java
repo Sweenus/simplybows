@@ -27,18 +27,42 @@ public abstract class ServerWorldMixin {
     @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V", at = @At("HEAD"))
     private void simplybows$tickVineFields(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
         ServerWorld world = (ServerWorld) (Object) this;
-        VineFlowerFieldManager.tick(world);
-        BubbleColumnFieldManager.tick(world);
-        BubbleChaosWaveManager.tick(world);
-        IceChaosWallManager.tick(world);
-        BlossomStormManager.tick(world);
-        EarthChaosSunderManager.tick(world);
-        EarthSpikeFieldManager.tick(world);
-        EchoChaosBlackHoleManager.tick(world);
-        BeeChaosHoneyStormManager.tick(world);
-        BlossomChaosKoiManager.tick(world);
-        BeeHiveSwarmManager.tick(world);
-        BeeGraceShieldManager.tick(world);
+        if (VineFlowerFieldManager.hasActive(world)) {
+            VineFlowerFieldManager.tick(world);
+        }
+        if (BubbleColumnFieldManager.hasActive(world)) {
+            BubbleColumnFieldManager.tick(world);
+        }
+        if (BubbleChaosWaveManager.hasActive(world)) {
+            BubbleChaosWaveManager.tick(world);
+        }
+        if (IceChaosWallManager.hasActive(world)) {
+            IceChaosWallManager.tick(world);
+        }
+        if (BlossomStormManager.hasActive(world)) {
+            BlossomStormManager.tick(world);
+        }
+        if (EarthChaosSunderManager.hasActive(world)) {
+            EarthChaosSunderManager.tick(world);
+        }
+        if (EarthSpikeFieldManager.hasActive(world)) {
+            EarthSpikeFieldManager.tick(world);
+        }
+        if (EchoChaosBlackHoleManager.hasActive(world)) {
+            EchoChaosBlackHoleManager.tick(world);
+        }
+        if (BeeChaosHoneyStormManager.hasActive(world)) {
+            BeeChaosHoneyStormManager.tick(world);
+        }
+        if (BlossomChaosKoiManager.hasActive(world)) {
+            BlossomChaosKoiManager.tick(world);
+        }
+        if (BeeHiveSwarmManager.hasActive(world)) {
+            BeeHiveSwarmManager.tick(world);
+        }
+        if (BeeGraceShieldManager.hasActive(world)) {
+            BeeGraceShieldManager.tick(world);
+        }
         EchoShoulderBowManager.tickWorld(world);
     }
 }

@@ -176,6 +176,7 @@ public class ShoulderBowEntity extends Entity {
         this.setOwnerEntityId(owner.getId());
         refreshShoulderTransform(owner);
         spawnIdleParticles();
+        BowUpgradeData mainHandUpgrades = BowUpgradeData.from(owner.getMainHandStack());
         if (this.cooldownTicks > 0) {
             this.cooldownTicks--;
         }
@@ -200,7 +201,8 @@ public class ShoulderBowEntity extends Entity {
             return;
         }
 
-        LivingEntity forcedTarget = resolveForcedTarget(owner, getDynamicTargetRadius(owner));
+        double dynamicTargetRadius = getDynamicTargetRadius(mainHandUpgrades);
+        LivingEntity forcedTarget = resolveForcedTarget(owner, dynamicTargetRadius);
         if (forcedTarget != null && this.cooldownTicks <= 0) {
             Vec3d targetPos = forcedTarget.getPos().add(0.0, forcedTarget.getStandingEyeHeight() * 0.6, 0.0);
             Vec3d aim = getCompensatedAimDirection(targetPos, ARROW_SPEED, COMPANION_ARROW_GRAVITY_PER_TICK);
@@ -208,12 +210,12 @@ public class ShoulderBowEntity extends Entity {
             return;
         }
 
-        int scanTicks = getDynamicScanTicks(owner);
+        int scanTicks = getDynamicScanTicks(mainHandUpgrades);
         if (this.cooldownTicks > 0 || this.age % scanTicks != 0) {
             return;
         }
 
-        LivingEntity target = findNearestTarget(owner, getDynamicTargetRadius(owner));
+        LivingEntity target = findNearestTarget(owner, dynamicTargetRadius);
         if (target != null) {
             Vec3d targetPos = target.getPos().add(0.0, target.getStandingEyeHeight() * 0.6, 0.0);
             Vec3d aim = getCompensatedAimDirection(targetPos, ARROW_SPEED, COMPANION_ARROW_GRAVITY_PER_TICK);
@@ -343,7 +345,8 @@ public class ShoulderBowEntity extends Entity {
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) {
             return;
         }
-        int dynamicCooldown = getDynamicCooldown(owner);
+        BowUpgradeData upgrades = BowUpgradeData.from(owner.getMainHandStack());
+        int dynamicCooldown = getDynamicCooldown(upgrades);
         long now = serverWorld.getTime();
         if (this.lastFiredTick >= 0L && now - this.lastFiredTick < dynamicCooldown) {
             this.cooldownTicks = Math.max(this.cooldownTicks, (int) (dynamicCooldown - (now - this.lastFiredTick)));
@@ -391,24 +394,22 @@ public class ShoulderBowEntity extends Entity {
         return tracked instanceof LivingEntity living && living.isAlive() && CombatTargeting.isFriendlyTo(living, owner);
     }
 
-    private double getDynamicTargetRadius(ServerPlayerEntity owner) {
-        BowUpgradeData upgrades = BowUpgradeData.from(owner.getMainHandStack());
+    private double getDynamicTargetRadius(BowUpgradeData upgrades) {
         double radius = TARGET_RADIUS
                 - upgrades.stringLevel() * STRING_TARGET_RADIUS_DELTA
                 + upgrades.frameLevel() * FRAME_TARGET_RADIUS_DELTA;
         return MathHelper.clamp(radius, MIN_TARGET_RADIUS, MAX_TARGET_RADIUS);
     }
 
-    private int getDynamicCooldown(ServerPlayerEntity owner) {
-        BowUpgradeData upgrades = BowUpgradeData.from(owner.getMainHandStack());
+    private int getDynamicCooldown(BowUpgradeData upgrades) {
         int cooldown = AUTO_FIRE_COOLDOWN_TICKS
                 - upgrades.stringLevel() * STRING_COOLDOWN_DELTA
                 + upgrades.frameLevel() * FRAME_COOLDOWN_DELTA;
         return MathHelper.clamp(cooldown, MIN_COOLDOWN_TICKS, MAX_COOLDOWN_TICKS);
     }
 
-    private int getDynamicScanTicks(ServerPlayerEntity owner) {
-        int cooldown = getDynamicCooldown(owner);
+    private int getDynamicScanTicks(BowUpgradeData upgrades) {
+        int cooldown = getDynamicCooldown(upgrades);
         return MathHelper.clamp(cooldown / 4, 2, TARGET_SCAN_TICKS);
     }
 

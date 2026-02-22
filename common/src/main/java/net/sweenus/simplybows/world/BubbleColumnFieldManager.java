@@ -51,6 +51,10 @@ public final class BubbleColumnFieldManager {
     private BubbleColumnFieldManager() {
     }
 
+    public static boolean hasActive(ServerWorld world) {
+        return ACTIVE_COLUMNS.containsKey(world) || (world.getTime() % 20L == 0L);
+    }
+
     public static boolean createOrReplaceColumn(ServerWorld world, Vec3d center) {
         return createOrReplaceColumn(world, center, null, BowUpgradeData.none());
     }
