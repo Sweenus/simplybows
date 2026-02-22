@@ -66,6 +66,14 @@ public class IceBowItem extends SimplyBowItem {
         RuneEtching rune = upgrades.runeEtching();
         boolean chaosWallReady = rune == RuneEtching.CHAOS && IceChaosWallManager.isWallReady(serverWorld, player.getUuid());
 
+        if (chaosWallReady) {
+            int durationTicks = Math.max(20,
+                    SimplyBowsConfig.INSTANCE.iceBow.chaosWallDurationTicks.get()
+                            + Math.max(0, upgrades.frameLevel()) * SimplyBowsConfig.INSTANCE.iceBow.chaosWallDurationPerFrameTicks.get());
+            int cooldownTicks = Math.max(20, SimplyBowsConfig.INSTANCE.iceBow.chaosWallCooldownTicks.get());
+            simplybows$startAbilityItemCooldown(stack, serverWorld, durationTicks + cooldownTicks);
+        }
+
         int quantity = getArrowQuantity(upgrades);
         double damageMultiplier = upgrades.damageMultiplier();
         if (rune == RuneEtching.PAIN) {

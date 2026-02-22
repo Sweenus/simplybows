@@ -56,6 +56,14 @@ public class EchoBowItem extends SimplyBowItem {
                 && ownerId != null
                 && EchoChaosBlackHoleManager.isBlackHoleReady(serverWorld, ownerId);
 
+        if (chaosBlackHoleReady) {
+            int durationTicks = Math.max(20,
+                    SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHoleDurationTicks.get()
+                            + Math.max(0, upgrades.stringLevel()) * SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHoleDurationPerStringTicks.get());
+            int cooldownTicks = Math.max(20, SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHoleCooldownTicks.get());
+            simplybows$startAbilityItemCooldown(stack, serverWorld, durationTicks + cooldownTicks);
+        }
+
         CHAOS_BLACK_HOLE_ON_IMPACT.set(chaosBlackHoleReady);
         try {
             this.shootAll(serverWorld, shooter, hand, stack, projectiles, f * SimplyBowsConfig.INSTANCE.echoBow.arrowSpeedMultiplier.get(), SimplyBowsConfig.INSTANCE.echoBow.arrowDivergence.get(), critical, target);

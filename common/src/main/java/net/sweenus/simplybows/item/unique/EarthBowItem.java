@@ -38,6 +38,13 @@ public class EarthBowItem extends SimplyBowItem {
                 && ownerId != null
                 && EarthChaosSunderManager.isSunderReady(serverWorld, ownerId);
 
+        if (chaosSunderReady) {
+            int durationTicks = Math.max(20,
+                    SimplyBowsConfig.INSTANCE.earthBow.chaosSunderDurationTicks.get()
+                            + Math.max(0, upgrades.stringLevel()) * SimplyBowsConfig.INSTANCE.earthBow.chaosSunderDurationPerStringTicks.get());
+            simplybows$startAbilityItemCooldown(stack, serverWorld, durationTicks);
+        }
+
         CHAOS_SUNDER_ON_IMPACT.set(chaosSunderReady);
         try {
             this.shootAll(serverWorld, shooter, hand, stack, projectiles, speed, SimplyBowsConfig.INSTANCE.earthBow.arrowDivergence.get(), critical, target);

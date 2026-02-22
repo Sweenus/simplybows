@@ -1,10 +1,13 @@
 package net.sweenus.simplybows.item.unique;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.NbtComponent;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.item.*;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -25,6 +28,9 @@ import java.util.Map;
 
 public class SimplyBowItem extends BowItem {
     private static final ThreadLocal<Boolean> FORCE_VANILLA_ARROW = ThreadLocal.withInitial(() -> false);
+    private static final String NBT_ABILITY_COOLDOWN_END_MS = "simplybows_ability_cooldown_end_ms";
+    private static final String NBT_ABILITY_COOLDOWN_TOTAL = "simplybows_ability_cooldown_total";
+    private static final int ABILITY_COOLDOWN_BAR_COLOR = 0x24C4FF;
 
     public SimplyBowItem(Settings settings) {
         super(settings.maxCount(1));
@@ -33,6 +39,26 @@ public class SimplyBowItem extends BowItem {
     @Override
     public Text getName(ItemStack stack) {
         return super.getName(stack).copy().setStyle(BowTooltipHelper.STYLE_UNIQUE_NAME);
+    }
+
+    @Override
+    public boolean isItemBarVisible(ItemStack stack) {
+        return simplybows$getAbilityCooldownRemaining(stack) > 0;
+    }
+
+    @Override
+    public int getItemBarStep(ItemStack stack) {
+        int remaining = simplybows$getAbilityCooldownRemaining(stack);
+        int total = simplybows$getAbilityCooldownTotal(stack);
+        if (remaining <= 0 || total <= 0) {
+            return 0;
+        }
+        return Math.max(1, Math.round(13.0F * ((float) remaining / (float) total)));
+    }
+
+    @Override
+    public int getItemBarColor(ItemStack stack) {
+        return ABILITY_COOLDOWN_BAR_COLOR;
     }
 
     @Override
@@ -237,6 +263,22 @@ public class SimplyBowItem extends BowItem {
         return FORCE_VANILLA_ARROW.get();
     }
 
+    protected void simplybows$startAbilityItemCooldown(ItemStack stack, ServerWorld world, int cooldownTicks) {
+        if (stack == null || stack.isEmpty() || world == null || cooldownTicks <= 0) {
+            return;
+        }
+
+        long nowMs = System.currentTimeMillis();
+        long newEndMs = nowMs + Math.max(1, cooldownTicks) * 50L;
+        NbtCompound nbt = simplybows$getOrCreateCustomData(stack);
+        long existingEndMs = nbt.getLong(NBT_ABILITY_COOLDOWN_END_MS);
+        int existingTotal = nbt.getInt(NBT_ABILITY_COOLDOWN_TOTAL);
+        int clamped = Math.max(1, cooldownTicks);
+        nbt.putLong(NBT_ABILITY_COOLDOWN_END_MS, Math.max(existingEndMs, newEndMs));
+        nbt.putInt(NBT_ABILITY_COOLDOWN_TOTAL, Math.max(existingTotal, clamped));
+        stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
+    }
+
     protected boolean simplybows$hasInfiniteAmmo(PlayerEntity player, ItemStack bowStack) {
         return simplybows$hasInfiniteAmmo(player, bowStack, player.getProjectileType(bowStack));
     }
@@ -269,6 +311,33 @@ public class SimplyBowItem extends BowItem {
 
     protected String getTooltipBowKey() {
         return "generic";
+    }
+
+    private static int simplybows$getAbilityCooldownRemaining(ItemStack stack) {
+        NbtComponent customData = stack.get(DataComponentTypes.CUSTOM_DATA);
+        if (customData == null) {
+            return 0;
+        }
+        NbtCompound nbt = customData.copyNbt();
+        long endMs = nbt.getLong(NBT_ABILITY_COOLDOWN_END_MS);
+        if (endMs <= 0L) {
+            return 0;
+        }
+        long remainingMs = Math.max(0L, endMs - System.currentTimeMillis());
+        return (int) Math.ceil(remainingMs / 50.0);
+    }
+
+    private static int simplybows$getAbilityCooldownTotal(ItemStack stack) {
+        NbtComponent customData = stack.get(DataComponentTypes.CUSTOM_DATA);
+        if (customData == null) {
+            return 0;
+        }
+        return Math.max(0, customData.copyNbt().getInt(NBT_ABILITY_COOLDOWN_TOTAL));
+    }
+
+    private static NbtCompound simplybows$getOrCreateCustomData(ItemStack stack) {
+        NbtComponent customData = stack.get(DataComponentTypes.CUSTOM_DATA);
+        return customData == null ? new NbtCompound() : customData.copyNbt();
     }
 
 

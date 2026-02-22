@@ -1129,6 +1129,14 @@ public final class VineFlowerFieldManager {
         return true;
     }
 
+    public static boolean isChaosFieldReady(ServerWorld world, UUID ownerId) {
+        if (ownerId == null) {
+            return false;
+        }
+        List<ActiveFlowerField> fields = ACTIVE_FIELDS.computeIfAbsent(world, w -> new ArrayList<>());
+        return isChaosFieldReady(world, ownerId, fields);
+    }
+
     private static void startChaosCooldown(ServerWorld world, UUID ownerId) {
         if (ownerId == null) {
             return;

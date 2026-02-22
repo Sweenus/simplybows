@@ -38,6 +38,14 @@ public class BeeBowItem extends SimplyBowItem {
                 && ownerId != null
                 && BeeChaosHoneyStormManager.isStormReady(serverWorld, ownerId);
 
+        if (chaosStormReady) {
+            int durationTicks = Math.max(20,
+                    SimplyBowsConfig.INSTANCE.beeBow.chaosBaseDurationTicks.get()
+                            + Math.max(0, upgrades.stringLevel()) * SimplyBowsConfig.INSTANCE.beeBow.chaosDurationPerStringTicks.get());
+            int cooldownTicks = Math.max(20, SimplyBowsConfig.INSTANCE.beeBow.chaosCooldownTicks.get());
+            simplybows$startAbilityItemCooldown(stack, serverWorld, durationTicks + cooldownTicks);
+        }
+
         CHAOS_HONEY_STORM_ON_IMPACT.set(chaosStormReady);
         try {
             if (upgrades.runeEtching() == RuneEtching.PAIN) {
