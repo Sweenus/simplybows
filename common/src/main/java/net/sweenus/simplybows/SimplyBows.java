@@ -1,10 +1,13 @@
 package net.sweenus.simplybows;
 
 import dev.architectury.registry.client.level.entity.EntityRendererRegistry;
+import dev.architectury.registry.client.particle.ParticleProviderRegistry;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.util.Identifier;
+import net.sweenus.simplybows.client.particle.WaveParticle;
 import net.sweenus.simplybows.client.renderer.BeeArrowEntityRenderer;
+import net.sweenus.simplybows.client.renderer.KoiFishVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BeeGraceVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BeeHiveVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BubbleBountyVisualEntityRenderer;
@@ -22,6 +25,7 @@ import net.sweenus.simplybows.client.renderer.VineFlowerVisualEntityRenderer;
 import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.registry.EntityRegistry;
 import net.sweenus.simplybows.registry.ItemRegistry;
+import net.sweenus.simplybows.registry.ParticleRegistry;
 import net.sweenus.simplybows.registry.SimplyBowsCreativeTabRegistry;
 import net.sweenus.simplybows.registry.SimplyBowsItemProperties;
 import org.slf4j.Logger;
@@ -46,6 +50,7 @@ public final class SimplyBows {
         ItemRegistry.ITEM.register();
         SimplyBowsCreativeTabRegistry.register();
         EntityRegistry.registerEntities();
+        ParticleRegistry.registerParticles();
         SimplyBowsItemProperties.addSimplyBowsItemProperties();
 
     }
@@ -79,7 +84,10 @@ public final class SimplyBows {
             EntityRendererRegistry.register(EntityRegistry.BUBBLE_BOUNTY_VISUAL, BubbleBountyVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.BUBBLE_GRACE_VISUAL, BubbleGraceVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.BUBBLE_CHAOS_WAVE_VISUAL, BubbleChaosWaveVisualEntityRenderer::new);
+            EntityRendererRegistry.register(EntityRegistry.KOI_FISH_VISUAL, KoiFishVisualEntityRenderer::new);
 
+            ParticleProviderRegistry.register(ParticleRegistry.JAPANESE_WAVE, WaveParticle.Factory::new);
+            LOGGER.info("Registered Architectury particle provider: simplybows:japanese_wave");
         }
     }
 

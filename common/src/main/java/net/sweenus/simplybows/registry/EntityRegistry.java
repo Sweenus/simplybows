@@ -8,6 +8,7 @@ import net.minecraft.entity.SpawnGroup;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
 import net.sweenus.simplybows.entity.BeeArrowEntity;
+import net.sweenus.simplybows.entity.KoiFishVisualEntity;
 import net.sweenus.simplybows.entity.BeeGraceVisualEntity;
 import net.sweenus.simplybows.entity.BeeHiveVisualEntity;
 import net.sweenus.simplybows.entity.BlossomArrowEntity;
@@ -141,6 +142,13 @@ public class EntityRegistry {
                     .maxTrackingRange(64)
                     .trackingTickInterval(1)
                     .build(SimplyBows.MOD_ID + ":bubble_chaos_wave_visual"));
+
+    public static final RegistrySupplier<EntityType<KoiFishVisualEntity>> KOI_FISH_VISUAL = ENTITY_TYPES.register("koi_fish_visual",
+            () -> EntityType.Builder.<KoiFishVisualEntity>create(KoiFishVisualEntity::new, SpawnGroup.MISC)
+                    .dimensions(3.6F, 1.5F)
+                    .maxTrackingRange(64)
+                    .trackingTickInterval(1)
+                    .build(SimplyBows.MOD_ID + ":koi_fish_visual"));
 
     public static void registerEntities() {
         ENTITY_TYPES.register();

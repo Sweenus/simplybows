@@ -294,6 +294,28 @@ public class SimplyBowsConfig extends Config {
         public ValidatedDouble bountyTriggerBaseRadius = new ValidatedDouble(1.75, 10.0, 0.5);
         @ConfigGroup.Pop
         public ValidatedDouble bountyTriggerRadiusPerString = new ValidatedDouble(0.25, 5.0, 0.0);
+
+        // Rune: Chaos (Koi)
+        public ConfigGroup chaosGroup = new ConfigGroup("chaos");
+        public ValidatedInt chaosDurationTicks = new ValidatedInt(300, 1200, 60);
+        public ValidatedInt chaosDurationPerFrameTicks = new ValidatedInt(60, 400, 0);
+        public ValidatedDouble chaosRadius = new ValidatedDouble(5.0, 20.0, 1.0);
+        public ValidatedDouble chaosRadiusPerString = new ValidatedDouble(0.5, 3.0, 0.0);
+        public ValidatedFloat chaosKoiSwimRadius = new ValidatedFloat(2.5F, 8.0F, 0.5F);
+        public ValidatedFloat chaosKoiSwimRadiusPerFrame = new ValidatedFloat(0.45F, 3.0F, 0.0F);
+        public ValidatedInt chaosBaseFishCount = new ValidatedInt(2, 10, 1);
+        public ValidatedInt chaosFishPerFrame = new ValidatedInt(1, 4, 0);
+        public ValidatedFloat chaosBaseOrbitPeriodTicks = new ValidatedFloat(90.0F, 400.0F, 1.0F);
+        public ValidatedFloat chaosOrbitPeriodReductionPerStringTicks = new ValidatedFloat(12.0F, 80.0F, 0.0F);
+        public ValidatedFloat chaosMinOrbitPeriodTicks = new ValidatedFloat(28.0F, 200.0F, 1.0F);
+        public ValidatedFloat chaosContactDamage = new ValidatedFloat(3.0F, 20.0F, 0.1F);
+        public ValidatedDouble chaosContactKnockbackHorizontal = new ValidatedDouble(1.0, 4.0, 0.0);
+        public ValidatedDouble chaosContactKnockbackVertical = new ValidatedDouble(0.22, 1.5, 0.0);
+        public ValidatedInt chaosContactCooldownTicks = new ValidatedInt(8, 100, 1);
+        public ValidatedDouble chaosTouchRadius = new ValidatedDouble(0.85, 3.0, 0.05);
+        public ValidatedDouble chaosProjectileReflectSpeedMultiplier = new ValidatedDouble(1.1, 4.0, 0.05);
+        @ConfigGroup.Pop
+        public ValidatedInt chaosProjectileReflectCooldownTicks = new ValidatedInt(6, 60, 1);
     }
 
     // ── Earth Bow ────────────────────────────────────────────

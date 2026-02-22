@@ -14,6 +14,8 @@ import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
+import net.sweenus.simplybows.upgrade.RuneEtching;
+import net.sweenus.simplybows.world.BlossomChaosKoiManager;
 import net.sweenus.simplybows.world.BlossomStormManager;
 
 public class BlossomArrowEntity extends ArrowEntity {
@@ -80,7 +82,11 @@ public class BlossomArrowEntity extends ArrowEntity {
         }
 
         if (this.getWorld() instanceof ServerWorld serverWorld) {
-            BlossomStormManager.createStorm(serverWorld, pos, directTarget, this.getOwner(), this.upgrades);
+            if (this.upgrades.runeEtching() == RuneEtching.CHAOS) {
+                BlossomChaosKoiManager.createEffect(serverWorld, pos, directTarget, this.getOwner(), this.upgrades);
+            } else {
+                BlossomStormManager.createStorm(serverWorld, pos, directTarget, this.getOwner(), this.upgrades);
+            }
             this.spawnedStorm = true;
         }
     }
