@@ -43,38 +43,54 @@ public class SimplyBowItem extends BowItem {
 
     @Override
     public boolean isItemBarVisible(ItemStack stack) {
-        Function<String, long[]> reader = CLIENT_COOLDOWN_READER;
-        if (reader == null) return super.isItemBarVisible(stack);
-        long[] data = reader.apply(getTooltipBowKey());
-        boolean hasAbilityCooldown = data != null && System.currentTimeMillis() < data[0];
-        return hasAbilityCooldown || super.isItemBarVisible(stack);
+        // Keep vanilla item bar behavior (durability only). Ability cooldown is rendered
+        // via a separate top overlay in DrawContextMixin.
+        return super.isItemBarVisible(stack);
     }
 
     @Override
     public int getItemBarStep(ItemStack stack) {
-        Function<String, long[]> reader = CLIENT_COOLDOWN_READER;
-        if (reader == null) return super.getItemBarStep(stack);
-        long[] data = reader.apply(getTooltipBowKey());
-        if (data == null || System.currentTimeMillis() >= data[0]) {
-            return super.getItemBarStep(stack);
-        }
-        long remainingMs = Math.max(0L, data[0] - System.currentTimeMillis());
-        int remaining = (int) Math.ceil(remainingMs / 50.0);
-        int total = (int) data[1];
-        if (remaining <= 0 || total <= 0) return super.getItemBarStep(stack);
-        return Math.max(1, Math.min(13, Math.round(13.0F * ((float) remaining / (float) total))));
+        // Keep vanilla item bar behavior (durability only).
+        return super.getItemBarStep(stack);
     }
 
     @Override
     public int getItemBarColor(ItemStack stack) {
-        Function<String, long[]> reader = CLIENT_COOLDOWN_READER;
-        if (reader != null) {
-            long[] data = reader.apply(getTooltipBowKey());
-            if (data != null && System.currentTimeMillis() < data[0]) {
-                return ABILITY_COOLDOWN_BAR_COLOR;
-            }
-        }
+        // Keep vanilla item bar behavior (durability only).
         return super.getItemBarColor(stack);
+    }
+
+    public boolean simplybows$hasAbilityCooldown() {
+        Function<String, long[]> reader = CLIENT_COOLDOWN_READER;
+        if (reader == null) {
+            return false;
+        }
+        long[] data = reader.apply(getTooltipBowKey());
+        return data != null && System.currentTimeMillis() < data[0];
+    }
+
+    public int simplybows$getAbilityCooldownBarStep() {
+        Function<String, long[]> reader = CLIENT_COOLDOWN_READER;
+        if (reader == null) {
+            return 0;
+        }
+        long[] data = reader.apply(getTooltipBowKey());
+        if (data == null || System.currentTimeMillis() >= data[0]) {
+            return 0;
+        }
+
+        long remainingMs = Math.max(0L, data[0] - System.currentTimeMillis());
+        int remaining = (int) Math.ceil(remainingMs / 50.0);
+        int total = (int) data[1];
+        if (remaining <= 0 || total <= 0) {
+            return 0;
+        }
+
+        return Math.max(1, Math.min(13, Math.round(13.0F * ((float) remaining / (float) total))));
+    }
+
+    public int simplybows$getAbilityCooldownBarColor() {
+        return ABILITY_COOLDOWN_BAR_COLOR;
     }
 
     @Override
