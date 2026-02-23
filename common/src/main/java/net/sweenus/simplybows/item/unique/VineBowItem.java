@@ -4,6 +4,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
@@ -40,7 +41,9 @@ public class VineBowItem extends SimplyBowItem {
                     SimplyBowsConfig.INSTANCE.vineBow.chaosBaseDurationTicks.get()
                             + Math.max(0, upgrades.frameLevel()) * SimplyBowsConfig.INSTANCE.vineBow.chaosDurationPerFrameTicks.get());
             int cooldownTicks = Math.max(20, SimplyBowsConfig.INSTANCE.vineBow.chaosCooldownTicks.get());
-            simplybows$startAbilityItemCooldown(stack, serverWorld, durationTicks + cooldownTicks);
+            if (shooter instanceof ServerPlayerEntity serverPlayer) {
+                simplybows$startAbilityItemCooldown(serverPlayer, durationTicks + cooldownTicks);
+            }
         }
 
         float speed = (float) (f * SimplyBowsConfig.INSTANCE.vineBow.arrowSpeedMultiplier.get() * (1.0 + upgrades.stringLevel() * 0.05));

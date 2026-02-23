@@ -4,6 +4,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
@@ -43,7 +44,9 @@ public class BeeBowItem extends SimplyBowItem {
                     SimplyBowsConfig.INSTANCE.beeBow.chaosBaseDurationTicks.get()
                             + Math.max(0, upgrades.stringLevel()) * SimplyBowsConfig.INSTANCE.beeBow.chaosDurationPerStringTicks.get());
             int cooldownTicks = Math.max(20, SimplyBowsConfig.INSTANCE.beeBow.chaosCooldownTicks.get());
-            simplybows$startAbilityItemCooldown(stack, serverWorld, durationTicks + cooldownTicks);
+            if (shooter instanceof ServerPlayerEntity serverPlayer) {
+                simplybows$startAbilityItemCooldown(serverPlayer, durationTicks + cooldownTicks);
+            }
         }
 
         CHAOS_HONEY_STORM_ON_IMPACT.set(chaosStormReady);

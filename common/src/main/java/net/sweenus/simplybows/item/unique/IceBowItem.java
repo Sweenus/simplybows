@@ -71,7 +71,9 @@ public class IceBowItem extends SimplyBowItem {
                     SimplyBowsConfig.INSTANCE.iceBow.chaosWallDurationTicks.get()
                             + Math.max(0, upgrades.frameLevel()) * SimplyBowsConfig.INSTANCE.iceBow.chaosWallDurationPerFrameTicks.get());
             int cooldownTicks = Math.max(20, SimplyBowsConfig.INSTANCE.iceBow.chaosWallCooldownTicks.get());
-            simplybows$startAbilityItemCooldown(stack, serverWorld, durationTicks + cooldownTicks);
+            if (player instanceof ServerPlayerEntity serverPlayer) {
+                simplybows$startAbilityItemCooldown(serverPlayer, durationTicks + cooldownTicks);
+            }
         }
 
         int quantity = getArrowQuantity(upgrades);

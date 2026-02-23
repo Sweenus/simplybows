@@ -32,6 +32,7 @@ import net.minecraft.world.GameRules;
 import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.config.SimplyBowsConfig.VineBowSection;
 import net.sweenus.simplybows.entity.VineFlowerVisualEntity;
+import net.sweenus.simplybows.item.unique.SimplyBowItem;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
 import net.sweenus.simplybows.util.CombatTargeting;
@@ -401,6 +402,7 @@ public final class VineFlowerFieldManager {
         spawnChaosAmbientParticles(world, center, tuning);
 
         Box box = Box.of(center, tuning.fieldRadius() * 2.0, 4.0, tuning.fieldRadius() * 2.0);
+        boolean anyDrained = false;
         for (LivingEntity entity : world.getEntitiesByClass(LivingEntity.class, box, LivingEntity::isAlive)) {
             if (!(entity instanceof HostileEntity) && !CombatTargeting.isTargetWhitelisted(entity)) {
                 continue;
@@ -434,9 +436,30 @@ public final class VineFlowerFieldManager {
             field.victimNextDrainTick.put(entity.getUuid(), now + tuning.chaosDrainIntervalTicks());
 
             applyChaosEnergyGain(field);
+            anyDrained = true;
             animateChaosEnergyPull(world, field, nearestNode, entity.getPos());
             spawnChaosDrainEffects(world, entity.getPos());
         }
+        if (anyDrained) {
+            syncChaosCooldownOverlay(world, field, owner);
+        }
+    }
+
+    private static void syncChaosCooldownOverlay(ServerWorld world, ActiveFlowerField field, LivingEntity owner) {
+        if (!(owner instanceof ServerPlayerEntity player)) {
+            return;
+        }
+
+        int remainingFieldTicks = (int) Math.max(0L, field.effectiveExpiryTick() - world.getTime());
+        int cooldownTicks = Math.max(20, SimplyBowsConfig.INSTANCE.vineBow.chaosCooldownTicks.get());
+        int remainingOverlayTicks = Math.max(1, remainingFieldTicks + cooldownTicks);
+
+        long endMs = System.currentTimeMillis() + (long) remainingOverlayTicks * 50L;
+        if (endMs <= field.lastSentCooldownEndMs) {
+            return;
+        }
+        field.lastSentCooldownEndMs = endMs;
+        SimplyBowItem.simplybows$sendCooldownPacket(player, "vine", endMs, remainingOverlayTicks);
     }
 
     private static void applyChaosRootMaintenance(ServerWorld world, ActiveFlowerField field, long now) {
@@ -1200,6 +1223,7 @@ public final class VineFlowerFieldManager {
         private UUID chaosCoreVisualId;
         private int energyStacks;
         private long bonusDurationTicks;
+        private long lastSentCooldownEndMs;
         private int spawnCursor;
 
         private ActiveFlowerField(Vec3d center, long expiryTick, UUID ownerId, FieldTuning tuning, int baseDurationTicks) {

@@ -1,11 +1,16 @@
 package net.sweenus.simplybows;
 
+import dev.architectury.networking.NetworkManager;
+import dev.architectury.platform.Platform;
 import dev.architectury.registry.client.level.entity.EntityRendererRegistry;
+import dev.architectury.utils.Env;
 import dev.architectury.registry.client.particle.ParticleProviderRegistry;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.util.Identifier;
+import net.sweenus.simplybows.client.ClientAbilityCooldownCache;
 import net.sweenus.simplybows.client.particle.WaveParticle;
+import net.sweenus.simplybows.network.AbilityCooldownPayload;
 import net.sweenus.simplybows.client.renderer.BeeArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.KoiFishVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BeeGraceVisualEntityRenderer;
@@ -23,6 +28,7 @@ import net.sweenus.simplybows.client.renderer.ShoulderBowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.SimplyBowsArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.VineFlowerVisualEntityRenderer;
 import net.sweenus.simplybows.config.SimplyBowsConfig;
+import net.sweenus.simplybows.item.unique.SimplyBowItem;
 import net.sweenus.simplybows.registry.EntityRegistry;
 import net.sweenus.simplybows.registry.ItemRegistry;
 import net.sweenus.simplybows.registry.ParticleRegistry;
@@ -52,7 +58,14 @@ public final class SimplyBows {
         EntityRegistry.registerEntities();
         ParticleRegistry.registerParticles();
         SimplyBowsItemProperties.addSimplyBowsItemProperties();
-
+        // On a dedicated server (physical server env) there is no initializeClient() call,
+        // so we must register the payload type here so the server can serialise and send it.
+        // On a physical client (integrated server or solo), initializeClient() handles
+        // registration via registerReceiver — calling registerS2CPayloadType here too would
+        // cause a "already registered" crash on Fabric.
+        if (Platform.getEnvironment() != Env.CLIENT) {
+            NetworkManager.registerS2CPayloadType(AbilityCooldownPayload.ID, AbilityCooldownPayload.CODEC);
+        }
     }
 
     @Environment(EnvType.CLIENT)
@@ -88,6 +101,22 @@ public final class SimplyBows {
 
             ParticleProviderRegistry.register(ParticleRegistry.JAPANESE_WAVE, WaveParticle.Factory::new);
             LOGGER.info("Registered Architectury particle provider: simplybows:japanese_wave");
+
+            // Register S2C packet receiver for ability cooldown bar sync.
+            // The server sends an AbilityCooldownPayload whenever a bow ability cooldown starts or
+            // extends. The client stores this in a local cache so the item bar can count down
+            // without any ItemStack NBT writes (which cause item bobbing).
+            NetworkManager.registerReceiver(
+                    NetworkManager.Side.S2C,
+                    AbilityCooldownPayload.ID,
+                    AbilityCooldownPayload.CODEC,
+                    (payload, context) -> context.queue(() ->
+                            ClientAbilityCooldownCache.update(payload.bowKey(), payload.endMs(), payload.totalTicks()))
+            );
+
+            // Wire the client delegate so SimplyBowItem's isItemBarVisible / getItemBarStep
+            // read from the local cache instead of ItemStack NBT.
+            SimplyBowItem.CLIENT_COOLDOWN_READER = ClientAbilityCooldownCache::get;
         }
     }
 

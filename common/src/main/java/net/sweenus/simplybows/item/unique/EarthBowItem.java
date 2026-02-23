@@ -4,6 +4,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
@@ -42,7 +43,9 @@ public class EarthBowItem extends SimplyBowItem {
             int durationTicks = Math.max(20,
                     SimplyBowsConfig.INSTANCE.earthBow.chaosSunderDurationTicks.get()
                             + Math.max(0, upgrades.stringLevel()) * SimplyBowsConfig.INSTANCE.earthBow.chaosSunderDurationPerStringTicks.get());
-            simplybows$startAbilityItemCooldown(stack, serverWorld, durationTicks);
+            if (shooter instanceof ServerPlayerEntity serverPlayer) {
+                simplybows$startAbilityItemCooldown(serverPlayer, durationTicks);
+            }
         }
 
         CHAOS_SUNDER_ON_IMPACT.set(chaosSunderReady);

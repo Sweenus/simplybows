@@ -1,13 +1,12 @@
 package net.sweenus.simplybows.item.unique;
+import dev.architectury.networking.NetworkManager;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.NbtComponent;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.item.*;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -17,20 +16,28 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.stat.Stats;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
-import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.world.World;
+import net.sweenus.simplybows.SimplyBows;
+import net.sweenus.simplybows.network.AbilityCooldownPayload;
 import net.sweenus.simplybows.util.BowTooltipHelper;
 import net.sweenus.simplybows.util.HelperMethods;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class SimplyBowItem extends BowItem {
     private static final ThreadLocal<Boolean> FORCE_VANILLA_ARROW = ThreadLocal.withInitial(() -> false);
-    private static final String NBT_ABILITY_COOLDOWN_END_MS = "simplybows_ability_cooldown_end_ms";
-    private static final String NBT_ABILITY_COOLDOWN_TOTAL = "simplybows_ability_cooldown_total";
     private static final int ABILITY_COOLDOWN_BAR_COLOR = 0x24C4FF;
+
+    /**
+     * Set by {@link SimplyBows.Client#initializeClient()} on the client only.
+     * Maps a bow's tooltip key (e.g. "vine", "ice") to {@code [endMs, totalTicks]},
+     * or returns {@code null} if no cooldown is active.
+     * Stays {@code null} on the server — all cooldown-bar methods return false/0 there.
+     */
+    public static Function<String, long[]> CLIENT_COOLDOWN_READER = null;
 
     public SimplyBowItem(Settings settings) {
         super(settings.maxCount(1));
@@ -43,17 +50,23 @@ public class SimplyBowItem extends BowItem {
 
     @Override
     public boolean isItemBarVisible(ItemStack stack) {
-        return simplybows$getAbilityCooldownRemaining(stack) > 0;
+        Function<String, long[]> reader = CLIENT_COOLDOWN_READER;
+        if (reader == null) return false;
+        long[] data = reader.apply(getTooltipBowKey());
+        return data != null && System.currentTimeMillis() < data[0];
     }
 
     @Override
     public int getItemBarStep(ItemStack stack) {
-        int remaining = simplybows$getAbilityCooldownRemaining(stack);
-        int total = simplybows$getAbilityCooldownTotal(stack);
-        if (remaining <= 0 || total <= 0) {
-            return 0;
-        }
-        return Math.max(1, Math.round(13.0F * ((float) remaining / (float) total)));
+        Function<String, long[]> reader = CLIENT_COOLDOWN_READER;
+        if (reader == null) return 0;
+        long[] data = reader.apply(getTooltipBowKey());
+        if (data == null) return 0;
+        long remainingMs = Math.max(0L, data[0] - System.currentTimeMillis());
+        int remaining = (int) Math.ceil(remainingMs / 50.0);
+        int total = (int) data[1];
+        if (remaining <= 0 || total <= 0) return 0;
+        return Math.max(1, Math.min(13, Math.round(13.0F * ((float) remaining / (float) total))));
     }
 
     @Override
@@ -263,20 +276,28 @@ public class SimplyBowItem extends BowItem {
         return FORCE_VANILLA_ARROW.get();
     }
 
-    protected void simplybows$startAbilityItemCooldown(ItemStack stack, ServerWorld world, int cooldownTicks) {
-        if (stack == null || stack.isEmpty() || world == null || cooldownTicks <= 0) {
+    /**
+     * Sends a cooldown sync packet to {@code player} so the client-side bar appears
+     * without writing anything to the ItemStack (which would cause the equip/bob animation).
+     */
+    protected void simplybows$startAbilityItemCooldown(ServerPlayerEntity player, int cooldownTicks) {
+        if (player == null || cooldownTicks <= 0) {
             return;
         }
+        long endMs = System.currentTimeMillis() + Math.max(1, cooldownTicks) * 50L;
+        simplybows$sendCooldownPacket(player, getTooltipBowKey(), endMs, cooldownTicks);
+    }
 
-        long nowMs = System.currentTimeMillis();
-        long newEndMs = nowMs + Math.max(1, cooldownTicks) * 50L;
-        NbtCompound nbt = simplybows$getOrCreateCustomData(stack);
-        long existingEndMs = nbt.getLong(NBT_ABILITY_COOLDOWN_END_MS);
-        int existingTotal = nbt.getInt(NBT_ABILITY_COOLDOWN_TOTAL);
-        int clamped = Math.max(1, cooldownTicks);
-        nbt.putLong(NBT_ABILITY_COOLDOWN_END_MS, Math.max(existingEndMs, newEndMs));
-        nbt.putInt(NBT_ABILITY_COOLDOWN_TOTAL, Math.max(existingTotal, clamped));
-        stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
+    /**
+     * Sends a raw cooldown packet to the given player.
+     * Call this from managers (e.g. VineFlowerFieldManager) that need to extend the bar
+     * beyond its initial value without going through an ItemStack.
+     */
+    public static void simplybows$sendCooldownPacket(ServerPlayerEntity player, String bowKey, long endMs, int totalTicks) {
+        if (player == null || bowKey == null || endMs <= 0 || totalTicks <= 0) {
+            return;
+        }
+        NetworkManager.sendToPlayer(player, new AbilityCooldownPayload(endMs, totalTicks, bowKey));
     }
 
     protected boolean simplybows$hasInfiniteAmmo(PlayerEntity player, ItemStack bowStack) {
@@ -311,33 +332,6 @@ public class SimplyBowItem extends BowItem {
 
     protected String getTooltipBowKey() {
         return "generic";
-    }
-
-    private static int simplybows$getAbilityCooldownRemaining(ItemStack stack) {
-        NbtComponent customData = stack.get(DataComponentTypes.CUSTOM_DATA);
-        if (customData == null) {
-            return 0;
-        }
-        NbtCompound nbt = customData.copyNbt();
-        long endMs = nbt.getLong(NBT_ABILITY_COOLDOWN_END_MS);
-        if (endMs <= 0L) {
-            return 0;
-        }
-        long remainingMs = Math.max(0L, endMs - System.currentTimeMillis());
-        return (int) Math.ceil(remainingMs / 50.0);
-    }
-
-    private static int simplybows$getAbilityCooldownTotal(ItemStack stack) {
-        NbtComponent customData = stack.get(DataComponentTypes.CUSTOM_DATA);
-        if (customData == null) {
-            return 0;
-        }
-        return Math.max(0, customData.copyNbt().getInt(NBT_ABILITY_COOLDOWN_TOTAL));
-    }
-
-    private static NbtCompound simplybows$getOrCreateCustomData(ItemStack stack) {
-        NbtComponent customData = stack.get(DataComponentTypes.CUSTOM_DATA);
-        return customData == null ? new NbtCompound() : customData.copyNbt();
     }
 
 

@@ -61,7 +61,9 @@ public class EchoBowItem extends SimplyBowItem {
                     SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHoleDurationTicks.get()
                             + Math.max(0, upgrades.stringLevel()) * SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHoleDurationPerStringTicks.get());
             int cooldownTicks = Math.max(20, SimplyBowsConfig.INSTANCE.echoBow.chaosBlackHoleCooldownTicks.get());
-            simplybows$startAbilityItemCooldown(stack, serverWorld, durationTicks + cooldownTicks);
+            if (shooter instanceof ServerPlayerEntity serverPlayer) {
+                simplybows$startAbilityItemCooldown(serverPlayer, durationTicks + cooldownTicks);
+            }
         }
 
         CHAOS_BLACK_HOLE_ON_IMPACT.set(chaosBlackHoleReady);
