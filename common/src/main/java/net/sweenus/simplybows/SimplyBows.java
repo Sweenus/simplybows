@@ -1,5 +1,6 @@
 package net.sweenus.simplybows;
 
+import dev.architectury.event.events.client.ClientPlayerEvent;
 import dev.architectury.networking.NetworkManager;
 import dev.architectury.platform.Platform;
 import dev.architectury.registry.client.level.entity.EntityRendererRegistry;
@@ -73,6 +74,10 @@ public final class SimplyBows {
 
         @Environment(EnvType.CLIENT)
         public static void initializeClient() {
+            // Stale cooldown bars from a previous session must not persist when the server-side
+            // cooldown managers reset (they are in-memory only and don't survive world reload).
+            ClientPlayerEvent.CLIENT_PLAYER_JOIN.register(player -> ClientAbilityCooldownCache.clearAll());
+
             EntityRendererRegistry.register(EntityRegistry.HOMING_ARROW, HomingArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.HOMING_SPECTRAL_ARROW, HomingSpectralArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.VINE_ARROW, context ->

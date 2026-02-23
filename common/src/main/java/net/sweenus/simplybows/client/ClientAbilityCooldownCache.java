@@ -32,4 +32,10 @@ public final class ClientAbilityCooldownCache {
     public static void clear(String key) {
         CACHE.remove(key);
     }
+
+    /** Removes all cached cooldowns. Call this when the client joins a new world session so
+     *  stale bars from a previous session cannot persist when the server-side state has reset. */
+    public static void clearAll() {
+        CACHE.clear();
+    }
 }

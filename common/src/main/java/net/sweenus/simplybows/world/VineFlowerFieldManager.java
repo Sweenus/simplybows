@@ -128,6 +128,16 @@ public final class VineFlowerFieldManager {
             fields.add(chaosField);
             playChaosFieldCreationSound(world, center);
             spawnChaosCreationParticles(world, center, tuning);
+            // Send the cooldown bar packet now that the field is confirmed spawned.
+            // Sending here (rather than in VineBowItem.performStoppedUsing) prevents a race
+            // where the bar appears but the field is blocked because the previous field's
+            // post-expiry cooldown starts in the same server tick as the shot is fired.
+            if (owner instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer) {
+                int cooldownTicks = Math.max(20, SimplyBowsConfig.INSTANCE.vineBow.chaosCooldownTicks.get());
+                int overlayTicks = (int) baseDuration + cooldownTicks;
+                SimplyBowItem.simplybows$sendCooldownPacket(serverPlayer, "vine",
+                        System.currentTimeMillis() + (long) overlayTicks * 50L, overlayTicks);
+            }
             return;
         }
 
