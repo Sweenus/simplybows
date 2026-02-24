@@ -13,6 +13,8 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Identifier;
 import net.sweenus.simplybows.item.unique.EchoBowItem;
+import net.sweenus.simplybows.item.unique.EarthBowItem;
+import net.sweenus.simplybows.item.unique.IceBowItem;
 import net.sweenus.simplybows.item.unique.SimplyBowItem;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -37,7 +39,9 @@ public class ItemRendererMixin {
     // Add an entry here whenever a bow gets its own small inventory textures.
     @Unique
     private static final Map<Class<? extends Item>, ModelIdentifier> PER_BOW_INVENTORY_MODELS = Map.of(
-            EchoBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "echo_bow/echo_bow_inventory"))
+            EchoBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "echo_bow/echo_bow_inventory")),
+            EarthBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "earth_bow/earth_bow_inventory")),
+            IceBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "ice_bow/ice_bow_inventory"))
     );
 
     @Inject(
