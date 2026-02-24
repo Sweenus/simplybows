@@ -1,6 +1,6 @@
 {
-    "parent": "item/bow",
+    "parent": "simplybows:item/bow_large_template",
     "textures": {
-        "layer0": "simplybows:item/vine_bow/vine_bow_pulling_0"
+        "layer0": "simplybows:item/blossom_bow/blossom_bow_pulling_0"
     }
 }
