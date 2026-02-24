@@ -7,9 +7,8 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.BlockPos;
@@ -22,6 +21,7 @@ import net.sweenus.simplybows.entity.EarthSpikeVisualEntity;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
 import net.sweenus.simplybows.util.CombatTargeting;
+import net.sweenus.simplybows.util.NetworkCompat;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -380,8 +380,9 @@ public final class EarthSpikeFieldManager {
         }
         target.addVelocity(0.0, upwardKnockback, 0.0);
         target.setOnGround(false);
+        target.velocityDirty = true;
         if (target instanceof ServerPlayerEntity player) {
-            player.networkHandler.sendPacket(new EntityVelocityUpdateS2CPacket(player));
+            NetworkCompat.sendVelocityUpdate(player);
         }
     }
 

@@ -2,7 +2,6 @@ package net.sweenus.simplybows.world;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.projectile.ProjectileEntity;
-import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
@@ -15,6 +14,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.entity.IceChaosWallVisualEntity;
+import net.sweenus.simplybows.util.NetworkCompat;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -149,7 +149,7 @@ public final class IceChaosWallManager {
             entity.setVelocity(adjusted);
             entity.velocityDirty = true;
             if (entity instanceof ServerPlayerEntity player) {
-                player.networkHandler.sendPacket(new EntityVelocityUpdateS2CPacket(player));
+                NetworkCompat.sendVelocityUpdate(player);
             }
         }
     }

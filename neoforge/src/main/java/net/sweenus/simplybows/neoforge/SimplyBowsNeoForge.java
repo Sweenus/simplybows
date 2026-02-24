@@ -3,6 +3,7 @@ package net.sweenus.simplybows.neoforge;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.sweenus.simplybows.SimplyBows;
 import net.neoforged.fml.common.Mod;
 import net.sweenus.simplybows.neoforge.loot.SimplyBowsLootInjectorNeoForge;
@@ -16,6 +17,8 @@ public final class SimplyBowsNeoForge {
 
         if (FMLEnvironment.dist == Dist.CLIENT) {
             modEventBus.addListener(SimplyBowsNeoForgeClient::onClientSetup);
+            modEventBus.addListener((EntityRenderersEvent.RegisterRenderers event) ->
+                    SimplyBowsNeoForgeClient.onRegisterRenderers(event));
         }
     }
 }
