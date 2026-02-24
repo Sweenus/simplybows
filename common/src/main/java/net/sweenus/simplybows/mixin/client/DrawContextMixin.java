@@ -55,6 +55,18 @@ public abstract class DrawContextMixin {
     @Unique
     private static final int BORDER_STYLE_ICE = 7;
     @Unique
+    private static final long TOOLTIP_ANIM_RESET_GAP_MS = 180L;
+    @Unique
+    private static final float UPGRADE_PIP_ANIM_START_SCALE = 0.28F;
+    @Unique
+    private static final float UPGRADE_PIP_ANIM_OVERSHOOT_SCALE = 1.40F;
+    @Unique
+    private static final long UPGRADE_PIP_ANIM_GROW_MS = 70L;
+    @Unique
+    private static final long UPGRADE_PIP_ANIM_SETTLE_MS = 85L;
+    @Unique
+    private static final long UPGRADE_PIP_ANIM_STAGGER_MS = 32L;
+    @Unique
     private static final TooltipTheme DEFAULT_THEME = new TooltipTheme(
             0xFFE2A834, 0xFF8A6A1E, 0xF02E2210, 0xF0181208,
             0xFFFFF0CC, 0xFFEEEEEE, 0xFF141008, 0xFFFFD5A0,
@@ -66,6 +78,12 @@ public abstract class DrawContextMixin {
     // Cache the real ItemStack (with NBT data) so drawTooltip fallback paths can access it
     @Unique
     private static ItemStack simplybows$lastRealStack = ItemStack.EMPTY;
+    @Unique
+    private static String simplybows$tooltipAnimKey = "";
+    @Unique
+    private static long simplybows$tooltipAnimStartMs = 0L;
+    @Unique
+    private static long simplybows$tooltipAnimLastFrameMs = 0L;
 
     @Unique
     private static TooltipTheme simplybows$getTheme(String bowKey) {
@@ -386,6 +404,7 @@ public abstract class DrawContextMixin {
         final String effectBowKey = bowKey;
         TooltipTheme theme = simplybows$getTheme(bowKey);
         int borderStyle = simplybows$getBorderStyle(bowKey);
+        long tooltipElapsedMs = simplybows$updateTooltipAnimationAndGetElapsedMs(stack, upgrades);
 
         // --- Layout calculations ---
         int lineHeight = tr.fontHeight + LINE_SPACING;
@@ -537,6 +556,7 @@ public abstract class DrawContextMixin {
             cursorY += lineHeight + sectionGap;
 
             int leftX = panelX + PADDING;
+            int pipSequenceBase = 0;
 
             // Slot pips:
             int slotLabelColor = simplybows$lerpColor(theme.body(), 0xFFFFFFFF, 0.10f);
@@ -550,9 +570,11 @@ public abstract class DrawContextMixin {
             context.drawText(tr, Text.literal("Slots").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(slotLabelColor & 0x00FFFFFF))), pipX, cursorY, slotLabelColor, false);
             pipX += tr.getWidth("Slots  ") + 2;
             for (int i = 0; i < maxSlots; i++) {
-                int color = i < usedSlots ? theme.slotFilled() : theme.slotEmpty();
-                context.fill(pipX, cursorY + 1, pipX + 5, cursorY + 6, color);
-                context.fill(pipX, cursorY + 1, pipX + 5, cursorY + 2, i < usedSlots ? 0xFFF5D060 : 0xFF4A4030);
+                boolean isFilled = i < usedSlots;
+                int color = isFilled ? theme.slotFilled() : theme.slotEmpty();
+                int topHighlight = isFilled ? 0xFFF5D060 : 0xFF4A4030;
+                int sequenceIndex = isFilled ? (pipSequenceBase++) : -1;
+                simplybows$drawAnimatedSquarePip(context, pipX, cursorY + 1, 5, color, topHighlight, tooltipElapsedMs, sequenceIndex, isFilled);
                 pipX += 7;
             }
             cursorY += upgradeRowH;
@@ -570,8 +592,10 @@ public abstract class DrawContextMixin {
                 // Level pips inline after label
                 int stringPipX = afterStringLabel;
                 for (int i = 0; i < maxString; i++) {
-                    int color = i < upgrades.stringLevel() ? theme.stringColor() : theme.slotEmpty();
-                    simplybows$drawPip(context, stringPipX, cursorY + 1, color, i < upgrades.stringLevel());
+                    boolean isFilled = i < upgrades.stringLevel();
+                    int color = isFilled ? theme.stringColor() : theme.slotEmpty();
+                    int sequenceIndex = isFilled ? (pipSequenceBase++) : -1;
+                    simplybows$drawAnimatedPip(context, stringPipX, cursorY + 1, color, isFilled, tooltipElapsedMs, sequenceIndex);
                     stringPipX += 7;
                 }
             }
@@ -590,8 +614,10 @@ public abstract class DrawContextMixin {
                 // Level pips inline after label
                 int framePipX = afterFrameLabel;
                 for (int i = 0; i < maxFrame; i++) {
-                    int color = i < upgrades.frameLevel() ? theme.frameColor() : theme.slotEmpty();
-                    simplybows$drawPip(context, framePipX, cursorY + 1, color, i < upgrades.frameLevel());
+                    boolean isFilled = i < upgrades.frameLevel();
+                    int color = isFilled ? theme.frameColor() : theme.slotEmpty();
+                    int sequenceIndex = isFilled ? (pipSequenceBase++) : -1;
+                    simplybows$drawAnimatedPip(context, framePipX, cursorY + 1, color, isFilled, tooltipElapsedMs, sequenceIndex);
                     framePipX += 7;
                 }
             }
@@ -684,6 +710,96 @@ public abstract class DrawContextMixin {
         } else {
             context.fill(x, y, x + 5, y + 1, 0xFF4A4030);
         }
+    }
+
+    @Unique
+    private static void simplybows$drawAnimatedPip(DrawContext context, int x, int y, int color, boolean filled, long tooltipElapsedMs, int pipIndex) {
+        int topHighlight = filled ? simplybows$lerpColor(color, 0xFFFFFFFF, 0.35f) : 0xFF4A4030;
+        simplybows$drawAnimatedSquarePip(context, x, y, 5, color, topHighlight, tooltipElapsedMs, pipIndex, filled);
+    }
+
+    @Unique
+    private static void simplybows$drawAnimatedSquarePip(DrawContext context, int x, int y, int size, int bodyColor, int topHighlightColor, long tooltipElapsedMs, int pipIndex, boolean animate) {
+        if (!animate) {
+            context.fill(x, y, x + size, y + size, bodyColor);
+            context.fill(x, y, x + size, y + 1, topHighlightColor);
+            return;
+        }
+
+        float scale = simplybows$getUpgradePipScale(tooltipElapsedMs, pipIndex);
+        if (Math.abs(scale - 1.0F) < 0.001F) {
+            context.fill(x, y, x + size, y + size, bodyColor);
+            context.fill(x, y, x + size, y + 1, topHighlightColor);
+            return;
+        }
+
+        context.getMatrices().push();
+        float cx = x + (size / 2.0F);
+        float cy = y + (size / 2.0F);
+        context.getMatrices().translate(cx, cy, 0.0F);
+        context.getMatrices().scale(scale, scale, 1.0F);
+        context.getMatrices().translate(-(size / 2.0F), -(size / 2.0F), 0.0F);
+        context.fill(0, 0, size, size, bodyColor);
+        context.fill(0, 0, size, 1, topHighlightColor);
+        context.getMatrices().pop();
+    }
+
+    @Unique
+    private static long simplybows$updateTooltipAnimationAndGetElapsedMs(ItemStack stack, BowUpgradeData upgrades) {
+        long now = System.currentTimeMillis();
+        Identifier itemId = Registries.ITEM.getId(stack.getItem());
+        String key = (itemId == null ? "unknown" : itemId.toString())
+                + "|s:" + upgrades.stringLevel()
+                + "|f:" + upgrades.frameLevel()
+                + "|r:" + upgrades.runeEtching().id();
+
+        boolean keyChanged = !key.equals(simplybows$tooltipAnimKey);
+        boolean timedOut = (now - simplybows$tooltipAnimLastFrameMs) > TOOLTIP_ANIM_RESET_GAP_MS;
+        if (keyChanged || timedOut) {
+            simplybows$tooltipAnimStartMs = now;
+            simplybows$tooltipAnimKey = key;
+        }
+
+        simplybows$tooltipAnimLastFrameMs = now;
+        return Math.max(0L, now - simplybows$tooltipAnimStartMs);
+    }
+
+    @Unique
+    private static float simplybows$getUpgradePipScale(long tooltipElapsedMs, int pipIndex) {
+        long localMs = tooltipElapsedMs - (long) pipIndex * UPGRADE_PIP_ANIM_STAGGER_MS;
+        long totalAnimMs = UPGRADE_PIP_ANIM_GROW_MS + UPGRADE_PIP_ANIM_SETTLE_MS;
+
+        if (localMs <= 0L) {
+            return UPGRADE_PIP_ANIM_START_SCALE;
+        }
+        if (localMs >= totalAnimMs) {
+            return 1.0F;
+        }
+
+        if (localMs < UPGRADE_PIP_ANIM_GROW_MS) {
+            float t = localMs / (float) UPGRADE_PIP_ANIM_GROW_MS;
+            return simplybows$lerpFloat(UPGRADE_PIP_ANIM_START_SCALE, UPGRADE_PIP_ANIM_OVERSHOOT_SCALE, simplybows$easeOutCubic(t));
+        }
+
+        float t = (localMs - UPGRADE_PIP_ANIM_GROW_MS) / (float) UPGRADE_PIP_ANIM_SETTLE_MS;
+        return simplybows$lerpFloat(UPGRADE_PIP_ANIM_OVERSHOOT_SCALE, 1.0F, simplybows$easeOutQuad(t));
+    }
+
+    @Unique
+    private static float simplybows$lerpFloat(float a, float b, float t) {
+        return a + (b - a) * t;
+    }
+
+    @Unique
+    private static float simplybows$easeOutQuad(float t) {
+        float inv = 1.0F - t;
+        return 1.0F - inv * inv;
+    }
+
+    @Unique
+    private static float simplybows$easeOutCubic(float t) {
+        float inv = 1.0F - t;
+        return 1.0F - (inv * inv * inv);
     }
 
     @Unique
