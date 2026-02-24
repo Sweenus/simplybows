@@ -14,6 +14,7 @@ import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.RotationAxis;
 import net.sweenus.simplybows.SimplyBows;
 import net.sweenus.simplybows.client.tooltip.TooltipTheme;
 import net.sweenus.simplybows.item.unique.SimplyBowItem;
@@ -477,8 +478,19 @@ public abstract class DrawContextMixin {
         int iconFrameY = cursorY + 2;
         simplybows$drawDiamondFrame(context, iconFrameX, iconFrameY, 24, theme);
 
+        long iconTimeMs = System.currentTimeMillis();
+        float breatheScale = 1.0F + (float) Math.sin(iconTimeMs * 0.0042) * 0.055F;
+        float spinDegrees = (float) Math.sin(iconTimeMs * 0.0018) * 4.0F;
+        float bobOffset = (float) Math.sin(iconTimeMs * 0.0026 + 1.1) * 0.7F;
+
         context.getMatrices().push();
-        context.drawItem(stack, iconFrameX + 4, iconFrameY + 4);
+        float itemCenterX = iconFrameX + 12.0F;
+        float itemCenterY = iconFrameY + 12.0F + bobOffset;
+        context.getMatrices().translate(itemCenterX, itemCenterY, 0.0F);
+        context.getMatrices().multiply(RotationAxis.POSITIVE_Z.rotationDegrees(spinDegrees));
+        context.getMatrices().scale(breatheScale, breatheScale, 1.0F);
+        context.getMatrices().translate(-8.0F, -8.0F, 0.0F);
+        context.drawItem(stack, 0, 0);
         context.getMatrices().pop();
 
         int nameX = panelX + PADDING + iconAreaW;
