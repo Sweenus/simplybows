@@ -17,7 +17,6 @@ import net.minecraft.stat.Stats;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
-import net.sweenus.simplybows.SimplyBows;
 import net.sweenus.simplybows.network.AbilityCooldownPayload;
 import net.sweenus.simplybows.util.BowTooltipHelper;
 import net.sweenus.simplybows.util.HelperMethods;
@@ -35,7 +34,7 @@ public class SimplyBowItem extends BowItem {
     public static LongSupplier CLIENT_COOLDOWN_TICK_READER = null;
 
     public SimplyBowItem(Settings settings) {
-        super(settings.maxCount(1).maxDamage(384));
+        super(settings.maxCount(1).maxDamage(1920).fireproof());
     }
 
     @Override
