@@ -40,6 +40,10 @@ public class ItemRegistry {
     public static final RegistrySupplier<Item> ECHO_BOW = ITEM.register("echo_bow/echo_bow", () -> new EchoBowItem(
             new Item.Settings()
     ));
+    // Dummy item — exists only so BakedModelManager loads the small inventory model.
+    public static final RegistrySupplier<Item> ECHO_BOW_INVENTORY = ITEM.register("echo_bow/echo_bow_inventory", () -> new Item(
+            new Item.Settings()
+    ));
     public static final RegistrySupplier<Item> ECHO_BOW_VISUAL_PULL_0 = ITEM.register("echo_bow_visual_pull_0", () -> new Item(
             new Item.Settings()
     ));
