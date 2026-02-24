@@ -494,7 +494,8 @@ public abstract class DrawContextMixin {
         context.getMatrices().pop();
 
         int nameX = panelX + PADDING + iconAreaW;
-        context.drawText(tr, Text.literal(itemName).setStyle(Style.EMPTY.withColor(TextColor.fromRgb(theme.name() & 0x00FFFFFF))), nameX, cursorY + 4, theme.name(), true);
+        int nameY = cursorY + 4;
+        simplybows$drawWaveText(context, tr, itemName, nameX, nameY, theme.name(), iconTimeMs);
 
         int badgeY = cursorY + 4 + tr.fontHeight + 3;
         int badgeX = nameX;
@@ -1209,6 +1210,46 @@ public abstract class DrawContextMixin {
         simplybows$drawSmallDiamond(context, cx - 8, y, theme.footerDot());
         simplybows$drawSmallDiamond(context, cx, y, theme.footerDot());
         simplybows$drawSmallDiamond(context, cx + 8, y, theme.footerDot());
+    }
+
+    @Unique
+    private static void simplybows$drawWaveText(DrawContext context, TextRenderer tr, String text, int x, int y, int color, long timeMs) {
+        if (text == null || text.isEmpty()) {
+            return;
+        }
+
+        final int length = text.length();
+        final double amplitude = 1.4;
+        final double spread = 2.2; // width of the single traveling peak in characters
+        final long idleMs = 1700L;
+        final long activeMs = 520L + (long) (length * 85L); // enough time for the peak to pass the entire line
+        final long cycleMs = activeMs + idleMs;
+
+        long cyclePos = Math.floorMod(timeMs, cycleMs);
+        boolean active = cyclePos < activeMs;
+
+        double activeProgress = active ? (double) cyclePos / (double) activeMs : 1.0;
+        double startPeak = -spread;
+        double endPeak = (length - 1) + spread;
+        double peakPos = startPeak + (endPeak - startPeak) * activeProgress;
+
+        int cursorX = x;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            String ch = String.valueOf(c);
+            double distance = Math.abs(i - peakPos);
+            double influence = distance < spread
+                    ? 0.5 * (1.0 + Math.cos(Math.PI * (distance / spread)))
+                    : 0.0;
+            int yOffset = (int) Math.round(-influence * amplitude);
+            context.drawText(tr,
+                    Text.literal(ch).setStyle(Style.EMPTY.withColor(TextColor.fromRgb(color & 0x00FFFFFF))),
+                    cursorX,
+                    y + yOffset,
+                    color,
+                    true);
+            cursorX += tr.getWidth(ch);
+        }
     }
 
     @Unique
