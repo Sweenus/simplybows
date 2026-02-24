@@ -26,9 +26,6 @@ public final class CooldownStorage {
     }
 
     public static long currentTick(ServerWorld world) {
-        // Use world time instead of global server tick count.
-        // In integrated-server pause states, world time halts while server-level counters can
-        // continue advancing, which would incorrectly progress cooldowns during pause.
         return world.getTime();
     }
 }

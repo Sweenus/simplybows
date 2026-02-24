@@ -53,7 +53,6 @@ public final class SimplyBows {
     }
 
     public static void init() {
-        // Trigger config registration and loading
         LOGGER.info("Simply Bows config loaded: {}", SimplyBowsConfig.INSTANCE.getId());
 
         ItemRegistry.ITEM.register();
@@ -61,11 +60,6 @@ public final class SimplyBows {
         EntityRegistry.registerEntities();
         ParticleRegistry.registerParticles();
         SimplyBowsItemProperties.addSimplyBowsItemProperties();
-        // On a dedicated server (physical server env) there is no initializeClient() call,
-        // so we must register the payload type here so the server can serialise and send it.
-        // On a physical client (integrated server or solo), initializeClient() handles
-        // registration via registerReceiver — calling registerS2CPayloadType here too would
-        // cause a "already registered" crash on Fabric.
         if (Platform.getEnvironment() != Env.CLIENT) {
             NetworkManager.registerS2CPayloadType(AbilityCooldownPayload.ID, AbilityCooldownPayload.CODEC);
         }
@@ -76,8 +70,6 @@ public final class SimplyBows {
 
         @Environment(EnvType.CLIENT)
         public static void initializeClient() {
-            // Stale cooldown bars from a previous session must not persist when the server-side
-            // cooldown managers reset (they are in-memory only and don't survive world reload).
             ClientPlayerEvent.CLIENT_PLAYER_JOIN.register(player -> ClientAbilityCooldownCache.clearAll());
 
             EntityRendererRegistry.register(EntityRegistry.HOMING_ARROW, HomingArrowEntityRenderer::new);
@@ -109,10 +101,6 @@ public final class SimplyBows {
             ParticleProviderRegistry.register(ParticleRegistry.JAPANESE_WAVE, WaveParticle.Factory::new);
             LOGGER.info("Registered Architectury particle provider: simplybows:japanese_wave");
 
-            // Register S2C packet receiver for ability cooldown bar sync.
-            // The server sends an AbilityCooldownPayload whenever a bow ability cooldown starts or
-            // extends. The client stores this in a local cache so the item bar can count down
-            // without any ItemStack NBT writes (which cause item bobbing).
             NetworkManager.registerReceiver(
                     NetworkManager.Side.S2C,
                     AbilityCooldownPayload.ID,
@@ -130,8 +118,6 @@ public final class SimplyBows {
             };
             ClientAbilityCooldownCache.setGameTickReader(clientWorldTickReader);
 
-            // Wire the client delegate so SimplyBowItem's isItemBarVisible / getItemBarStep
-            // read from the local cache instead of ItemStack NBT.
             SimplyBowItem.CLIENT_COOLDOWN_READER = ClientAbilityCooldownCache::get;
             SimplyBowItem.CLIENT_COOLDOWN_TICK_READER = clientWorldTickReader;
         }

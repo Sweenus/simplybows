@@ -156,7 +156,6 @@ public class EchoChaosBlackHoleVisualEntityRenderer extends EntityRenderer<EchoC
         matrices.pop();
     }
 
-    /** Flat quad in the XZ plane (y=0) with per-edge alpha for gradient glow falloff. */
     private static void diskQuad(VertexConsumer vc, MatrixStack.Entry entry,
                                   float x0, float z0, float x1, float z1,
                                   float x2, float z2, float x3, float z3,

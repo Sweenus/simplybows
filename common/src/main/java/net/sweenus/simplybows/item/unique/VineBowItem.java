@@ -35,10 +35,6 @@ public class VineBowItem extends SimplyBowItem {
                 && ownerId != null
                 && VineFlowerFieldManager.isChaosFieldReady(serverWorld, ownerId);
 
-        // Cooldown bar is sent from VineFlowerFieldManager.createOrReplaceField once the
-        // field is confirmed to have actually spawned, avoiding a race where the bar appears
-        // but the field is blocked by the post-field cooldown starting in the same tick.
-
         float speed = (float) (f * SimplyBowsConfig.INSTANCE.vineBow.arrowSpeedMultiplier.get() * (1.0 + upgrades.stringLevel() * 0.05));
         this.shootAll(serverWorld, shooter, hand, stack, projectiles, speed, SimplyBowsConfig.INSTANCE.vineBow.arrowDivergence.get(), critical, target);
     }

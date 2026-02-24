@@ -6,11 +6,6 @@ import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
 import net.sweenus.simplybows.SimplyBows;
 
-/**
- * S2C payload sent whenever a bow's ability cooldown bar needs to start or extend.
- * Using a CustomPayload (instead of writing to ItemStack NBT) prevents the server from
- * marking the inventory slot dirty, which avoids the equip/bob animation in first-person.
- */
 public record AbilityCooldownPayload(long endMs, int totalTicks, String bowKey) implements CustomPayload {
 
     public static final CustomPayload.Id<AbilityCooldownPayload> ID =

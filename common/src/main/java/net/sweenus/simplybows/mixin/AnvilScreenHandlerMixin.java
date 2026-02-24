@@ -68,8 +68,6 @@ public abstract class AnvilScreenHandlerMixin {
         updated.write(result);
         handler.getSlot(2).setStack(result);
         this.levelCost.set(upgradeComponent.getAnvilCost(current, updated));
-        // Vanilla only consumes slot 1 via repairItemUsage, so only consume automatically
-        // when the component is in the right slot. Left-slot component still works but won't be consumed.
         this.repairItemUsage = componentOnRight ? 1 : 0;
         ((ScreenHandler) (Object) this).sendContentUpdates();
         ci.cancel();

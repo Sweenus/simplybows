@@ -61,7 +61,7 @@ public class HomingArrowEntity extends ArrowEntity {
 
     @Override
     public void tick() {
-        super.tick(); // Ensure the arrow continues to behave like a normal arrow
+        super.tick();
 
         if (!this.homingEnabled) {
             this.setNoGravity(false);
@@ -125,9 +125,7 @@ public class HomingArrowEntity extends ArrowEntity {
         }
     }
 
-    /**
-     * Finds the nearest hostile mob to the arrow within the homingRadius().
-     */
+     // Finds the nearest hostile mob to the arrow within the homingRadius().
     private LivingEntity findNearestHostileMob() {
         Box searchBox = new Box(this.getX() - homingRadius(), this.getY() - homingRadius(), this.getZ() - homingRadius(),
                 this.getX() + homingRadius(), this.getY() + homingRadius(), this.getZ() + homingRadius());
@@ -180,9 +178,7 @@ public class HomingArrowEntity extends ArrowEntity {
         return null;
     }
 
-    /**
-     * Adjusts the arrow's velocity to steer toward the target.
-     */
+     // Adjusts the arrow's velocity to steer toward the target.
     private void adjustTrajectoryTowardTarget() {
         Vec3d targetPos = new Vec3d(target.getX(), target.getY() + target.getStandingEyeHeight(), target.getZ());
         Vec3d arrowPos = this.getPos();
@@ -359,7 +355,6 @@ public class HomingArrowEntity extends ArrowEntity {
     @Override
     protected void onCollision(net.minecraft.util.hit.HitResult hitResult) {
         super.onCollision(hitResult);
-        // Handle any additional logic for collisions
     }
 
     private static ItemStack sanitizeArrowStack(ItemStack arrowStack) {

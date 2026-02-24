@@ -128,10 +128,6 @@ public final class VineFlowerFieldManager {
             fields.add(chaosField);
             playChaosFieldCreationSound(world, center);
             spawnChaosCreationParticles(world, center, tuning);
-            // Send the cooldown bar packet now that the field is confirmed spawned.
-            // Sending here (rather than in VineBowItem.performStoppedUsing) prevents a race
-            // where the bar appears but the field is blocked because the previous field's
-            // post-expiry cooldown starts in the same server tick as the shot is fired.
             if (owner instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer) {
                 int cooldownTicks = Math.max(20, SimplyBowsConfig.INSTANCE.vineBow.chaosCooldownTicks.get());
                 int overlayTicks = (int) baseDuration + cooldownTicks;
@@ -217,8 +213,6 @@ public final class VineFlowerFieldManager {
         double radius = field.tuning().fieldRadius();
 
         for (int tendril = 0; tendril < tendrilCount; tendril++) {
-            // Keep each tendril axis stable so nodes read as a connected path,
-            // not scattered points. Small per-tendril offsets preserve organic variation.
             double baseAngle = (Math.PI * 2.0 / tendrilCount) * tendril + (world.random.nextDouble() - 0.5) * 0.28;
             double curveStrength = 0.12 + world.random.nextDouble() * 0.16;
             double curveFrequency = 1.1 + world.random.nextDouble() * 0.5;
@@ -278,8 +272,6 @@ public final class VineFlowerFieldManager {
         BlockPos lastPlacedPos = null;
         BlockPos current = fromBlock;
 
-        // Step through block cells toward the target so vertical connectors are attached
-        // to real walls in a deterministic, grid-aligned path.
         while (true) {
             Direction stepDirection = nextConnectorStep(current, toBlock);
             if (stepDirection == null) {

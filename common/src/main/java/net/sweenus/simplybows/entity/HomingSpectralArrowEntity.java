@@ -55,7 +55,7 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
 
     @Override
     public void tick() {
-        super.tick(); // Ensure the arrow continues to behave like a normal arrow
+        super.tick();
 
         if (!this.homingEnabled) {
             this.setNoGravity(false);
@@ -119,9 +119,7 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
         }
     }
 
-    /**
-     * Finds the nearest hostile mob to the arrow within the HOMING_RADIUS.
-     */
+     // Finds the nearest hostile mob to the arrow within the HOMING_RADIUS.
     private LivingEntity findNearestHostileMob() {
         Box searchBox = new Box(this.getX() - HOMING_RADIUS, this.getY() - HOMING_RADIUS, this.getZ() - HOMING_RADIUS,
                 this.getX() + HOMING_RADIUS, this.getY() + HOMING_RADIUS, this.getZ() + HOMING_RADIUS);
@@ -174,9 +172,7 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
         return null;
     }
 
-    /**
-     * Adjusts the arrow's velocity to steer toward the target.
-     */
+     // Adjusts the arrow's velocity to steer toward the target.
     private void adjustTrajectoryTowardTarget() {
         Vec3d targetPos = new Vec3d(target.getX(), target.getY() + target.getStandingEyeHeight(), target.getZ());
         Vec3d arrowPos = this.getPos();

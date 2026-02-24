@@ -4,13 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.LongSupplier;
 
-/**
- * Client-side cache for bow ability cooldown data, populated via S2C networking packets.
- * Keyed by the bow's tooltip key (e.g. "vine", "ice"). Each entry stores
- * [endClientGameTick, totalTicks].
- * This class contains no client-only imports so it can be safely referenced from common code
- * via the {@link net.sweenus.simplybows.item.unique.SimplyBowItem#CLIENT_COOLDOWN_READER} delegate.
- */
 public final class ClientAbilityCooldownCache {
 
     private static final Map<String, long[]> CACHE = new HashMap<>();
@@ -33,7 +26,6 @@ public final class ClientAbilityCooldownCache {
         CACHE.put(key, new long[]{endTick, totalTicks});
     }
 
-    /** Returns {@code [endClientGameTick, totalTicks]} or {@code null} if no entry exists. */
     public static long[] get(String key) {
         return CACHE.get(key);
     }
@@ -42,8 +34,6 @@ public final class ClientAbilityCooldownCache {
         CACHE.remove(key);
     }
 
-    /** Removes all cached cooldowns. Call this when the client joins a new world session so
-     *  stale bars from a previous session cannot persist when the server-side state has reset. */
     public static void clearAll() {
         CACHE.clear();
     }
