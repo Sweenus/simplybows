@@ -26,11 +26,13 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 
 public class SimplyBowItem extends BowItem {
     private static final ThreadLocal<Boolean> FORCE_VANILLA_ARROW = ThreadLocal.withInitial(() -> false);
     private static final int ABILITY_COOLDOWN_BAR_COLOR = 0x24C4FF;
     public static Function<String, long[]> CLIENT_COOLDOWN_READER = null;
+    public static LongSupplier CLIENT_COOLDOWN_TICK_READER = null;
 
     public SimplyBowItem(Settings settings) {
         super(settings.maxCount(1).maxDamage(384));
@@ -62,25 +64,31 @@ public class SimplyBowItem extends BowItem {
 
     public boolean simplybows$hasAbilityCooldown() {
         Function<String, long[]> reader = CLIENT_COOLDOWN_READER;
-        if (reader == null) {
+        LongSupplier tickReader = CLIENT_COOLDOWN_TICK_READER;
+        if (reader == null || tickReader == null) {
             return false;
         }
         long[] data = reader.apply(getTooltipBowKey());
-        return data != null && System.currentTimeMillis() < data[0];
+        return data != null && tickReader.getAsLong() < data[0];
     }
 
     public int simplybows$getAbilityCooldownBarStep() {
         Function<String, long[]> reader = CLIENT_COOLDOWN_READER;
-        if (reader == null) {
+        LongSupplier tickReader = CLIENT_COOLDOWN_TICK_READER;
+        if (reader == null || tickReader == null) {
             return 0;
         }
         long[] data = reader.apply(getTooltipBowKey());
-        if (data == null || System.currentTimeMillis() >= data[0]) {
+        if (data == null) {
             return 0;
         }
 
-        long remainingMs = Math.max(0L, data[0] - System.currentTimeMillis());
-        int remaining = (int) Math.ceil(remainingMs / 50.0);
+        long nowTick = tickReader.getAsLong();
+        if (nowTick >= data[0]) {
+            return 0;
+        }
+
+        int remaining = (int) Math.max(0L, data[0] - nowTick);
         int total = (int) data[1];
         if (remaining <= 0 || total <= 0) {
             return 0;

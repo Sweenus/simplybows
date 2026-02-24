@@ -38,6 +38,8 @@ import net.sweenus.simplybows.registry.SimplyBowsItemProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.function.LongSupplier;
+
 public final class SimplyBows {
     public static final String MOD_ID = "simplybows";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
@@ -119,9 +121,19 @@ public final class SimplyBows {
                             ClientAbilityCooldownCache.update(payload.bowKey(), payload.endMs(), payload.totalTicks()))
             );
 
+            LongSupplier clientWorldTickReader = () -> {
+                net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
+                if (client == null || client.world == null) {
+                    return 0L;
+                }
+                return client.world.getTime();
+            };
+            ClientAbilityCooldownCache.setGameTickReader(clientWorldTickReader);
+
             // Wire the client delegate so SimplyBowItem's isItemBarVisible / getItemBarStep
             // read from the local cache instead of ItemStack NBT.
             SimplyBowItem.CLIENT_COOLDOWN_READER = ClientAbilityCooldownCache::get;
+            SimplyBowItem.CLIENT_COOLDOWN_TICK_READER = clientWorldTickReader;
         }
     }
 
