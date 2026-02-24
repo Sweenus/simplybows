@@ -34,5 +34,12 @@ versionRange = "[13.0.8,)"
 ordering = "AFTER"
 side = "BOTH"
 
+[[dependencies.simplybows]]
+modId = "simplytooltips"
+type = "required"
+versionRange = "[0.1,)"
+ordering = "NONE"
+side = "CLIENT"
+
 [[mixins]]
 config = "simplybows.mixins.json"
