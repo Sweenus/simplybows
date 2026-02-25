@@ -96,7 +96,8 @@ public final class SimplyBowsTooltipProvider implements TooltipProvider {
                 TooltipTheme.defaultTheme(),
                 upgradeSection,
                 animKeyExtra,
-                bowKey
+                bowKey,
+                null  // hint=null
         );
     }
 
