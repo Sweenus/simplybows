@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "simplybows:upgrades/enchanted_bow_string",
+    "simplybows:upgrades/reinforced_bow_frame",
+    "simplybows:upgrades/rune_etching_pain",
+    "simplybows:upgrades/rune_etching_grace",
+    "simplybows:upgrades/rune_etching_bounty",
+    "simplybows:upgrades/rune_etching_chaos"
+  ]
+}

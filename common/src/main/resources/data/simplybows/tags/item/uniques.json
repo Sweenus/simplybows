@@ -1,0 +1,12 @@
+{
+  "replace": false,
+  "values": [
+    "simplybows:vine_bow/vine_bow",
+    "simplybows:ice_bow/ice_bow",
+    "simplybows:bubble_bow/bubble_bow",
+    "simplybows:bee_bow/bee_bow",
+    "simplybows:blossom_bow/blossom_bow",
+    "simplybows:earth_bow/earth_bow",
+    "simplybows:echo_bow/echo_bow"
+  ]
+}
