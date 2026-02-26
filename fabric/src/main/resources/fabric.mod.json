@@ -5,13 +5,14 @@
   "name": "Simply Bows",
   "description": "",
   "authors": [
-    ""
+    "Sweenus",
+    "Hootea"
   ],
   "contact": {
     "homepage": ""
   },
   "license": "All-Rights-Reserved",
-  "icon": "assets/simplybows/icon.png",
+  "icon": "assets/simplybows/icon.gif",
   "environment": "*",
   "entrypoints": {
     "main": [
