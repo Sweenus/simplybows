@@ -12,7 +12,9 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Identifier;
+import net.sweenus.simplybows.item.unique.BeeBowItem;
 import net.sweenus.simplybows.item.unique.BlossomBowItem;
+import net.sweenus.simplybows.item.unique.BubbleBowItem;
 import net.sweenus.simplybows.item.unique.EchoBowItem;
 import net.sweenus.simplybows.item.unique.EarthBowItem;
 import net.sweenus.simplybows.item.unique.IceBowItem;
@@ -43,7 +45,9 @@ public class ItemRendererMixin {
             EchoBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "echo_bow/echo_bow_inventory")),
             EarthBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "earth_bow/earth_bow_inventory")),
             IceBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "ice_bow/ice_bow_inventory")),
-            BlossomBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "blossom_bow/blossom_bow_inventory"))
+            BlossomBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "blossom_bow/blossom_bow_inventory")),
+            BubbleBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "bubble_bow/bubble_bow_inventory")),
+            BeeBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "bee_bow/bee_bow_inventory"))
     );
 
     @Inject(

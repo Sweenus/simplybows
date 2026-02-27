@@ -54,6 +54,12 @@ public class ItemRegistry {
     public static final RegistrySupplier<Item> BLOSSOM_BOW_INVENTORY = ITEM.register("blossom_bow/blossom_bow_inventory", () -> new Item(
             new Item.Settings()
     ));
+    public static final RegistrySupplier<Item> BUBBLE_BOW_INVENTORY = ITEM.register("bubble_bow/bubble_bow_inventory", () -> new Item(
+            new Item.Settings()
+    ));
+    public static final RegistrySupplier<Item> BEE_BOW_INVENTORY = ITEM.register("bee_bow/bee_bow_inventory", () -> new Item(
+            new Item.Settings()
+    ));
     public static final RegistrySupplier<Item> ECHO_BOW_VISUAL_PULL_0 = ITEM.register("echo_bow_visual_pull_0", () -> new Item(
             new Item.Settings()
     ));

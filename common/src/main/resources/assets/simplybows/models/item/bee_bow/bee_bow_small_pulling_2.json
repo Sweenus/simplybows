@@ -1,0 +1,6 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "simplybows:item/bee_bow/small/bee_bow_pulling_2_small"
+  }
+}
