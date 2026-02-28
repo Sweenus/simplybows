@@ -1,6 +1,5 @@
 package net.sweenus.simplybows.registry;
 
-import dev.architectury.event.events.client.ClientLifecycleEvent;
 import dev.architectury.registry.item.ItemPropertiesRegistry;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -11,7 +10,7 @@ import net.sweenus.simplybows.config.SimplyBowsConfig;
 @Environment(EnvType.CLIENT)
 public class SimplyBowsItemProperties {
     public static void addSimplyBowsItemProperties() {
-        ClientLifecycleEvent.CLIENT_SETUP.register(instance -> register());
+        register();
     }
 
     public static void register() {

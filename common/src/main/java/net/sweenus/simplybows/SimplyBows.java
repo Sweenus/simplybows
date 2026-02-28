@@ -59,7 +59,6 @@ public final class SimplyBows {
         SimplyBowsCreativeTabRegistry.register();
         EntityRegistry.registerEntities();
         ParticleRegistry.registerParticles();
-        SimplyBowsItemProperties.addSimplyBowsItemProperties();
         if (Platform.getEnvironment() != Env.CLIENT) {
             NetworkManager.registerS2CPayloadType(AbilityCooldownPayload.ID, AbilityCooldownPayload.CODEC);
         }
@@ -70,6 +69,7 @@ public final class SimplyBows {
 
         @Environment(EnvType.CLIENT)
         public static void initializeClient() {
+            SimplyBowsItemProperties.addSimplyBowsItemProperties();
             ClientPlayerEvent.CLIENT_PLAYER_JOIN.register(player -> ClientAbilityCooldownCache.clearAll());
 
             EntityRendererRegistry.register(EntityRegistry.HOMING_ARROW, HomingArrowEntityRenderer::new);
