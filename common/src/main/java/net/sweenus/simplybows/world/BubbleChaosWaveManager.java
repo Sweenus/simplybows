@@ -2,7 +2,6 @@ package net.sweenus.simplybows.world;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -124,7 +123,7 @@ public final class BubbleChaosWaveManager {
         for (LivingEntity candidate : world.getEntitiesByClass(
                 LivingEntity.class,
                 hitBox,
-                entity -> entity.isAlive() && (entity instanceof HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                CombatTargeting::isOffensiveTargetCandidate
         )) {
             if (owner != null && !CombatTargeting.checkFriendlyFire(candidate, owner)) {
                 continue;

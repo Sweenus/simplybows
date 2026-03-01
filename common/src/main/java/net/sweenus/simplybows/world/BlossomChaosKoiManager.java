@@ -2,7 +2,6 @@ package net.sweenus.simplybows.world;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.world.ServerWorld;
@@ -302,7 +301,7 @@ public final class BlossomChaosKoiManager {
             if (Math.abs(candidate.getBodyY(0.5) - koi.getY()) > KOI_CONTACT_VERTICAL_RANGE) {
                 continue;
             }
-            if (!(candidate instanceof HostileEntity || CombatTargeting.isTargetWhitelisted(candidate))) {
+            if (!CombatTargeting.isOffensiveTargetCandidate(candidate)) {
                 continue;
             }
             if (owner != null && !CombatTargeting.checkFriendlyFire(candidate, owner)) {

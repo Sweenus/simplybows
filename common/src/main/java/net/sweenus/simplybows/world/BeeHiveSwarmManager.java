@@ -2,7 +2,6 @@ package net.sweenus.simplybows.world;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.particle.BlockStateParticleEffect;
@@ -193,8 +192,7 @@ public final class BeeHiveSwarmManager {
     private static LivingEntity findRandomNearbyHostile(ServerWorld world, Vec3d center, LivingEntity owner) {
         Box box = Box.of(center, targetRadius() * 2.0, 8.0, targetRadius() * 2.0);
         List<LivingEntity> candidates = world.getEntitiesByClass(LivingEntity.class, box, entity ->
-                entity.isAlive()
-                        && (entity instanceof HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                CombatTargeting.isOffensiveTargetCandidate(entity)
                         && CombatTargeting.checkFriendlyFire(entity, owner));
 
         if (candidates.isEmpty()) {

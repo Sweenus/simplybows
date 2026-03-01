@@ -179,7 +179,7 @@ public final class BlossomStormManager {
         for (LivingEntity candidate : world.getEntitiesByClass(
                 LivingEntity.class,
                 triggerBox,
-                entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                CombatTargeting::isOffensiveTargetCandidate
         )) {
             if (candidate.squaredDistanceTo(storm.center) > radius * radius) {
                 continue;
@@ -225,7 +225,7 @@ public final class BlossomStormManager {
         for (LivingEntity candidate : world.getEntitiesByClass(
                 LivingEntity.class,
                 hitBox,
-                entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                CombatTargeting::isOffensiveTargetCandidate
         )) {
             if (storm.ownerId != null && candidate.getUuid().equals(storm.ownerId)) {
                 continue;
@@ -259,7 +259,7 @@ public final class BlossomStormManager {
         for (LivingEntity candidate : world.getEntitiesByClass(
                 LivingEntity.class,
                 hitBox,
-                entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                CombatTargeting::isOffensiveTargetCandidate
         )) {
             if (candidate.squaredDistanceTo(anchorCenter) > radius * radius) {
                 continue;
@@ -280,7 +280,7 @@ public final class BlossomStormManager {
         List<LivingEntity> candidates = world.getEntitiesByClass(
                 LivingEntity.class,
                 search,
-                entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                CombatTargeting::isOffensiveTargetCandidate
         );
         LivingEntity owner = getLivingEntityNullable(world, storm.ownerId);
 

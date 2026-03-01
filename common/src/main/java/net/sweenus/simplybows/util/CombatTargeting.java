@@ -88,6 +88,22 @@ public final class CombatTargeting {
         return !checkFriendlyFire(livingEntity, otherEntity);
     }
 
+    public static boolean isOffensiveTargetCandidate(LivingEntity target) {
+        if (target == null || !target.isAlive() || target.isRemoved()) {
+            return false;
+        }
+        return target instanceof HostileEntity
+                || target instanceof PlayerEntity
+                || isTargetWhitelisted(target);
+    }
+
+    public static boolean isOffensiveTargetCandidate(LivingEntity target, @Nullable LivingEntity attacker) {
+        if (!isOffensiveTargetCandidate(target)) {
+            return false;
+        }
+        return attacker == null || checkFriendlyFire(target, attacker);
+    }
+
     public static boolean checkEntityBlacklist(LivingEntity livingEntity, LivingEntity attackingEntity) {
         if (livingEntity == null || attackingEntity == null) {
             return false;

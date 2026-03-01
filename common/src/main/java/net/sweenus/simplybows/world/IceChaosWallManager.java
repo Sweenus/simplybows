@@ -142,10 +142,26 @@ public final class IceChaosWallManager {
             }
 
             double side = wall.normal.dotProduct(entity.getPos().subtract(wall.center));
-            double pushDir = side >= 0.0 ? 1.0 : -1.0;
-            Vec3d push = wall.normal.multiply(pushDir * 0.22);
-            Vec3d vel = entity.getVelocity();
-            Vec3d adjusted = new Vec3d(vel.x * 0.2 + push.x, vel.y, vel.z * 0.2 + push.z);
+            double sideSign;
+            if (side > 1.0E-4) {
+                sideSign = 1.0;
+            } else if (side < -1.0E-4) {
+                sideSign = -1.0;
+            } else {
+                sideSign = entity.getVelocity().dotProduct(wall.normal) >= 0.0 ? 1.0 : -1.0;
+            }
+
+            double halfExtentAlongNormal = getHorizontalHalfExtent(entity.getBoundingBox(), wall.normal);
+            double allowedNormalDistance = WALL_THICKNESS + halfExtentAlongNormal;
+            double penetration = allowedNormalDistance - Math.abs(side);
+            if (penetration <= 0.0) {
+                continue;
+            }
+
+            Vec3d correctedPos = entity.getPos().add(wall.normal.multiply(sideSign * (penetration + 0.03)));
+            applyPositionCorrection(entity, correctedPos);
+
+            Vec3d adjusted = preventCrossingVelocity(entity.getVelocity(), wall.normal, sideSign);
             entity.setVelocity(adjusted);
             entity.velocityDirty = true;
             if (entity instanceof ServerPlayerEntity player) {
@@ -172,9 +188,7 @@ public final class IceChaosWallManager {
         Vec3d rel = pos.subtract(wall.center);
 
         Box box = entity.getBoundingBox();
-        double halfX = (box.maxX - box.minX) * 0.5;
-        double halfZ = (box.maxZ - box.minZ) * 0.5;
-        double lateralPadding = Math.max(halfX, halfZ) + 0.1;
+        double lateralPadding = getHorizontalHalfExtent(box, wall.right) + 0.1;
 
         double lateral = Math.abs(rel.dotProduct(wall.right));
         if (lateral > wall.halfLength + lateralPadding) {
@@ -185,9 +199,31 @@ public final class IceChaosWallManager {
             return false;
         }
 
-        double normalPadding = Math.max(halfX, halfZ) + 0.05;
+        double normalPadding = getHorizontalHalfExtent(box, wall.normal) + 0.05;
         double distToPlane = Math.abs(rel.dotProduct(wall.normal));
         return distToPlane <= WALL_THICKNESS + normalPadding;
+    }
+
+    private static double getHorizontalHalfExtent(Box box, Vec3d axis) {
+        double halfX = (box.maxX - box.minX) * 0.5;
+        double halfZ = (box.maxZ - box.minZ) * 0.5;
+        return Math.abs(axis.x) * halfX + Math.abs(axis.z) * halfZ;
+    }
+
+    private static Vec3d preventCrossingVelocity(Vec3d velocity, Vec3d wallNormal, double sideSign) {
+        double normalComponent = velocity.dotProduct(wallNormal);
+        if (sideSign * normalComponent < 0.0) {
+            return velocity.subtract(wallNormal.multiply(normalComponent));
+        }
+        return velocity;
+    }
+
+    private static void applyPositionCorrection(Entity entity, Vec3d correctedPos) {
+        if (entity instanceof ServerPlayerEntity player) {
+            player.networkHandler.requestTeleport(correctedPos.x, correctedPos.y, correctedPos.z, player.getYaw(), player.getPitch());
+            return;
+        }
+        entity.requestTeleport(correctedPos.x, correctedPos.y, correctedPos.z);
     }
 
     private static void spawnVisuals(ServerWorld world, ActiveWall wall) {
@@ -270,7 +306,16 @@ public final class IceChaosWallManager {
             this.expiryTick = expiryTick;
             this.halfLength = halfLength;
             this.height = height;
-            this.bounds = Box.of(center.add(0.0, height * 0.5, 0.0), halfLength * 2.0 + 1.0, height + 1.0, WALL_THICKNESS * 2.5);
+            double xExtent = Math.abs(right.x) * halfLength + Math.abs(normal.x) * WALL_THICKNESS + 1.0;
+            double zExtent = Math.abs(right.z) * halfLength + Math.abs(normal.z) * WALL_THICKNESS + 1.0;
+            this.bounds = new Box(
+                    center.x - xExtent,
+                    center.y - 1.0,
+                    center.z - zExtent,
+                    center.x + xExtent,
+                    center.y + height + 1.0,
+                    center.z + zExtent
+            );
         }
     }
 

@@ -151,7 +151,7 @@ public final class EarthSpikeFieldManager {
         for (LivingEntity candidate : world.getEntitiesByClass(
                 LivingEntity.class,
                 box,
-                entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                CombatTargeting::isOffensiveTargetCandidate
         )) {
             if (candidate.squaredDistanceTo(center) > radius * radius) {
                 continue;
@@ -170,7 +170,7 @@ public final class EarthSpikeFieldManager {
         for (LivingEntity candidate : world.getEntitiesByClass(
                 LivingEntity.class,
                 centerBox,
-                entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                CombatTargeting::isOffensiveTargetCandidate
         )) {
             double dist = candidate.getPos().distanceTo(center);
             if (dist > centerRadius) {
@@ -353,7 +353,7 @@ public final class EarthSpikeFieldManager {
         for (LivingEntity candidate : world.getEntitiesByClass(
                 LivingEntity.class,
                 hitBox,
-                entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                CombatTargeting::isOffensiveTargetCandidate
         )) {
             boolean damaged = CombatTargeting.applyDamage(world, owner, candidate, damage, true, false);
             if (damaged) {

@@ -227,8 +227,7 @@ public class IceBowItem extends SimplyBowItem {
         List<LivingEntity> hostiles = world.getEntitiesByClass(
                 LivingEntity.class,
                 player.getBoundingBox().expand(painTargetHorizontalRange(), painTargetVerticalRange(), painTargetHorizontalRange()),
-                entity -> entity.isAlive()
-                        && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                CombatTargeting::isOffensiveTargetCandidate
         );
         LivingEntity best = null;
         double bestDist = Double.MAX_VALUE;

@@ -135,7 +135,7 @@ public final class EchoChaosBlackHoleManager {
         for (LivingEntity target : world.getEntitiesByClass(
                 LivingEntity.class,
                 effectBounds,
-                entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                CombatTargeting::isOffensiveTargetCandidate
         )) {
             Vec3d centerTarget = target.getPos().add(0.0, target.getStandingEyeHeight() * 0.4, 0.0);
             Vec3d toCenter = hole.center.subtract(centerTarget);

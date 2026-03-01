@@ -210,7 +210,7 @@ public final class EarthChaosSunderManager {
         for (LivingEntity candidate : world.getEntitiesByClass(
                 LivingEntity.class,
                 damageBox,
-                entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                entity -> CombatTargeting.isOffensiveTargetCandidate(entity, owner)
         )) {
             UUID candidateId = candidate.getUuid();
             Long lastDamageTick = field.recentDamageTicks.get(candidateId);
@@ -295,7 +295,8 @@ public final class EarthChaosSunderManager {
             field.currentTargetId = null;
             return null;
         }
-        if (!(living instanceof net.minecraft.entity.mob.HostileEntity) && !CombatTargeting.isTargetWhitelisted(living)) {
+        LivingEntity owner = getOwnerEntity(world, field.ownerId);
+        if (!CombatTargeting.isOffensiveTargetCandidate(living, owner)) {
             field.currentTargetId = null;
             return null;
         }
@@ -322,6 +323,7 @@ public final class EarthChaosSunderManager {
         double range = field.acquisitionRange;
         Box box = Box.of(centerPos, range * 2.0, 4.0, range * 2.0);
         long now = world.getTime();
+        LivingEntity owner = getOwnerEntity(world, field.ownerId);
         field.recentTargetTicks.entrySet().removeIf(entry -> now - entry.getValue() >= TARGET_REACQUIRE_COOLDOWN_TICKS);
 
         LivingEntity nearest = null;
@@ -330,7 +332,7 @@ public final class EarthChaosSunderManager {
         for (LivingEntity candidate : world.getEntitiesByClass(
                 LivingEntity.class,
                 box,
-                entity -> entity.isAlive() && (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                entity -> CombatTargeting.isOffensiveTargetCandidate(entity, owner)
         )) {
             UUID id = candidate.getUuid();
             if (excludedEntityId != null && id.equals(excludedEntityId)) {

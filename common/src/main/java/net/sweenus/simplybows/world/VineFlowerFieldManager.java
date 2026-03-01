@@ -7,7 +7,6 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.loot.LootTable;
@@ -406,7 +405,7 @@ public final class VineFlowerFieldManager {
         Box box = Box.of(center, tuning.fieldRadius() * 2.0, 4.0, tuning.fieldRadius() * 2.0);
         boolean anyDrained = false;
         for (LivingEntity entity : world.getEntitiesByClass(LivingEntity.class, box, LivingEntity::isAlive)) {
-            if (!(entity instanceof HostileEntity) && !CombatTargeting.isTargetWhitelisted(entity)) {
+            if (!CombatTargeting.isOffensiveTargetCandidate(entity)) {
                 continue;
             }
             if (owner != null && !CombatTargeting.checkFriendlyFire(entity, owner)) {
@@ -641,7 +640,8 @@ public final class VineFlowerFieldManager {
                 continue;
             }
 
-            if (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity)) {
+            if (CombatTargeting.isOffensiveTargetCandidate(entity)
+                    && (owner == null || CombatTargeting.checkFriendlyFire(entity, owner))) {
                 if (tuning.damageHostiles() && tuning.hostileDamage() > 0.0F) {
                     float damage = tuning.hostileDamage();
                     if (entity.getType().isIn(EntityTypeTags.UNDEAD)) {

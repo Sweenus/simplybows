@@ -5,7 +5,6 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.projectile.ArrowEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -144,9 +143,8 @@ public class BeeArrowEntity extends ArrowEntity {
 
         Box searchBox = this.getBoundingBox().expand(painHomingRadius());
         List<LivingEntity> candidates = this.getWorld().getEntitiesByClass(LivingEntity.class, searchBox, entity ->
-                entity.isAlive()
+                CombatTargeting.isOffensiveTargetCandidate(entity)
                         && entity != ownerLiving
-                        && (entity instanceof HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
                         && CombatTargeting.checkFriendlyFire(entity, ownerLiving));
 
         LivingEntity best = null;
@@ -286,7 +284,7 @@ public class BeeArrowEntity extends ArrowEntity {
 
         Box box = Box.of(impactPos, this.chaosDiveBombRadius * 2.0, 3.0, this.chaosDiveBombRadius * 2.0);
         for (LivingEntity candidate : world.getEntitiesByClass(LivingEntity.class, box, entity ->
-                entity.isAlive() && (entity instanceof HostileEntity || CombatTargeting.isTargetWhitelisted(entity)))) {
+                CombatTargeting.isOffensiveTargetCandidate(entity))) {
             if (candidate.squaredDistanceTo(impactPos) > this.chaosDiveBombRadius * this.chaosDiveBombRadius) {
                 continue;
             }

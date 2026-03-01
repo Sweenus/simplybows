@@ -4,7 +4,6 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.projectile.ArrowEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -132,8 +131,7 @@ public class HomingArrowEntity extends ArrowEntity {
         LivingEntity owner = this.getOwner() instanceof LivingEntity livingOwner ? livingOwner : null;
 
         List<LivingEntity> entities = getEntityWorld().getEntitiesByClass(LivingEntity.class, searchBox, entity ->
-                entity.isAlive()
-                        && (entity instanceof HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                CombatTargeting.isOffensiveTargetCandidate(entity)
                         && (owner == null || CombatTargeting.checkFriendlyFire(entity, owner)));
 
         if (!entities.isEmpty()) {

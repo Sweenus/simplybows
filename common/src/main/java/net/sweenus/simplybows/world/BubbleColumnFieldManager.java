@@ -224,7 +224,7 @@ public final class BubbleColumnFieldManager {
         for (LivingEntity candidate : world.getEntitiesByClass(
                 LivingEntity.class,
                 box,
-                entity -> entity.isAlive() && (entity instanceof HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                CombatTargeting::isOffensiveTargetCandidate
         )) {
             if (owner != null && !CombatTargeting.checkFriendlyFire(candidate, owner)) {
                 continue;
@@ -252,7 +252,7 @@ public final class BubbleColumnFieldManager {
             }
             if (CombatTargeting.isFriendlyTo(candidate, owner)) {
                 candidate.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, graceResistanceDurationTicks(), GRACE_RESISTANCE_AMPLIFIER), owner);
-            } else if (candidate instanceof HostileEntity || CombatTargeting.isTargetWhitelisted(candidate)) {
+            } else if (CombatTargeting.isOffensiveTargetCandidate(candidate)) {
                 candidate.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, graceSlownessDurationTicks(), GRACE_SLOWNESS_AMPLIFIER), owner);
             }
         }

@@ -4,7 +4,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.particle.ParticleTypes;
@@ -171,7 +170,7 @@ public final class BeeChaosHoneyStormManager {
 
             if (CombatTargeting.isFriendlyTo(candidate, owner)) {
                 candidate.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, regenDuration, regenAmplifier), owner);
-            } else if ((candidate instanceof HostileEntity || CombatTargeting.isTargetWhitelisted(candidate))
+            } else if (CombatTargeting.isOffensiveTargetCandidate(candidate)
                     && CombatTargeting.checkFriendlyFire(candidate, owner)) {
                 candidate.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, slownessDuration, slownessAmplifier), owner);
             }
@@ -254,8 +253,7 @@ public final class BeeChaosHoneyStormManager {
     private static LivingEntity findRandomHostileInStorm(ServerWorld world, ActiveHoneyStorm storm, LivingEntity owner) {
         Box box = Box.of(storm.center, storm.radius * 2.0, 6.0, storm.radius * 2.0);
         List<LivingEntity> candidates = world.getEntitiesByClass(LivingEntity.class, box, entity ->
-                entity.isAlive()
-                        && (entity instanceof HostileEntity || CombatTargeting.isTargetWhitelisted(entity))
+                CombatTargeting.isOffensiveTargetCandidate(entity)
                         && CombatTargeting.checkFriendlyFire(entity, owner)
                         && horizontalDistanceSquared(entity.getPos(), storm.center) <= storm.radius * storm.radius);
         if (candidates.isEmpty()) {

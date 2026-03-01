@@ -260,7 +260,7 @@ public class ShoulderBowEntity extends Entity {
                 owner.getBoundingBox().expand(targetRadius, 8.0, targetRadius),
                 entity -> entity.isAlive() && (supportMode
                         ? entity != owner
-                        : (entity instanceof net.minecraft.entity.mob.HostileEntity || CombatTargeting.isTargetWhitelisted(entity)))
+                        : CombatTargeting.isOffensiveTargetCandidate(entity))
         )) {
             if (supportMode) {
                 if (candidate == owner || !CombatTargeting.isFriendlyTo(candidate, owner)) {
