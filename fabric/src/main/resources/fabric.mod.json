@@ -11,7 +11,7 @@
   "contact": {
     "homepage": ""
   },
-  "license": "All-Rights-Reserved",
+  "license": "Timefall Development License 1.2",
   "icon": "assets/simplybows/icon.gif",
   "environment": "*",
   "entrypoints": {
