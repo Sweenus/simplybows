@@ -47,8 +47,9 @@ public final class SimplyBowsTooltipProvider implements TooltipProvider {
                 ? stack.getName().getString()
                 : rawLines.get(0).getString();
 
-        // Parse ability lines from raw tooltip
-        List<String> abilityLines = parseAbilityLines(rawLines);
+        // Build ability text directly from translation key so Simply Tooltips can
+        // perform one pixel-width wrap pass (avoids double-wrap artifacts).
+        List<String> abilityLines = getAbilityLines(bowKey, rawLines);
 
         // Fixed accent colors — same as ST default theme, consistent across all bow themes
         TooltipTheme defaults = TooltipTheme.defaultTheme();
@@ -103,7 +104,25 @@ public final class SimplyBowsTooltipProvider implements TooltipProvider {
 
     // --- Ability section parsing ---
 
-    private static List<String> parseAbilityLines(List<Text> rawLines) {
+    private static List<String> getAbilityLines(String bowKey, List<Text> rawLines) {
+        String abilityKey = "tooltip.simplybows.bow." + bowKey + ".ability";
+        String translated = Text.translatable(abilityKey).getString();
+
+        // Missing keys resolve back to the key string; use raw tooltip parsing as fallback.
+        if (translated == null || translated.isBlank() || abilityKey.equals(translated)) {
+            return parseAbilityLinesFromRaw(rawLines);
+        }
+
+        List<String> lines = new ArrayList<>();
+        for (String line : translated.split("\\R")) {
+            if (!line.isBlank()) {
+                lines.add(line.trim());
+            }
+        }
+        return lines.isEmpty() ? parseAbilityLinesFromRaw(rawLines) : lines;
+    }
+
+    private static List<String> parseAbilityLinesFromRaw(List<Text> rawLines) {
         if (rawLines.size() < 2) return List.of();
 
         // BowTooltipHelper adds: blank → abilityHeader → ability lines → blank → upgradesHeader → ...
