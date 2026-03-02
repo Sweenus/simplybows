@@ -9,7 +9,6 @@ import net.minecraft.client.particle.SpriteBillboardParticle;
 import net.minecraft.client.particle.SpriteProvider;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.particle.SimpleParticleType;
-import net.sweenus.simplybows.SimplyBows;
 
 @Environment(EnvType.CLIENT)
 public class WaveParticle extends SpriteBillboardParticle {
@@ -76,7 +75,6 @@ public class WaveParticle extends SpriteBillboardParticle {
 
     @Environment(EnvType.CLIENT)
     public static class Factory implements ParticleFactory<SimpleParticleType> {
-        private static int createdCount = 0;
         private final SpriteProvider sprites;
 
         public Factory(SpriteProvider sprites) {
@@ -87,10 +85,6 @@ public class WaveParticle extends SpriteBillboardParticle {
         public Particle createParticle(SimpleParticleType parameters, ClientWorld world,
                                        double x, double y, double z,
                                        double vx, double vy, double vz) {
-            createdCount++;
-            if (createdCount % 200 == 0) {
-                SimplyBows.LOGGER.info("WaveParticle factory invoked {} times", createdCount);
-            }
             return new WaveParticle(world, x, y, z, vx, vy, vz, sprites);
         }
     }
