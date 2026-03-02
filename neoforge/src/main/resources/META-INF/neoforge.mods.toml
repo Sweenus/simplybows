@@ -11,7 +11,7 @@ authors = "Sweenus, Hootea"
 description = '''
 
 '''
-#logoFile = ""
+logoFile = "assets/simplybows/icon.png"
 
 [[dependencies.simplybows]]
 modId = "neoforge"
