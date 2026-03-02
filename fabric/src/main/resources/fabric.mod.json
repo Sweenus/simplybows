@@ -12,7 +12,7 @@
     "homepage": ""
   },
   "license": "Timefall Development License 1.2",
-  "icon": "assets/simplybows/icon.gif",
+  "icon": "icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
