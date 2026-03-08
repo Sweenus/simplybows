@@ -180,7 +180,7 @@ public final class BeeHiveSwarmManager {
         );
         beeArrow.setVelocity(velocity);
         beeArrow.setCritical(false);
-        beeArrow.setDamage(2.0 * hive.upgrades.damageMultiplier());
+        beeArrow.setDamage(2.0 * hive.upgrades.damageMultiplier() + CombatTargeting.getRangedWeaponDamageBonus(owner));
 
         world.spawnEntity(beeArrow);
         hive.shotsRemaining--;

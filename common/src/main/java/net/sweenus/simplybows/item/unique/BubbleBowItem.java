@@ -124,6 +124,7 @@ public class BubbleBowItem extends SimplyBowItem {
                 }
 
                 ProjectileEntity projectileEntity = this.createArrowEntity(world, shooter, stack, arrowForProjectile, critical);
+                this.simplybows$applyRangedWeaponProjectileBonus(shooter, projectileEntity);
                 this.shoot(shooter, projectileEntity, j, speed, SimplyBowsConfig.INSTANCE.bubbleBow.painDivergence.get(), 0.0F, target);
                 double centerOffset = (quantity - 1) * 0.5;
                 double lateralOffset = (p - centerOffset) * BUBBLE_PAIN_LINE_SPACING;

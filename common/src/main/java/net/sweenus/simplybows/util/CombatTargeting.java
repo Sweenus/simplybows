@@ -135,7 +135,7 @@ public final class CombatTargeting {
         }
 
         Vec3d velocityBeforeDamage = applyKnockback ? null : target.getVelocity();
-        float adjustedAmount = amount + getRangedWeaponAbilityDamageBonus(attackingEntity);
+        float adjustedAmount = amount + getRangedWeaponDamageBonus(attackingEntity, "ability");
         boolean damaged;
         if (attackingEntity instanceof PlayerEntity playerEntity) {
             damaged = target.damage(world.getDamageSources().playerAttack(playerEntity), adjustedAmount);
@@ -156,7 +156,11 @@ public final class CombatTargeting {
         return damaged;
     }
 
-    private static float getRangedWeaponAbilityDamageBonus(@Nullable Entity attackingEntity) {
+    public static float getRangedWeaponDamageBonus(@Nullable Entity attackingEntity) {
+        return getRangedWeaponDamageBonus(attackingEntity, "projectile");
+    }
+
+    public static float getRangedWeaponDamageBonus(@Nullable Entity attackingEntity, String sourceType) {
         if (!(attackingEntity instanceof LivingEntity attackerLiving)) {
             return 0.0F;
         }
@@ -184,7 +188,8 @@ public final class CombatTargeting {
         float bonus = (float) (attributeValue * configMultiplier);
         if (bonus > 0.0F && SimplyBows.debugMode()) {
             SimplyBows.LOGGER.info(
-                    "Applied ranged_weapon:damage bonus to bow ability damage: attacker={}, attributeValue={}, configMultiplier={}, bonus={}",
+                    "Applied ranged_weapon:damage bonus to bow {} damage: attacker={}, attributeValue={}, configMultiplier={}, bonus={}",
+                    sourceType,
                     attackerLiving.getName().getString(),
                     attributeValue,
                     configMultiplier,

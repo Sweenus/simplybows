@@ -4,6 +4,7 @@ import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.item.*;
 import net.minecraft.item.tooltip.TooltipType;
@@ -19,6 +20,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.world.World;
 import net.sweenus.simplybows.network.AbilityCooldownPayload;
 import net.sweenus.simplybows.util.BowTooltipHelper;
+import net.sweenus.simplybows.util.CombatTargeting;
 import net.sweenus.simplybows.util.HelperMethods;
 import org.jetbrains.annotations.Nullable;
 
@@ -283,6 +285,7 @@ public class SimplyBowItem extends BowItem {
 
                     // Create and shoot the projectile
                     ProjectileEntity projectileEntity = bow.createArrowEntity(world, shooter, stack, arrowForProjectile, critical);
+                    bow.simplybows$applyRangedWeaponProjectileBonus(shooter, projectileEntity);
                     bow.shoot(shooter, projectileEntity, j, speed, divergence, k + (p - ((float) quantity / 2)) * quantity, target);
                     world.spawnEntity(projectileEntity);
 
@@ -358,6 +361,12 @@ public class SimplyBowItem extends BowItem {
 
     protected String getTooltipBowKey() {
         return "generic";
+    }
+
+    protected void simplybows$applyRangedWeaponProjectileBonus(@Nullable LivingEntity shooter, ProjectileEntity projectileEntity) {
+        if (projectileEntity instanceof PersistentProjectileEntity persistentProjectile) {
+            persistentProjectile.setDamage(persistentProjectile.getDamage() + CombatTargeting.getRangedWeaponDamageBonus(shooter));
+        }
     }
 
 
