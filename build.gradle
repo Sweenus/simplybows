@@ -9,6 +9,10 @@ architectury {
     minecraft = project.minecraft_version
 }
 
+ext {
+    simplyTooltipsCommonDevJar = fileTree(dir: "${rootDir}/../simplytooltips/common/build/devlibs", include: ["SimplyTooltips-common-*-dev.jar"])
+}
+
 allprojects {
     group = rootProject.maven_group
     version = rootProject.mod_version

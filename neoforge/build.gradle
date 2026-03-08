@@ -40,7 +40,7 @@ dependencies {
     shadowBundle project(path: ':common', configuration: 'transformProductionNeoForge')
 
     // Simply Tooltips — available in dev runs but NOT bundled in the output JAR
-    localRuntime files("${rootDir}/../../Simply Tooltips/common/build/devlibs/SimplyTooltips-common-0.1.0-dev.jar")
+    localRuntime files(rootProject.simplyTooltipsCommonDevJar)
 }
 
 processResources {

@@ -20,5 +20,5 @@ dependencies {
     modImplementation "me.fzzyhmstrs:fzzy_config:${project.fzz_config_version}"
 
     // Simply Tooltips - optional soft dependency for modern tooltip rendering
-    compileOnly files("${rootDir}/../Simply Tooltips/common/build/devlibs/SimplyTooltips-common-0.1.0-dev.jar")
+    compileOnly files(rootProject.simplyTooltipsCommonDevJar)
 }

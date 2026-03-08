@@ -459,5 +459,6 @@ public class SimplyBowsConfig extends Config {
     public static class GeneralSection extends ConfigSection {
         public ValidatedBoolean debugMode = new ValidatedBoolean(false);
         public ValidatedBoolean modernTooltipsEnabled = new ValidatedBoolean(true);
+        public ValidatedDouble rangedWeaponApiDamageMultiplier = new ValidatedDouble(1.0, 100.0, 0.0);
     }
 }

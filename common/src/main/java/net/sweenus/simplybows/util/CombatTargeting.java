@@ -2,16 +2,20 @@ package net.sweenus.simplybows.util;
 
 import dev.architectury.platform.Platform;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.attribute.EntityAttribute;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.Tameable;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.scoreboard.AbstractTeam;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
+import net.sweenus.simplybows.SimplyBows;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.compat.opac.OpacCompat;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,6 +26,7 @@ import java.util.Set;
 public final class CombatTargeting {
 
     private static final Set<String> TARGET_WHITELIST = new HashSet<>();
+    private static final Identifier RANGED_WEAPON_DAMAGE_ATTRIBUTE_ID = Identifier.of("ranged_weapon", "damage");
 
     static {
         addTargetWhitelist("target_dummy");
@@ -130,13 +135,14 @@ public final class CombatTargeting {
         }
 
         Vec3d velocityBeforeDamage = applyKnockback ? null : target.getVelocity();
+        float adjustedAmount = amount + getRangedWeaponAbilityDamageBonus(attackingEntity);
         boolean damaged;
         if (attackingEntity instanceof PlayerEntity playerEntity) {
-            damaged = target.damage(world.getDamageSources().playerAttack(playerEntity), amount);
+            damaged = target.damage(world.getDamageSources().playerAttack(playerEntity), adjustedAmount);
         } else if (attackingEntity instanceof LivingEntity attackerLiving) {
-            damaged = target.damage(world.getDamageSources().mobAttack(attackerLiving), amount);
+            damaged = target.damage(world.getDamageSources().mobAttack(attackerLiving), adjustedAmount);
         } else {
-            damaged = target.damage(world.getDamageSources().magic(), amount);
+            damaged = target.damage(world.getDamageSources().magic(), adjustedAmount);
         }
 
         if (ignoreIframe) {
@@ -148,6 +154,44 @@ public final class CombatTargeting {
         }
 
         return damaged;
+    }
+
+    private static float getRangedWeaponAbilityDamageBonus(@Nullable Entity attackingEntity) {
+        if (!(attackingEntity instanceof LivingEntity attackerLiving)) {
+            return 0.0F;
+        }
+
+        double configMultiplier = SimplyBowsConfig.INSTANCE.general.rangedWeaponApiDamageMultiplier.get();
+        if (configMultiplier <= 0.0) {
+            return 0.0F;
+        }
+
+        EntityAttribute attribute = Registries.ATTRIBUTE.get(RANGED_WEAPON_DAMAGE_ATTRIBUTE_ID);
+        if (attribute == null) {
+            return 0.0F;
+        }
+
+        RegistryEntry<EntityAttribute> attributeEntry = Registries.ATTRIBUTE.getEntry(attribute);
+        if (attributeEntry == null) {
+            return 0.0F;
+        }
+
+        if (attackerLiving.getAttributeInstance(attributeEntry) == null) {
+            return 0.0F;
+        }
+
+        double attributeValue = attackerLiving.getAttributeValue(attributeEntry);
+        float bonus = (float) (attributeValue * configMultiplier);
+        if (bonus > 0.0F && SimplyBows.debugMode()) {
+            SimplyBows.LOGGER.info(
+                    "Applied ranged_weapon:damage bonus to bow ability damage: attacker={}, attributeValue={}, configMultiplier={}, bonus={}",
+                    attackerLiving.getName().getString(),
+                    attributeValue,
+                    configMultiplier,
+                    bonus
+            );
+        }
+        return bonus;
     }
 
     public static float applyHealing(@Nullable LivingEntity sourceEntity, LivingEntity target, float amount) {

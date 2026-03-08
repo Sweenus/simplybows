@@ -629,5 +629,7 @@
   "simplybows.config.general.debugMode": "Debug Mode",
   "simplybows.config.general.debugMode.desc": "Enables verbose debug logging and developer diagnostics.",
   "simplybows.config.general.modernTooltipsEnabled": "Modern Tooltips",
-  "simplybows.config.general.modernTooltipsEnabled.desc": "Uses the modern tooltip style for Simply Bows items."
+  "simplybows.config.general.modernTooltipsEnabled.desc": "Uses the modern tooltip style for Simply Bows items.",
+  "simplybows.config.general.rangedWeaponApiDamageMultiplier": "Ranged Weapon API Damage Multiplier",
+  "simplybows.config.general.rangedWeaponApiDamageMultiplier.desc": "Adds bonus bow ability damage when RangedWeaponAPI is present (finalDamage += attributeValue * configMultiplier)."
 }
