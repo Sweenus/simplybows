@@ -20,7 +20,7 @@ import java.util.Map;
 
 public class BeeGraceVisualEntityRenderer extends EntityRenderer<BeeGraceVisualEntity> {
 
-    private static final Identifier BEE_TEXTURE = Identifier.ofVanilla("textures/entity/bee/bee.png");
+    private static final Identifier BEE_TEXTURE = new Identifier("minecraft", "textures/entity/bee/bee.png");
     private static final double RENDER_POSITION_SMOOTHING = 0.35;
     private static final float RENDER_YAW_SMOOTHING = 0.35F;
     private static final double MIN_MOTION_FOR_HEADING_SQ = 1.0E-5;

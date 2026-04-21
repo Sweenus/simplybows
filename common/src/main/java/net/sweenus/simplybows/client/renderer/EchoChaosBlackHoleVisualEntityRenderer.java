@@ -15,11 +15,11 @@ import net.sweenus.simplybows.entity.EchoChaosBlackHoleVisualEntity;
 public class EchoChaosBlackHoleVisualEntityRenderer extends EntityRenderer<EchoChaosBlackHoleVisualEntity> {
 
     private static final Identifier BLACK_TEXTURE =
-            Identifier.of("simplybows", "textures/entity/echo_chaos_black_hole.png");
+            new Identifier("simplybows", "textures/entity/echo_chaos_black_hole.png");
     private static final Identifier OUTLINE_TEXTURE =
-            Identifier.of("simplybows", "textures/entity/echo_chaos_black_hole_outline.png");
+            new Identifier("simplybows", "textures/entity/echo_chaos_black_hole_outline.png");
     private static final Identifier DISK_TEXTURE =
-            Identifier.of("simplybows", "textures/entity/echo_chaos_disk.png");
+            new Identifier("simplybows", "textures/entity/echo_chaos_disk.png");
 
     private static final float DISK_R = 1.00f;
     private static final float DISK_G = 0.42f;
@@ -206,11 +206,12 @@ public class EchoChaosBlackHoleVisualEntityRenderer extends EntityRenderer<EchoC
             float r, float g, float b, float a,
             float nx, float ny, float nz
     ) {
-        vc.vertex(entry, x, y, z)
+        vc.vertex(entry.getPositionMatrix(), x, y, z)
                 .color(r, g, b, a)
                 .texture(u, v)
                 .overlay(OverlayTexture.DEFAULT_UV)
                 .light(light)
-                .normal(entry, nx, ny, nz);
+                .normal(entry.getNormalMatrix(), nx, ny, nz)
+                .next();
     }
 }

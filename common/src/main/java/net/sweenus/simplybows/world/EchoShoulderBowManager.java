@@ -1,7 +1,6 @@
 package net.sweenus.simplybows.world;
 
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.PotionContentsComponent;
+import net.minecraft.potion.PotionUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
@@ -182,7 +181,7 @@ public final class EchoShoulderBowManager {
             }
             StatusEffectInstance instance = new StatusEffectInstance(effect);
             copied.add(instance);
-            if (!instance.getEffectType().value().isBeneficial()) {
+            if (!instance.getEffectType().isBeneficial()) {
                 allBeneficial = false;
             }
         }
@@ -376,13 +375,7 @@ public final class EchoShoulderBowManager {
         if (stack == null || stack.isEmpty() || !(stack.getItem() instanceof PotionItem)) {
             return false;
         }
-        PotionContentsComponent potionContents = stack.get(DataComponentTypes.POTION_CONTENTS);
-        if (potionContents == null) {
-            return false;
-        }
-        final boolean[] hasEffects = {false};
-        potionContents.forEachEffect(effect -> hasEffects[0] = true);
-        return hasEffects[0];
+        return !PotionUtil.getPotionEffects(stack).isEmpty();
     }
 
     private record CompanionPair(UUID leftId, UUID rightId) {

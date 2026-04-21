@@ -54,7 +54,7 @@ public class HomingArrowEntity extends ArrowEntity {
     }
 
     public HomingArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
-        super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
+        super(world, owner);
         this.setOwner(owner);
     }
 
@@ -170,7 +170,7 @@ public class HomingArrowEntity extends ArrowEntity {
             }
 
             // Fallback: allow duplicates if not enough unique targets
-            return entities.getFirst();
+            return entities.get(0);
         }
 
         return null;

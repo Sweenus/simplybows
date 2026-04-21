@@ -40,9 +40,9 @@ public class VineBowItem extends SimplyBowItem {
     }
 
     @Override
-    protected ProjectileEntity createArrowEntity(World world, LivingEntity shooter, ItemStack weaponStack, ItemStack arrowStack, boolean critical) {
+    protected ProjectileEntity createArrow(World world, LivingEntity shooter, ItemStack arrowStack) {
         if (simplybows$isForcingVanillaArrow()) {
-            return super.createArrowEntity(world, shooter, weaponStack, arrowStack, critical);
+            return super.createArrow(world, shooter, arrowStack);
         }
 
         ItemStack firedArrowStack = arrowStack;
@@ -50,11 +50,10 @@ public class VineBowItem extends SimplyBowItem {
             firedArrowStack = new ItemStack(Items.ARROW);
         }
 
+        ItemStack weaponStack = shooter.getActiveItem();
         BowUpgradeData upgrades = BowUpgradeData.from(weaponStack);
         VineArrowEntity arrowEntity = new VineArrowEntity(world, shooter, firedArrowStack, weaponStack);
         arrowEntity.setDamage(SimplyBowsConfig.INSTANCE.vineBow.baseDamage.get() * upgrades.damageMultiplier());
-        //arrowEntity.setPunch(upgrades.bonusKnockback());
-        arrowEntity.setCritical(critical);
         return arrowEntity;
     }
 }

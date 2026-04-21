@@ -29,7 +29,7 @@ public class BlossomArrowEntity extends ArrowEntity {
     }
 
     public BlossomArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
-        super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
+        super(world, owner);
         this.upgrades = BowUpgradeData.from(weaponStack);
     }
 
@@ -92,7 +92,7 @@ public class BlossomArrowEntity extends ArrowEntity {
     }
 
     @Override
-    protected ItemStack getDefaultItemStack() {
+    public ItemStack asItemStack() {
         return new ItemStack(Items.ARROW);
     }
 

@@ -1,8 +1,6 @@
 package net.sweenus.simplybows.item.unique;
 
 import net.sweenus.simplybows.config.SimplyBowsConfig;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.NbtComponent;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
@@ -52,7 +50,7 @@ public class IceBowItem extends SimplyBowItem {
     }
 
 
-    public static void passiveParticles(ServerPlayerEntity serverPlayer, PlayerEntity player,  ServerWorld world) {
+    public static void passiveParticles(ServerPlayerEntity serverPlayer, PlayerEntity player, ServerWorld world) {
         int random = (int) (Math.random() * 30);
         Item item = ItemRegistry.ICE_BOW.get();
         if (HelperMethods.isHoldingItem(item, serverPlayer) && serverPlayer.age % (5 + random) == 0) {
@@ -89,7 +87,7 @@ public class IceBowItem extends SimplyBowItem {
             painTarget = findNearestHostile(serverWorld, player);
         }
 
-        NbtCompound customData = getOrCreateCustomData(stack);
+        NbtCompound customData = stack.getOrCreateNbt();
         customData.putDouble(NBT_DAMAGE_MULTIPLIER, damageMultiplier);
         // Only hard-lock when pain mode found a concrete target.
         // If no target is found, keep normal homing fallback behavior.
@@ -108,7 +106,6 @@ public class IceBowItem extends SimplyBowItem {
         } else {
             customData.remove(NBT_TARGET_UUID);
         }
-        stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(customData));
 
         if (chaosWallReady) {
             this.shootAll(serverWorld, player, player.getActiveHand(), stack, list, f * SimplyBowsConfig.INSTANCE.iceBow.arrowSpeed.get(), SimplyBowsConfig.INSTANCE.iceBow.chaosWallArrowDivergence.get() * 0.01F, f == 1.0F, null);
@@ -149,9 +146,9 @@ public class IceBowItem extends SimplyBowItem {
     }
 
     @Override
-    protected ProjectileEntity createArrowEntity(World world, LivingEntity shooter, ItemStack weaponStack, ItemStack arrowStack, boolean critical) {
+    protected ProjectileEntity createArrow(World world, LivingEntity shooter, ItemStack arrowStack) {
         if (simplybows$isForcingVanillaArrow()) {
-            return super.createArrowEntity(world, shooter, weaponStack, arrowStack, critical);
+            return super.createArrow(world, shooter, arrowStack);
         }
 
         double damageMultiplier = 1.0;
@@ -161,9 +158,10 @@ public class IceBowItem extends SimplyBowItem {
         int chaosWallStringLevel = 0;
         int chaosWallFrameLevel = 0;
         UUID targetUuid = null;
-        NbtComponent customData = weaponStack.get(DataComponentTypes.CUSTOM_DATA);
-        if (customData != null) {
-            NbtCompound nbt = customData.copyNbt();
+        // Read temp data written to bow stack in performStoppedUsing
+        ItemStack weaponStack = shooter.getActiveItem();
+        NbtCompound nbt = weaponStack.getNbt();
+        if (nbt != null) {
             damageMultiplier = nbt.getDouble(NBT_DAMAGE_MULTIPLIER);
             if (damageMultiplier <= 0.0) {
                 damageMultiplier = 1.0;
@@ -182,7 +180,6 @@ public class IceBowItem extends SimplyBowItem {
         if (arrowStack.isOf(Items.SPECTRAL_ARROW)) {
             HomingSpectralArrowEntity spectralArrow = new HomingSpectralArrowEntity(world, shooter, arrowStack, weaponStack);
             spectralArrow.setDamage(SimplyBowsConfig.INSTANCE.iceBow.baseDamage.get() * damageMultiplier);
-            //spectralArrow.setPunch((int) Math.floor((damageMultiplier - 1.0) * 2.0));
             spectralArrow.setLockSingleTarget(lockTarget);
             spectralArrow.setStackingSlowness(stackSlow);
             if (targetUuid != null) {
@@ -193,12 +190,10 @@ public class IceBowItem extends SimplyBowItem {
                 spectralArrow.setHomingEnabled(false);
                 spectralArrow.setChaosWallUpgradeLevels(chaosWallStringLevel, chaosWallFrameLevel);
             }
-            spectralArrow.setCritical(critical);
             arrowEntity = spectralArrow;
         } else {
             HomingArrowEntity homingArrow = new HomingArrowEntity(world, shooter, arrowStack, weaponStack);
             homingArrow.setDamage(SimplyBowsConfig.INSTANCE.iceBow.baseDamage.get() * damageMultiplier);
-            //homingArrow.setPunch((int) Math.floor((damageMultiplier - 1.0) * 2.0));
             homingArrow.setLockSingleTarget(lockTarget);
             homingArrow.setStackingSlowness(stackSlow);
             if (targetUuid != null) {
@@ -209,7 +204,6 @@ public class IceBowItem extends SimplyBowItem {
                 homingArrow.setHomingEnabled(false);
                 homingArrow.setChaosWallUpgradeLevels(chaosWallStringLevel, chaosWallFrameLevel);
             }
-            homingArrow.setCritical(critical);
             arrowEntity = homingArrow;
         }
         return arrowEntity;
@@ -242,11 +236,6 @@ public class IceBowItem extends SimplyBowItem {
             }
         }
         return best;
-    }
-
-    private static NbtCompound getOrCreateCustomData(ItemStack stack) {
-        NbtComponent customData = stack.get(DataComponentTypes.CUSTOM_DATA);
-        return customData == null ? new NbtCompound() : customData.copyNbt();
     }
 
 }

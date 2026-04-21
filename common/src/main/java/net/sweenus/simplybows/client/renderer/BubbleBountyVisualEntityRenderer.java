@@ -15,7 +15,7 @@ import net.sweenus.simplybows.entity.BubbleBountyVisualEntity;
 
 public class BubbleBountyVisualEntityRenderer extends EntityRenderer<BubbleBountyVisualEntity> {
 
-    private static final Identifier AXOLOTL_TEXTURE = Identifier.ofVanilla("textures/entity/axolotl/axolotl_blue.png");
+    private static final Identifier AXOLOTL_TEXTURE = new Identifier("minecraft", "textures/entity/axolotl/axolotl_blue.png");
     private static final int SWARM_COUNT = 6;
     private final AxolotlEntityRenderer axolotlRenderer;
     private AxolotlEntity renderAxolotl;

@@ -34,7 +34,7 @@ public final class BowPassiveParticleManager {
                 9,
                 new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.DRIPSTONE_BLOCK.getDefaultState()),
                 1,
-                ParticleTypes.DUST_PLUME,
+                ParticleTypes.POOF,
                 1
         );
         emit(serverPlayer, player, world, ItemRegistry.ECHO_BOW.get(), 8, ParticleTypes.CRIMSON_SPORE, 2, ParticleTypes.WITCH, 1);

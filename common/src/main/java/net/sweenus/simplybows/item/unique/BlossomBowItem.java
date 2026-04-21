@@ -41,9 +41,9 @@ public class BlossomBowItem extends SimplyBowItem {
     }
 
     @Override
-    protected ProjectileEntity createArrowEntity(World world, LivingEntity shooter, ItemStack weaponStack, ItemStack arrowStack, boolean critical) {
+    protected ProjectileEntity createArrow(World world, LivingEntity shooter, ItemStack arrowStack) {
         if (simplybows$isForcingVanillaArrow()) {
-            return super.createArrowEntity(world, shooter, weaponStack, arrowStack, critical);
+            return super.createArrow(world, shooter, arrowStack);
         }
 
         ItemStack firedArrowStack = arrowStack;
@@ -51,9 +51,9 @@ public class BlossomBowItem extends SimplyBowItem {
             firedArrowStack = new ItemStack(Items.ARROW);
         }
 
+        ItemStack weaponStack = shooter.getActiveItem();
         BlossomArrowEntity arrowEntity = new BlossomArrowEntity(world, shooter, firedArrowStack, weaponStack);
         arrowEntity.setDamage(SimplyBowsConfig.INSTANCE.blossomBow.baseDamage.get());
-        arrowEntity.setCritical(critical);
         return arrowEntity;
     }
 }

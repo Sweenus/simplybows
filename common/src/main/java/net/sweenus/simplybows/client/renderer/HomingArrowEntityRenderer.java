@@ -6,15 +6,12 @@ import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 import net.minecraft.util.Identifier;
 import net.sweenus.simplybows.entity.HomingArrowEntity;
 
 public class HomingArrowEntityRenderer extends ProjectileEntityRenderer<HomingArrowEntity> {
-    private static final Identifier TEXTURE = Identifier.ofVanilla("textures/entity/projectiles/arrow.png");
-    private static final Identifier TIPPED_TEXTURE = Identifier.ofVanilla("textures/entity/projectiles/tipped_arrow.png");
-    private static final Identifier SPECTRAL_TEXTURE = Identifier.ofVanilla("textures/entity/projectiles/spectral_arrow.png");
+    private static final Identifier TEXTURE = new Identifier("minecraft", "textures/entity/projectiles/arrow.png");
+    private static final Identifier TIPPED_TEXTURE = new Identifier("minecraft", "textures/entity/projectiles/tipped_arrow.png");
     private int currentColor = -1;
 
     public HomingArrowEntityRenderer(EntityRendererFactory.Context context) {
@@ -23,13 +20,6 @@ public class HomingArrowEntityRenderer extends ProjectileEntityRenderer<HomingAr
 
     @Override
     public Identifier getTexture(HomingArrowEntity entity) {
-        ItemStack stack = entity.getItemStack();
-        if (stack == null || stack.isEmpty()) {
-            stack = entity.getItemStack();
-        }
-        if (stack != null && stack.isOf(Items.SPECTRAL_ARROW)) {
-            return SPECTRAL_TEXTURE;
-        }
         if (entity.getColor() > 0) {
             return TIPPED_TEXTURE;
         }
@@ -44,14 +34,16 @@ public class HomingArrowEntityRenderer extends ProjectileEntityRenderer<HomingAr
     }
 
     @Override
-    public void vertex(MatrixStack.Entry entry, VertexConsumer consumer, int x, int y, int z, float u, float v,
+    public void vertex(org.joml.Matrix4f positionMatrix, org.joml.Matrix3f normalMatrix, VertexConsumer consumer,
+                       int x, int y, int z, float u, float v,
                        int normalX, int normalY, int normalZ, int light) {
-        consumer.vertex(entry, (float) x, (float) y, (float) z)
+        consumer.vertex(positionMatrix, (float) x, (float) y, (float) z)
                 .color(this.currentColor)
                 .texture(u, v)
                 .overlay(OverlayTexture.DEFAULT_UV)
                 .light(light)
-                .normal(entry, (float) normalX, (float) normalY, (float) normalZ);
+                .normal(normalMatrix, (float) normalX, (float) normalY, (float) normalZ)
+                .next();
     }
 
     private int getArrowColor(HomingArrowEntity entity) {

@@ -1,0 +1,114 @@
+plugins {
+    id "com.github.johnrengelman.shadow" version "7.1.2"
+}
+
+architectury {
+    platformSetupLoomIde()
+    forge()
+}
+
+loom {
+    forge {
+        mixinConfig "simplybows.mixins.json"
+    }
+}
+
+configurations {
+    common
+    shadowCommon
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentForge.extendsFrom common
+}
+
+sourceSets {
+    main {
+        // Keep Forge dev output in a single directory so MOD_CLASSES does not
+        // point at split class/resource roots during mod discovery.
+        output.resourcesDir = java.destinationDirectory.get().asFile
+    }
+}
+
+repositories {
+    maven {
+        name = 'MinecraftForge'
+        url = 'https://maven.minecraftforge.net/'
+    }
+    maven {
+        name = "FzzyMaven"
+        url = "https://maven.fzzyhmstrs.me/"
+    }
+    maven {
+        name = "KotlinForForge"
+        url = "https://thedarkcolour.github.io/KotlinForForge/"
+    }
+}
+
+dependencies {
+    forge "net.minecraftforge:forge:${rootProject.forge_version}"
+    modImplementation "dev.architectury:architectury-forge:${rootProject.architectury_version}"
+    modImplementation("me.fzzyhmstrs:fzzy_config:${project.fzz_config_forge_version}") {
+        // fzzy_config's +forge POM incorrectly declares kotlinforforge-neoforge (NeoForge variant)
+        // instead of kotlinforforge (Forge variant). Exclude it and add the correct one below.
+        exclude group: "thedarkcolour", module: "kotlinforforge-neoforge"
+    }
+    // Use the split Forge artifacts directly to avoid the kotlinforforge -all jar,
+    // which is the last runtime artifact discovered before Forge userdev aborts.
+    modImplementation "thedarkcolour:kfflang:${rootProject.kotlinforforge_version}"
+    modImplementation "thedarkcolour:kfflib:${rootProject.kotlinforforge_version}"
+    modImplementation "thedarkcolour:kffmod:${rootProject.kotlinforforge_version}"
+    runtimeOnly "net.peanuuutz.tomlkt:tomlkt-jvm:${rootProject.tomlkt_version}"
+
+    common(project(path: ':common', configuration: 'namedElements')) { transitive false }
+    shadowCommon(project(path: ':common', configuration: 'transformProductionForge')) { transitive = false }
+}
+
+processResources {
+    inputs.property 'version', project.version
+
+    filesMatching('META-INF/mods.toml') {
+        expand version: project.version
+    }
+}
+
+shadowJar {
+    exclude "fabric.mod.json"
+    exclude "architectury.common.json"
+
+    configurations = [project.configurations.shadowCommon]
+    archiveClassifier.set("dev-shadow")
+}
+
+remapJar {
+    inputFile.set shadowJar.archiveFile
+    dependsOn shadowJar
+    archiveClassifier.set(null)
+}
+
+jar {
+    archiveClassifier.set("dev")
+}
+
+sourcesJar {
+    def commonSources = project(":common").sourcesJar
+    dependsOn commonSources
+    from commonSources.archiveFile.map { zipTree(it) }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+components.java {
+    withVariantsFromConfiguration(project.configurations.shadowRuntimeElements) {
+        skip()
+    }
+}
+
+publishing {
+    publications {
+        mavenForge(MavenPublication) {
+            artifactId = rootProject.archives_base_name + "-" + project.name
+            from components.java
+        }
+    }
+    repositories {
+    }
+}

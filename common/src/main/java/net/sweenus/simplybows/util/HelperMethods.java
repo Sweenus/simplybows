@@ -137,7 +137,7 @@ public class HelperMethods {
 
     public static @Nullable ItemStack consumeNextArrow(List<ItemStack> consumedArrows) {
         if (!consumedArrows.isEmpty()) {
-            ItemStack stack = consumedArrows.getFirst();
+            ItemStack stack = consumedArrows.get(0);
             ItemStack oneArrow = stack.copy();
             oneArrow.setCount(1);
 
@@ -146,7 +146,7 @@ public class HelperMethods {
 
             // If stack becomes empty, remove from list
             if (stack.isEmpty()) {
-                consumedArrows.removeFirst();
+                consumedArrows.remove(0);
             }
 
             return oneArrow;

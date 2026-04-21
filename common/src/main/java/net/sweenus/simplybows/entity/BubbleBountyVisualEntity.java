@@ -30,10 +30,10 @@ public class BubbleBountyVisualEntity extends Entity {
     }
 
     @Override
-    protected void initDataTracker(DataTracker.Builder builder) {
-        builder.add(HEIGHT_SCALE, 1.0F);
-        builder.add(RADIUS, 1.2F);
-        builder.add(COLUMN_HEIGHT, 2.6F);
+    protected void initDataTracker() {
+        this.dataTracker.startTracking(HEIGHT_SCALE, 1.0F);
+        this.dataTracker.startTracking(RADIUS, 1.2F);
+        this.dataTracker.startTracking(COLUMN_HEIGHT, 2.6F);
     }
 
     public void setHeightScale(float value) {

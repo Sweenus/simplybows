@@ -8,8 +8,9 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
-import net.minecraft.item.tooltip.TooltipType;
+import net.minecraft.client.item.TooltipContext;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 import net.sweenus.simplybows.item.unique.SimplyBowItem;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
@@ -66,7 +67,7 @@ public class BowUpgradeComponentItem extends Item {
     }
 
     @Override
-    public void appendTooltip(ItemStack stack, Item.TooltipContext context, List<Text> tooltip, TooltipType type) {
+    public void appendTooltip(ItemStack stack, @Nullable World context, List<Text> tooltip, TooltipContext type) {
         super.appendTooltip(stack, context, tooltip, type);
         tooltip.add(Text.literal(" "));
         //tooltip.add(Text.translatable("tooltip.simplybows.section.component").setStyle(BowTooltipHelper.STYLE_SECTION));

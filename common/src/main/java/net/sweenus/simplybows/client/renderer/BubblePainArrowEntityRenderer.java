@@ -16,7 +16,7 @@ import net.sweenus.simplybows.entity.BubblePainArrowEntity;
 
 public class BubblePainArrowEntityRenderer extends EntityRenderer<BubblePainArrowEntity> {
 
-    private static final Identifier AXOLOTL_TEXTURE = Identifier.ofVanilla("textures/entity/axolotl/axolotl_blue.png");
+    private static final Identifier AXOLOTL_TEXTURE = new Identifier("minecraft", "textures/entity/axolotl/axolotl_blue.png");
     private final AxolotlEntityRenderer axolotlRenderer;
     private AxolotlEntity renderAxolotl;
 

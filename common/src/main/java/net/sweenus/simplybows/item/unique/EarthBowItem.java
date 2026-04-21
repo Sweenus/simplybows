@@ -57,9 +57,9 @@ public class EarthBowItem extends SimplyBowItem {
     }
 
     @Override
-    protected ProjectileEntity createArrowEntity(World world, LivingEntity shooter, ItemStack weaponStack, ItemStack arrowStack, boolean critical) {
+    protected ProjectileEntity createArrow(World world, LivingEntity shooter, ItemStack arrowStack) {
         if (simplybows$isForcingVanillaArrow()) {
-            return super.createArrowEntity(world, shooter, weaponStack, arrowStack, critical);
+            return super.createArrow(world, shooter, arrowStack);
         }
 
         ItemStack firedArrowStack = arrowStack;
@@ -67,12 +67,11 @@ public class EarthBowItem extends SimplyBowItem {
             firedArrowStack = new ItemStack(Items.ARROW);
         }
 
+        ItemStack weaponStack = shooter.getActiveItem();
         BowUpgradeData upgrades = BowUpgradeData.from(weaponStack);
         EarthArrowEntity arrowEntity = new EarthArrowEntity(world, shooter, firedArrowStack, weaponStack);
         arrowEntity.setDamage(SimplyBowsConfig.INSTANCE.earthBow.baseDamage.get() * upgrades.damageMultiplier());
         arrowEntity.setChaosSunderOnImpact(CHAOS_SUNDER_ON_IMPACT.get());
-        //arrowEntity.setPunch(upgrades.bonusKnockback());
-        arrowEntity.setCritical(critical);
         return arrowEntity;
     }
 }

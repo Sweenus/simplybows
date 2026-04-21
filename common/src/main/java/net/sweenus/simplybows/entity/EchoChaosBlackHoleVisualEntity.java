@@ -19,7 +19,7 @@ public class EchoChaosBlackHoleVisualEntity extends Entity {
             DataTracker.registerData(EchoChaosBlackHoleVisualEntity.class, TrackedDataHandlerRegistry.FLOAT);
 
     // Large bounding box so the ring (up to 12-block radius) survives frustum culling
-    private static final EntityDimensions DIMENSIONS = EntityDimensions.fixed(26.0F, 2.0F).withEyeHeight(1.0F);
+    private static final EntityDimensions DIMENSIONS = EntityDimensions.fixed(26.0F, 2.0F);
 
     public EchoChaosBlackHoleVisualEntity(EntityType<? extends EchoChaosBlackHoleVisualEntity> type, World world) {
         super(type, world);
@@ -35,9 +35,9 @@ public class EchoChaosBlackHoleVisualEntity extends Entity {
     }
 
     @Override
-    protected void initDataTracker(DataTracker.Builder builder) {
-        builder.add(VISUAL_SCALE, 1.0F);
-        builder.add(VISUAL_RADIUS, 1.0F);
+    protected void initDataTracker() {
+        this.dataTracker.startTracking(VISUAL_SCALE, 1.0F);
+        this.dataTracker.startTracking(VISUAL_RADIUS, 1.0F);
     }
 
     @Override

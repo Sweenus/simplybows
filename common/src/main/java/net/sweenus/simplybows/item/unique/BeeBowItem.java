@@ -63,17 +63,17 @@ public class BeeBowItem extends SimplyBowItem {
     }
 
     @Override
-    protected ProjectileEntity createArrowEntity(World world, LivingEntity shooter, ItemStack weaponStack, ItemStack arrowStack, boolean critical) {
+    protected ProjectileEntity createArrow(World world, LivingEntity shooter, ItemStack arrowStack) {
         ItemStack firedArrowStack = arrowStack;
         if (firedArrowStack == null || firedArrowStack.isEmpty()) {
             firedArrowStack = new ItemStack(Items.ARROW);
         }
 
+        ItemStack weaponStack = shooter.getActiveItem();
         BowUpgradeData upgrades = BowUpgradeData.from(weaponStack);
         BeeArrowEntity arrowEntity = new BeeArrowEntity(world, shooter, firedArrowStack, weaponStack);
         arrowEntity.setDamage(SimplyBowsConfig.INSTANCE.beeBow.baseDamage.get() * upgrades.damageMultiplier());
         arrowEntity.setChaosHoneyStormOnImpact(CHAOS_HONEY_STORM_ON_IMPACT.get());
-        arrowEntity.setCritical(critical);
         return arrowEntity;
     }
 }

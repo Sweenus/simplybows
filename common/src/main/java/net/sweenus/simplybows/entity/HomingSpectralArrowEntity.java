@@ -48,7 +48,7 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
     }
 
     public HomingSpectralArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
-        super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
+        super(world, owner);
         this.setOwner(owner);
     }
 
@@ -164,7 +164,7 @@ public class HomingSpectralArrowEntity extends SpectralArrowEntity {
             }
 
             // Fallback: allow duplicates if not enough unique targets
-            return entities.getFirst();
+            return entities.get(0);
         }
 
         return null;

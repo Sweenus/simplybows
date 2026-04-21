@@ -8,7 +8,7 @@ import net.minecraft.client.particle.ParticleTextureSheet;
 import net.minecraft.client.particle.SpriteBillboardParticle;
 import net.minecraft.client.particle.SpriteProvider;
 import net.minecraft.client.world.ClientWorld;
-import net.minecraft.particle.SimpleParticleType;
+import net.minecraft.particle.DefaultParticleType;
 
 @Environment(EnvType.CLIENT)
 public class WaveParticle extends SpriteBillboardParticle {
@@ -74,7 +74,7 @@ public class WaveParticle extends SpriteBillboardParticle {
     }
 
     @Environment(EnvType.CLIENT)
-    public static class Factory implements ParticleFactory<SimpleParticleType> {
+    public static class Factory implements ParticleFactory<DefaultParticleType> {
         private final SpriteProvider sprites;
 
         public Factory(SpriteProvider sprites) {
@@ -82,7 +82,7 @@ public class WaveParticle extends SpriteBillboardParticle {
         }
 
         @Override
-        public Particle createParticle(SimpleParticleType parameters, ClientWorld world,
+        public Particle createParticle(DefaultParticleType parameters, ClientWorld world,
                                        double x, double y, double z,
                                        double vx, double vy, double vz) {
             return new WaveParticle(world, x, y, z, vx, vy, vz, sprites);

@@ -13,10 +13,8 @@ import net.minecraft.loot.LootTable;
 import net.minecraft.loot.context.LootContextParameterSet;
 import net.minecraft.loot.context.LootContextParameters;
 import net.minecraft.loot.context.LootContextTypes;
-import net.minecraft.registry.RegistryKey;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
-import net.minecraft.registry.tag.EntityTypeTags;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -644,7 +642,7 @@ public final class VineFlowerFieldManager {
                     && (owner == null || CombatTargeting.checkFriendlyFire(entity, owner))) {
                 if (tuning.damageHostiles() && tuning.hostileDamage() > 0.0F) {
                     float damage = tuning.hostileDamage();
-                    if (entity.getType().isIn(EntityTypeTags.UNDEAD)) {
+                    if (entity.getGroup() == net.minecraft.entity.EntityGroup.UNDEAD) {
                         damage += tuning.undeadBonusDamage();
                     }
                     boolean died = dealAuraDamage(world, owner, entity, damage);
@@ -731,7 +729,7 @@ public final class VineFlowerFieldManager {
 
     private static void spawnBurstParticles(ServerWorld world, Vec3d center, FieldTuning tuning) {
         world.spawnParticles(ParticleTypes.COMPOSTER, center.x, center.y + 0.2, center.z, 10, 0.9, 0.15, 0.9, 0.0);
-        world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.SHORT_GRASS.getDefaultState()), center.x, center.y + 0.1, center.z, 10, 0.9, 0.1, 0.9, 0.015);
+        world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.GRASS.getDefaultState()), center.x, center.y + 0.1, center.z, 10, 0.9, 0.1, 0.9, 0.015);
         world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.DANDELION.getDefaultState()), center.x, center.y + 0.15, center.z, 4, 0.8, 0.12, 0.8, 0.015);
         world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.POPPY.getDefaultState()), center.x, center.y + 0.15, center.z, 4, 0.8, 0.12, 0.8, 0.015);
         if (tuning.cherryTreeVisual()) {
@@ -954,7 +952,7 @@ public final class VineFlowerFieldManager {
     private static boolean cleanseNegativeEffects(LivingEntity entity) {
         List<StatusEffectInstance> toRemove = new ArrayList<>();
         for (StatusEffectInstance instance : entity.getStatusEffects()) {
-            if (!instance.getEffectType().value().isBeneficial()) {
+            if (!instance.getEffectType().isBeneficial()) {
                 toRemove.add(instance);
             }
         }
@@ -975,23 +973,23 @@ public final class VineFlowerFieldManager {
             return;
         }
 
-        RegistryKey<LootTable> lootTableKey = entity.getLootTable();
-        LootTable lootTable = world.getServer().getReloadableRegistries().getLootTable(lootTableKey);
+        LootTable lootTable = world.getServer().getLootManager().getElement(
+                new net.minecraft.loot.LootDataKey<>(net.minecraft.loot.LootDataType.LOOT_TABLES, entity.getLootTable()));
         DamageSource damageSource = createBountyDamageSource(world, owner);
 
         LootContextParameterSet.Builder builder = new LootContextParameterSet.Builder(world)
                 .add(LootContextParameters.THIS_ENTITY, entity)
                 .add(LootContextParameters.ORIGIN, entity.getPos())
                 .add(LootContextParameters.DAMAGE_SOURCE, damageSource)
-                .addOptional(LootContextParameters.ATTACKING_ENTITY, damageSource.getAttacker())
-                .addOptional(LootContextParameters.DIRECT_ATTACKING_ENTITY, damageSource.getSource());
+                .addOptional(LootContextParameters.KILLER_ENTITY, damageSource.getAttacker())
+                .addOptional(LootContextParameters.DIRECT_KILLER_ENTITY, damageSource.getSource());
 
         if (owner instanceof ServerPlayerEntity playerOwner) {
             builder = builder.add(LootContextParameters.LAST_DAMAGE_PLAYER, playerOwner).luck(playerOwner.getLuck());
         }
 
         LootContextParameterSet lootContext = builder.build(LootContextTypes.ENTITY);
-        List<ItemStack> generatedLoot = lootTable.generateLoot(lootContext, entity.getLootTableSeed() ^ world.getRandom().nextLong());
+        List<ItemStack> generatedLoot = lootTable.generateLoot(lootContext);
         if (generatedLoot.isEmpty()) {
             return;
         }
@@ -1098,7 +1096,7 @@ public final class VineFlowerFieldManager {
                  FLOWER_TYPE_GLOW_LICHEN_VERTICAL_NORTH, FLOWER_TYPE_GLOW_LICHEN_VERTICAL_SOUTH,
                  FLOWER_TYPE_GLOW_LICHEN_VERTICAL_EAST_ACTIVE, FLOWER_TYPE_GLOW_LICHEN_VERTICAL_WEST_ACTIVE,
                  FLOWER_TYPE_GLOW_LICHEN_VERTICAL_NORTH_ACTIVE, FLOWER_TYPE_GLOW_LICHEN_VERTICAL_SOUTH_ACTIVE -> Blocks.GLOW_LICHEN.getDefaultState();
-            default -> Blocks.SHORT_GRASS.getDefaultState();
+            default -> Blocks.GRASS.getDefaultState();
         };
     }
 

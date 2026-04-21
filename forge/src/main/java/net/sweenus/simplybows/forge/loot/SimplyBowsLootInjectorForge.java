@@ -1,17 +1,17 @@
-package net.sweenus.simplybows.neoforge.loot;
+package net.sweenus.simplybows.forge.loot;
 
 import net.minecraft.loot.LootPool;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.LootTableLoadEvent;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.LootTableLoadEvent;
 import net.sweenus.simplybows.loot.SimplyBowsChestLootRules;
 
-public final class SimplyBowsLootInjectorNeoForge {
+public final class SimplyBowsLootInjectorForge {
 
-    private SimplyBowsLootInjectorNeoForge() {
+    private SimplyBowsLootInjectorForge() {
     }
 
     public static void init() {
-        NeoForge.EVENT_BUS.addListener(SimplyBowsLootInjectorNeoForge::onLootTableLoad);
+        MinecraftForge.EVENT_BUS.addListener(SimplyBowsLootInjectorForge::onLootTableLoad);
     }
 
     private static void onLootTableLoad(LootTableLoadEvent event) {

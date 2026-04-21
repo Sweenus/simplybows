@@ -2,12 +2,12 @@ package net.sweenus.simplybows;
 
 import dev.architectury.event.events.client.ClientPlayerEvent;
 import dev.architectury.networking.NetworkManager;
-import dev.architectury.platform.Platform;
 import dev.architectury.registry.client.level.entity.EntityRendererRegistry;
 import dev.architectury.utils.Env;
 import dev.architectury.registry.client.particle.ParticleProviderRegistry;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
 import net.sweenus.simplybows.client.ClientAbilityCooldownCache;
 import net.sweenus.simplybows.client.particle.WaveParticle;
@@ -59,9 +59,6 @@ public final class SimplyBows {
         SimplyBowsCreativeTabRegistry.register();
         EntityRegistry.registerEntities();
         ParticleRegistry.registerParticles();
-        if (Platform.getEnvironment() != Env.CLIENT) {
-            NetworkManager.registerS2CPayloadType(AbilityCooldownPayload.ID, AbilityCooldownPayload.CODEC);
-        }
     }
 
     @Environment(EnvType.CLIENT)
@@ -75,17 +72,17 @@ public final class SimplyBows {
             EntityRendererRegistry.register(EntityRegistry.HOMING_ARROW, HomingArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.HOMING_SPECTRAL_ARROW, HomingSpectralArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.VINE_ARROW, context ->
-                    new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/vine_bow/vine_bow.png")));
+                    new SimplyBowsArrowEntityRenderer<>(context, new Identifier(SimplyBows.MOD_ID, "textures/item/vine_bow/vine_bow.png")));
             EntityRendererRegistry.register(EntityRegistry.BUBBLE_ARROW, context ->
-                    new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/bubble_bow/bubble_bow.png")));
+                    new SimplyBowsArrowEntityRenderer<>(context, new Identifier(SimplyBows.MOD_ID, "textures/item/bubble_bow/bubble_bow.png")));
             EntityRendererRegistry.register(EntityRegistry.BUBBLE_PAIN_ARROW, BubblePainArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.BEE_ARROW, BeeArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.BLOSSOM_ARROW, context ->
-                    new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/blossom_bow/blossom_bow.png")));
+                    new SimplyBowsArrowEntityRenderer<>(context, new Identifier(SimplyBows.MOD_ID, "textures/item/blossom_bow/blossom_bow.png")));
             EntityRendererRegistry.register(EntityRegistry.EARTH_ARROW, context ->
-                    new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/earth_bow/earth_bow.png")));
+                    new SimplyBowsArrowEntityRenderer<>(context, new Identifier(SimplyBows.MOD_ID, "textures/item/earth_bow/earth_bow.png")));
             EntityRendererRegistry.register(EntityRegistry.ECHO_ARROW, context ->
-                    new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/echo_bow/echo_bow.png")));
+                    new SimplyBowsArrowEntityRenderer<>(context, new Identifier(SimplyBows.MOD_ID, "textures/item/echo_bow/echo_bow.png")));
             EntityRendererRegistry.register(EntityRegistry.SHOULDER_BOW, ShoulderBowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.EARTH_SPIKE_VISUAL, EarthSpikeVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.ICE_CHAOS_WALL_VISUAL, IceChaosWallVisualEntityRenderer::new);
@@ -102,11 +99,13 @@ public final class SimplyBows {
             LOGGER.info("Registered Architectury particle provider: simplybows:japanese_wave");
 
             NetworkManager.registerReceiver(
-                    NetworkManager.Side.S2C,
-                    AbilityCooldownPayload.ID,
-                    AbilityCooldownPayload.CODEC,
-                    (payload, context) -> context.queue(() ->
-                            ClientAbilityCooldownCache.update(payload.bowKey(), payload.endMs(), payload.totalTicks()))
+                    NetworkManager.s2c(),
+                    AbilityCooldownPayload.CHANNEL_ID,
+                    (buf, context) -> {
+                        AbilityCooldownPayload payload = AbilityCooldownPayload.decode(buf);
+                        context.queue(() -> ClientAbilityCooldownCache.update(
+                                payload.bowKey, payload.endMs, payload.totalTicks));
+                    }
             );
 
             LongSupplier clientWorldTickReader = () -> {
@@ -121,9 +120,6 @@ public final class SimplyBows {
             SimplyBowItem.CLIENT_COOLDOWN_READER = ClientAbilityCooldownCache::get;
             SimplyBowItem.CLIENT_COOLDOWN_TICK_READER = clientWorldTickReader;
 
-            net.sweenus.simplytooltips.api.TooltipProviderRegistry.register(
-                    new net.sweenus.simplybows.client.tooltip.SimplyBowsTooltipProvider(), 100);
-            LOGGER.info("Registered SimplyBowsTooltipProvider with Simply Tooltips");
         }
     }
 

@@ -1,13 +1,12 @@
 package net.sweenus.simplybows.item.unique;
 
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.PotionContentsComponent;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.PotionItem;
+import net.minecraft.potion.PotionUtil;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Hand;
@@ -79,16 +78,16 @@ public class EchoBowItem extends SimplyBowItem {
     }
 
     @Override
-    protected ProjectileEntity createArrowEntity(World world, LivingEntity shooter, ItemStack weaponStack, ItemStack arrowStack, boolean critical) {
+    protected ProjectileEntity createArrow(World world, LivingEntity shooter, ItemStack arrowStack) {
         ItemStack firedArrowStack = arrowStack;
         if (firedArrowStack == null || firedArrowStack.isEmpty()) {
             firedArrowStack = new ItemStack(Items.ARROW);
         }
 
+        ItemStack weaponStack = shooter.getActiveItem();
         EchoArrowEntity arrowEntity = new EchoArrowEntity(world, shooter, firedArrowStack, weaponStack);
         arrowEntity.setDamage(SimplyBowsConfig.INSTANCE.echoBow.baseDamage.get());
         arrowEntity.setChaosBlackHoleOnImpact(CHAOS_BLACK_HOLE_ON_IMPACT.get());
-        arrowEntity.setCritical(critical);
         return arrowEntity;
     }
 
@@ -96,12 +95,6 @@ public class EchoBowItem extends SimplyBowItem {
         if (stack == null || stack.isEmpty() || !(stack.getItem() instanceof PotionItem)) {
             return false;
         }
-        PotionContentsComponent potionContents = stack.get(DataComponentTypes.POTION_CONTENTS);
-        if (potionContents == null) {
-            return false;
-        }
-        final boolean[] hasEffects = {false};
-        potionContents.forEachEffect(effect -> hasEffects[0] = true);
-        return hasEffects[0];
+        return !PotionUtil.getPotionEffects(stack).isEmpty();
     }
 }

@@ -15,7 +15,7 @@ public class SimplyBowsConfig extends Config {
     public static SimplyBowsConfig INSTANCE = ConfigApiJava.registerAndLoadConfig(SimplyBowsConfig::new);
 
     public SimplyBowsConfig() {
-        super(Identifier.of("simplybows", "config"));
+        super(new Identifier("simplybows", "config"));
     }
 
     public IceBowSection iceBow = new IceBowSection();

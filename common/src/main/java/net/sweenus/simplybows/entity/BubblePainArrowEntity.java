@@ -33,7 +33,6 @@ public class BubblePainArrowEntity extends net.minecraft.entity.projectile.Arrow
 
     public BubblePainArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
         this(EntityRegistry.BUBBLE_PAIN_ARROW.get(), world);
-        this.setStack(sanitizeArrowStack(arrowStack));
         this.setOwner(owner);
         this.columnOwnerId = owner != null ? owner.getUuid() : null;
         this.columnUpgrades = BowUpgradeData.from(weaponStack);
@@ -105,7 +104,7 @@ public class BubblePainArrowEntity extends net.minecraft.entity.projectile.Arrow
     }
 
     @Override
-    protected ItemStack getDefaultItemStack() {
+    public ItemStack asItemStack() {
         return new ItemStack(Items.ARROW);
     }
 

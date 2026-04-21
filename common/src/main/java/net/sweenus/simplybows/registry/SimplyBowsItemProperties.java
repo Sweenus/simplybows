@@ -25,17 +25,17 @@ public class SimplyBowsItemProperties {
 
     public static void makeBows(Item item, float drawSpeed) {
         // Register "pull" predicate
-        ItemPropertiesRegistry.register(item, Identifier.of("pull") , (itemStack, clientWorld, livingEntity, seed) -> {
+        ItemPropertiesRegistry.register(item, new Identifier("pull") , (itemStack, clientWorld, livingEntity, seed) -> {
             if (livingEntity == null) {
                 return 0.0F;
             } else {
-                int useTicks = itemStack.getMaxUseTime(livingEntity) - livingEntity.getItemUseTimeLeft();
+                int useTicks = itemStack.getMaxUseTime() - livingEntity.getItemUseTimeLeft();
                 return livingEntity.getActiveItem() != itemStack ? 0.0F : (float) useTicks / drawSpeed;
             }
         });
 
         // Register "pulling" predicate
-        ItemPropertiesRegistry.register(item, Identifier.of("pulling"), (itemStack, clientWorld, livingEntity, seed) ->
+        ItemPropertiesRegistry.register(item, new Identifier("pulling"), (itemStack, clientWorld, livingEntity, seed) ->
                 livingEntity != null
                         && livingEntity.isUsingItem()
                         && livingEntity.getActiveItem() == itemStack ? 1.0F : 0.0F);

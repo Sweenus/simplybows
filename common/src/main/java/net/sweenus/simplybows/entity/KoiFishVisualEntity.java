@@ -41,12 +41,12 @@ public class KoiFishVisualEntity extends Entity {
     }
 
     @Override
-    protected void initDataTracker(DataTracker.Builder builder) {
-        builder.add(VISUAL_SCALE, 0.0F);
-        builder.add(SWIM_ANGLE, 0.0F);
-        builder.add(LARGE_VARIANT, false);
-        builder.add(BASE_COLOR_RGB, 0xF28B2D);
-        builder.add(PATTERN_INDEX, 0);
+    protected void initDataTracker() {
+        this.dataTracker.startTracking(VISUAL_SCALE, 0.0F);
+        this.dataTracker.startTracking(SWIM_ANGLE, 0.0F);
+        this.dataTracker.startTracking(LARGE_VARIANT, false);
+        this.dataTracker.startTracking(BASE_COLOR_RGB, 0xF28B2D);
+        this.dataTracker.startTracking(PATTERN_INDEX, 0);
     }
 
     public void setVisualScale(float scale) {

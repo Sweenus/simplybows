@@ -16,7 +16,7 @@ import net.sweenus.simplybows.entity.BeeArrowEntity;
 
 public class BeeArrowEntityRenderer extends EntityRenderer<BeeArrowEntity> {
 
-    private static final Identifier BEE_TEXTURE = Identifier.ofVanilla("textures/entity/bee/bee.png");
+    private static final Identifier BEE_TEXTURE = new Identifier("minecraft", "textures/entity/bee/bee.png");
     private final BeeEntityRenderer beeRenderer;
     private BeeEntity renderBee;
 

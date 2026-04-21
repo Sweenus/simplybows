@@ -36,18 +36,18 @@ public class ItemRendererMixin {
     // Default placeholder — used for any bow without a dedicated inventory model.
     @Unique
     private static final ModelIdentifier VINE_BOW_INVENTORY_MODEL_ID =
-            ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "vine_bow/vine_bow"));
+            new ModelIdentifier(new Identifier("simplybows", "vine_bow/vine_bow"), "inventory");
 
     // Per-bow overrides. Key = exact item class; value = inventory model to use.
     // Add an entry here whenever a bow gets its own small inventory textures.
     @Unique
     private static final Map<Class<? extends Item>, ModelIdentifier> PER_BOW_INVENTORY_MODELS = Map.of(
-            EchoBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "echo_bow/echo_bow_inventory")),
-            EarthBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "earth_bow/earth_bow_inventory")),
-            IceBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "ice_bow/ice_bow_inventory")),
-            BlossomBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "blossom_bow/blossom_bow_inventory")),
-            BubbleBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "bubble_bow/bubble_bow_inventory")),
-            BeeBowItem.class, ModelIdentifier.ofInventoryVariant(Identifier.of("simplybows", "bee_bow/bee_bow_inventory"))
+            EchoBowItem.class, new ModelIdentifier(new Identifier("simplybows", "echo_bow/echo_bow_inventory"), "inventory"),
+            EarthBowItem.class, new ModelIdentifier(new Identifier("simplybows", "earth_bow/earth_bow_inventory"), "inventory"),
+            IceBowItem.class, new ModelIdentifier(new Identifier("simplybows", "ice_bow/ice_bow_inventory"), "inventory"),
+            BlossomBowItem.class, new ModelIdentifier(new Identifier("simplybows", "blossom_bow/blossom_bow_inventory"), "inventory"),
+            BubbleBowItem.class, new ModelIdentifier(new Identifier("simplybows", "bubble_bow/bubble_bow_inventory"), "inventory"),
+            BeeBowItem.class, new ModelIdentifier(new Identifier("simplybows", "bee_bow/bee_bow_inventory"), "inventory")
     );
 
     @Inject(

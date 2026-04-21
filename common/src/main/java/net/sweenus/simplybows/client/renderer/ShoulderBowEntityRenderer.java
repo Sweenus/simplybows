@@ -21,7 +21,7 @@ import net.sweenus.simplybows.registry.ItemRegistry;
 
 public class ShoulderBowEntityRenderer extends EntityRenderer<ShoulderBowEntity> {
 
-    private static final Identifier TEXTURE = Identifier.ofVanilla("textures/item/bow.png");
+    private static final Identifier TEXTURE = new Identifier("minecraft", "textures/item/bow.png");
     // Item models use a different intrinsic forward axis than entity facing.
     private static final float LOCAL_YAW_OFFSET = -90.0F;
     private static final float LOCAL_PITCH_OFFSET = 0.0F;

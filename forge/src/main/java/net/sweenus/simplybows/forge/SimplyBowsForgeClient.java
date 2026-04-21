@@ -1,9 +1,11 @@
-package net.sweenus.simplybows.neoforge;
+package net.sweenus.simplybows.forge;
 
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.minecraft.util.Identifier;
+import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.client.event.RegisterParticleProvidersEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.sweenus.simplybows.SimplyBows;
+import net.sweenus.simplybows.client.particle.WaveParticle;
 import net.sweenus.simplybows.client.renderer.BeeArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BeeGraceVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BeeHiveVisualEntityRenderer;
@@ -21,15 +23,16 @@ import net.sweenus.simplybows.client.renderer.ShoulderBowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.SimplyBowsArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.VineFlowerVisualEntityRenderer;
 import net.sweenus.simplybows.registry.EntityRegistry;
+import net.sweenus.simplybows.registry.ParticleRegistry;
 
-public final class SimplyBowsNeoForgeClient {
-    private SimplyBowsNeoForgeClient() {
+public final class SimplyBowsForgeClient {
+    private SimplyBowsForgeClient() {
     }
 
     public static void onClientSetup(final FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
             SimplyBows.Client.initializeClient();
-            SimplyBows.LOGGER.info("Registered NeoForge client setup (renderers + particles)");
+            SimplyBows.LOGGER.info("Registered Forge client setup (renderers + particles)");
         });
     }
 
@@ -37,17 +40,17 @@ public final class SimplyBowsNeoForgeClient {
         event.registerEntityRenderer(EntityRegistry.HOMING_ARROW.get(), HomingArrowEntityRenderer::new);
         event.registerEntityRenderer(EntityRegistry.HOMING_SPECTRAL_ARROW.get(), HomingSpectralArrowEntityRenderer::new);
         event.registerEntityRenderer(EntityRegistry.VINE_ARROW.get(), context ->
-                new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/vine_bow/vine_bow.png")));
+                new SimplyBowsArrowEntityRenderer<>(context, new Identifier(SimplyBows.MOD_ID, "textures/item/vine_bow/vine_bow.png")));
         event.registerEntityRenderer(EntityRegistry.BUBBLE_ARROW.get(), context ->
-                new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/bubble_bow/bubble_bow.png")));
+                new SimplyBowsArrowEntityRenderer<>(context, new Identifier(SimplyBows.MOD_ID, "textures/item/bubble_bow/bubble_bow.png")));
         event.registerEntityRenderer(EntityRegistry.BUBBLE_PAIN_ARROW.get(), BubblePainArrowEntityRenderer::new);
         event.registerEntityRenderer(EntityRegistry.BEE_ARROW.get(), BeeArrowEntityRenderer::new);
         event.registerEntityRenderer(EntityRegistry.BLOSSOM_ARROW.get(), context ->
-                new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/blossom_bow/blossom_bow.png")));
+                new SimplyBowsArrowEntityRenderer<>(context, new Identifier(SimplyBows.MOD_ID, "textures/item/blossom_bow/blossom_bow.png")));
         event.registerEntityRenderer(EntityRegistry.EARTH_ARROW.get(), context ->
-                new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/earth_bow/earth_bow.png")));
+                new SimplyBowsArrowEntityRenderer<>(context, new Identifier(SimplyBows.MOD_ID, "textures/item/earth_bow/earth_bow.png")));
         event.registerEntityRenderer(EntityRegistry.ECHO_ARROW.get(), context ->
-                new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/echo_bow/echo_bow.png")));
+                new SimplyBowsArrowEntityRenderer<>(context, new Identifier(SimplyBows.MOD_ID, "textures/item/echo_bow/echo_bow.png")));
         event.registerEntityRenderer(EntityRegistry.SHOULDER_BOW.get(), ShoulderBowEntityRenderer::new);
         event.registerEntityRenderer(EntityRegistry.EARTH_SPIKE_VISUAL.get(), EarthSpikeVisualEntityRenderer::new);
         event.registerEntityRenderer(EntityRegistry.ICE_CHAOS_WALL_VISUAL.get(), IceChaosWallVisualEntityRenderer::new);
@@ -59,5 +62,10 @@ public final class SimplyBowsNeoForgeClient {
         event.registerEntityRenderer(EntityRegistry.BUBBLE_GRACE_VISUAL.get(), BubbleGraceVisualEntityRenderer::new);
         event.registerEntityRenderer(EntityRegistry.BUBBLE_CHAOS_WAVE_VISUAL.get(), BubbleChaosWaveVisualEntityRenderer::new);
         event.registerEntityRenderer(EntityRegistry.KOI_FISH_VISUAL.get(), KoiFishVisualEntityRenderer::new);
+    }
+
+    public static void onRegisterParticleProviders(final RegisterParticleProvidersEvent event) {
+        event.registerSpriteSet(ParticleRegistry.JAPANESE_WAVE.get(), WaveParticle.Factory::new);
+        SimplyBows.LOGGER.info("Registered Forge particle provider: simplybows:japanese_wave");
     }
 }

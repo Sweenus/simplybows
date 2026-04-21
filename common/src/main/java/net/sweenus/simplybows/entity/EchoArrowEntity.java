@@ -50,7 +50,7 @@ public class EchoArrowEntity extends ArrowEntity {
     }
 
     public EchoArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
-        super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
+        super(world, owner);
         this.upgrades = BowUpgradeData.from(weaponStack);
     }
 
@@ -158,7 +158,7 @@ public class EchoArrowEntity extends ArrowEntity {
     }
 
     @Override
-    protected ItemStack getDefaultItemStack() {
+    public ItemStack asItemStack() {
         return new ItemStack(Items.ARROW);
     }
 
@@ -212,7 +212,7 @@ public class EchoArrowEntity extends ArrowEntity {
         world.spawnParticles(ParticleTypes.PORTAL, center.x, center.y, center.z, 22, radius * 0.4, radius * 0.3, radius * 0.4, 0.2);
 
         world.playSound(null, center.x, center.y, center.z, SoundEvents.ENTITY_ILLUSIONER_CAST_SPELL, SoundCategory.PLAYERS, 0.7F, 0.65F + world.random.nextFloat() * 0.1F);
-        world.playSound(null, center.x, center.y, center.z, SoundEvents.BLOCK_RESPAWN_ANCHOR_DEPLETE, SoundCategory.PLAYERS, 0.45F, 1.2F + world.random.nextFloat() * 0.15F);
+        world.playSound(null, center.x, center.y, center.z, SoundEvents.BLOCK_RESPAWN_ANCHOR_DEPLETE, SoundCategory.PLAYERS, 0.45F, 1.2F + world.random.nextFloat() * 0.15F, world.random.nextLong());
     }
 
     private static void spawnArcaneDomeShell(ServerWorld world, Vec3d center, double radius) {

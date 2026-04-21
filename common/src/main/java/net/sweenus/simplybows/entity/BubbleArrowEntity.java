@@ -28,7 +28,7 @@ public class BubbleArrowEntity extends ArrowEntity {
     }
 
     public BubbleArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
-        super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
+        super(world, owner);
         this.setOwner(owner);
         this.columnOwnerId = owner != null ? owner.getUuid() : null;
         this.columnUpgrades = BowUpgradeData.from(weaponStack);
@@ -98,7 +98,7 @@ public class BubbleArrowEntity extends ArrowEntity {
     }
 
     @Override
-    protected ItemStack getDefaultItemStack() {
+    public ItemStack asItemStack() {
         return new ItemStack(Items.ARROW);
     }
 

@@ -31,7 +31,7 @@ public class VineArrowEntity extends ArrowEntity {
     }
 
     public VineArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
-        super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
+        super(world, owner);
         this.setOwner(owner);
         this.upgrades = BowUpgradeData.from(weaponStack);
     }
@@ -105,11 +105,11 @@ public class VineArrowEntity extends ArrowEntity {
     private void spawnImpactParticles(ServerWorld world, Vec3d pos) {
         world.spawnParticles(ParticleTypes.FALLING_SPORE_BLOSSOM, pos.x, pos.y + 0.2, pos.z, 12, 0.35, 0.15, 0.35, 0.0);
         world.spawnParticles(ParticleTypes.COMPOSTER, pos.x, pos.y + 0.12, pos.z, 10, 0.3, 0.12, 0.3, 0.0);
-        world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, net.minecraft.block.Blocks.SHORT_GRASS.getDefaultState()), pos.x, pos.y + 0.1, pos.z, 8, 0.28, 0.08, 0.28, 0.01);
+        world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, net.minecraft.block.Blocks.GRASS.getDefaultState()), pos.x, pos.y + 0.1, pos.z, 8, 0.28, 0.08, 0.28, 0.01);
     }
 
     @Override
-    protected ItemStack getDefaultItemStack() {
+    public ItemStack asItemStack() {
         return new ItemStack(Items.ARROW);
     }
 

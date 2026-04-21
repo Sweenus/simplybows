@@ -33,7 +33,7 @@ public class EarthArrowEntity extends ArrowEntity {
     }
 
     public EarthArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
-        super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
+        super(world, owner);
         this.upgrades = BowUpgradeData.from(weaponStack);
     }
 
@@ -109,7 +109,7 @@ public class EarthArrowEntity extends ArrowEntity {
     }
 
     @Override
-    protected ItemStack getDefaultItemStack() {
+    public ItemStack asItemStack() {
         return new ItemStack(Items.ARROW);
     }
 

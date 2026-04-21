@@ -82,7 +82,7 @@ public class VineFlowerVisualEntityRenderer extends EntityRenderer<VineFlowerVis
             case 4 -> Blocks.CHERRY_LOG.getDefaultState();
             case 5 -> Blocks.CHERRY_LEAVES.getDefaultState();
             case 7, 8 -> lichenFace(Direction.UP);
-            default -> Blocks.SHORT_GRASS.getDefaultState();
+            default -> Blocks.GRASS.getDefaultState();
         };
 
         float xzScale   = type == 4 ? 0.48F : lichenFlat ? 1.0F : 0.92F;

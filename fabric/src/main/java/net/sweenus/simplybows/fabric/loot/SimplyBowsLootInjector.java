@@ -1,6 +1,6 @@
 package net.sweenus.simplybows.fabric.loot;
 
-import net.fabricmc.fabric.api.loot.v3.LootTableEvents;
+import net.fabricmc.fabric.api.loot.v2.LootTableEvents;
 import net.minecraft.loot.LootPool;
 import net.minecraft.util.Identifier;
 import net.sweenus.simplybows.loot.SimplyBowsChestLootRules;
@@ -11,8 +11,7 @@ public final class SimplyBowsLootInjector {
     }
 
     public static void init() {
-        LootTableEvents.MODIFY.register((key, tableBuilder, source, registries) -> {
-            Identifier id = key.getValue();
+        LootTableEvents.MODIFY.register((resourceManager, lootManager, id, tableBuilder, source) -> {
             for (LootPool.Builder pool : SimplyBowsChestLootRules.createPoolsForChestTable(id.getNamespace(), id.getPath())) {
                 tableBuilder.pool(pool);
             }

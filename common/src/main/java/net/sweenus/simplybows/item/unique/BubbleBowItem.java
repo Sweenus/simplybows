@@ -1,5 +1,6 @@
 package net.sweenus.simplybows.item.unique;
 
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.item.ItemStack;
@@ -40,8 +41,8 @@ public class BubbleBowItem extends SimplyBowItem {
         BowUpgradeData upgrades = BowUpgradeData.from(stack);
         if (upgrades.runeEtching() == RuneEtching.CHAOS && critical) {
             BubbleChaosWaveManager.cast(serverWorld, shooter, upgrades);
-            ItemStack ammoReference = projectiles.isEmpty() ? ItemStack.EMPTY : projectiles.getFirst();
-            stack.damage(this.getWeaponStackDamage(ammoReference), shooter, LivingEntity.getSlotForHand(hand));
+            EquipmentSlot bowSlot = hand == Hand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND;
+            stack.damage(1, shooter, e -> e.sendEquipmentBreakStatus(bowSlot));
             return;
         }
 
@@ -64,12 +65,13 @@ public class BubbleBowItem extends SimplyBowItem {
     }
 
     @Override
-    protected ProjectileEntity createArrowEntity(World world, LivingEntity shooter, ItemStack weaponStack, ItemStack arrowStack, boolean critical) {
+    protected ProjectileEntity createArrow(World world, LivingEntity shooter, ItemStack arrowStack) {
         ItemStack firedArrowStack = arrowStack;
         if (firedArrowStack == null || firedArrowStack.isEmpty()) {
             firedArrowStack = new ItemStack(Items.ARROW);
         }
 
+        ItemStack weaponStack = shooter.getActiveItem();
         BowUpgradeData upgrades = BowUpgradeData.from(weaponStack);
         ProjectileEntity arrowEntity;
         if (upgrades.runeEtching() == RuneEtching.PAIN && !FORCE_DEFAULT_BUBBLE_ARROW.get()) {
@@ -79,7 +81,6 @@ public class BubbleBowItem extends SimplyBowItem {
         }
         if (arrowEntity instanceof net.minecraft.entity.projectile.PersistentProjectileEntity persistent) {
             persistent.setDamage(SimplyBowsConfig.INSTANCE.bubbleBow.baseDamage.get());
-            persistent.setCritical(critical);
         }
         return arrowEntity;
     }
@@ -123,7 +124,7 @@ public class BubbleBowItem extends SimplyBowItem {
                     break;
                 }
 
-                ProjectileEntity projectileEntity = this.createArrowEntity(world, shooter, stack, arrowForProjectile, critical);
+                ProjectileEntity projectileEntity = this.createArrow(world, shooter, arrowForProjectile);
                 this.simplybows$applyRangedWeaponProjectileBonus(shooter, projectileEntity);
                 this.shoot(shooter, projectileEntity, j, speed, SimplyBowsConfig.INSTANCE.bubbleBow.painDivergence.get(), 0.0F, target);
                 double centerOffset = (quantity - 1) * 0.5;
@@ -132,7 +133,8 @@ public class BubbleBowItem extends SimplyBowItem {
                 projectileEntity.setPosition(projectileEntity.getX() + spawnOffset.x, projectileEntity.getY() + spawnOffset.y, projectileEntity.getZ() + spawnOffset.z);
                 world.spawnEntity(projectileEntity);
 
-                stack.damage(this.getWeaponStackDamage(arrowForProjectile), shooter, LivingEntity.getSlotForHand(hand));
+                EquipmentSlot bowSlot2 = hand == Hand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND;
+                stack.damage(1, shooter, e -> e.sendEquipmentBreakStatus(bowSlot2));
                 if (stack.isEmpty()) {
                     return;
                 }

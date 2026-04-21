@@ -2,7 +2,6 @@ package net.sweenus.simplybows.mixin.client;
 
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.item.ItemStack;
 import net.sweenus.simplybows.item.unique.SimplyBowItem;
 import org.spongepowered.asm.mixin.Mixin;
@@ -43,7 +42,7 @@ public abstract class DrawContextMixin {
         int color = bowItem.simplybows$getAbilityCooldownBarColor() | 0xFF000000;
         DrawContext context = (DrawContext) (Object) this;
         int barX = x + 2, barTop = y + 11, barBottom = barTop + 1;
-        context.fill(RenderLayer.getGuiOverlay(), barX, barTop, barX + 13, barBottom, 0xFF000000);
-        context.fill(RenderLayer.getGuiOverlay(), barX, barTop, barX + step, barBottom, color);
+        context.fill(barX, barTop, barX + 13, barBottom, 0xFF000000);
+        context.fill(barX, barTop, barX + step, barBottom, color);
     }
 }

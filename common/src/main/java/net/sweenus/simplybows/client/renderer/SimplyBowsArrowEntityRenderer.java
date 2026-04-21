@@ -8,7 +8,7 @@ import net.minecraft.util.Identifier;
 
 public class SimplyBowsArrowEntityRenderer<T extends ArrowEntity> extends ProjectileEntityRenderer<T> {
 
-    private static final Identifier DEFAULT_ARROW_TEXTURE = Identifier.ofVanilla("textures/entity/projectiles/arrow.png");
+    private static final Identifier DEFAULT_ARROW_TEXTURE = new Identifier("minecraft", "textures/entity/projectiles/arrow.png");
     private final Identifier customTexture;
 
     public SimplyBowsArrowEntityRenderer(EntityRendererFactory.Context context, Identifier customTexture) {

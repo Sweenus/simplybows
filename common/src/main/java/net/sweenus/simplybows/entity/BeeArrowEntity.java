@@ -65,7 +65,6 @@ public class BeeArrowEntity extends ArrowEntity {
 
     public BeeArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, BowUpgradeData upgrades) {
         super(EntityRegistry.BEE_ARROW.get(), world);
-        this.setStack(sanitizeArrowStack(arrowStack));
         this.setOwner(owner);
         this.setPosition(owner.getX(), owner.getEyeY() - 0.1, owner.getZ());
         this.prevX = owner.getX();
@@ -344,7 +343,7 @@ public class BeeArrowEntity extends ArrowEntity {
     }
 
     @Override
-    protected ItemStack getDefaultItemStack() {
+    public ItemStack asItemStack() {
         return new ItemStack(Items.ARROW);
     }
 

@@ -1,5 +1,5 @@
 modLoader = "javafml"
-loaderVersion = "[2,)"
+loaderVersion = "[47,)"
 #issueTrackerURL = ""
 license = "Timefall Development License 1.2"
 
@@ -14,32 +14,25 @@ description = '''
 logoFile = "assets/simplybows/icon.png"
 
 [[dependencies.simplybows]]
-modId = "neoforge"
-type = "required"
-versionRange = "[21,)"
+modId = "forge"
+mandatory = true
+versionRange = "[47,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.simplybows]]
 modId = "minecraft"
-type = "required"
-versionRange = "[1.21.1,)"
+mandatory = true
+versionRange = "[1.20.1,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.simplybows]]
 modId = "architectury"
-type = "required"
-versionRange = "[13.0.8,)"
+mandatory = true
+versionRange = "[9,)"
 ordering = "AFTER"
 side = "BOTH"
-
-[[dependencies.simplybows]]
-modId = "simplytooltips"
-type = "required"
-versionRange = "[0.1,)"
-ordering = "NONE"
-side = "CLIENT"
 
 [[mixins]]
 config = "simplybows.mixins.json"

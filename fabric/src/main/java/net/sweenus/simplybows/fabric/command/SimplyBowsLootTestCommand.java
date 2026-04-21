@@ -6,12 +6,11 @@ import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.item.ItemStack;
+import net.minecraft.loot.LootDataType;
 import net.minecraft.loot.LootTable;
 import net.minecraft.loot.context.LootContextParameterSet;
 import net.minecraft.loot.context.LootContextParameters;
 import net.minecraft.loot.context.LootContextTypes;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ServerWorld;
@@ -48,20 +47,22 @@ public final class SimplyBowsLootTestCommand {
         Identifier tableId = normalizeTableId(rawTableId);
         int rolls = IntegerArgumentType.getInteger(context, "rolls");
 
-        RegistryKey<LootTable> key = RegistryKey.of(RegistryKeys.LOOT_TABLE, tableId);
-        LootTable lootTable = source.getServer().getReloadableRegistries().getLootTable(key);
+        LootTable lootTable = source.getServer().getLootManager().getElement(
+                new net.minecraft.loot.LootDataKey<>(LootDataType.LOOT_TABLES, tableId));
 
-        LootContextParameterSet lootContext = new LootContextParameterSet.Builder(world)
-                .add(LootContextParameters.ORIGIN, source.getPosition())
-                .addOptional(LootContextParameters.THIS_ENTITY, source.getEntity())
-                .build(LootContextTypes.CHEST);
+        LootContextParameterSet.Builder ctxBuilder = new LootContextParameterSet.Builder(world)
+                .add(LootContextParameters.ORIGIN, source.getPosition());
+        if (source.getEntity() != null) {
+            ctxBuilder = ctxBuilder.addOptional(LootContextParameters.THIS_ENTITY, source.getEntity());
+        }
+        LootContextParameterSet lootContext = ctxBuilder.build(LootContextTypes.CHEST);
 
         Map<Identifier, Long> itemCounts = new HashMap<>();
         long totalSimplyBowsItems = 0L;
         int rollsWithSimplyBowsDrop = 0;
 
         for (int i = 0; i < rolls; i++) {
-            List<ItemStack> generated = lootTable.generateLoot(lootContext, world.getRandom().nextLong());
+            List<ItemStack> generated = new java.util.ArrayList<>(lootTable.generateLoot(lootContext));
             boolean foundInRoll = false;
             for (ItemStack stack : generated) {
                 if (stack == null || stack.isEmpty()) {
@@ -125,7 +126,7 @@ public final class SimplyBowsLootTestCommand {
             path = path.substring(chestsIndex);
         }
 
-        return Identifier.of(namespace, path);
+        return new Identifier(namespace, path);
     }
 
     private static String formatPct(long count, int total) {

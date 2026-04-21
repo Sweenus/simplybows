@@ -28,9 +28,9 @@ public class VineFlowerVisualEntity extends Entity {
     }
 
     @Override
-    protected void initDataTracker(DataTracker.Builder builder) {
-        builder.add(FLOWER_TYPE, 0);
-        builder.add(HEIGHT_SCALE, 0.0F);
+    protected void initDataTracker() {
+        this.dataTracker.startTracking(FLOWER_TYPE, 0);
+        this.dataTracker.startTracking(HEIGHT_SCALE, 0.0F);
     }
 
     public void setFlowerType(int flowerType) {

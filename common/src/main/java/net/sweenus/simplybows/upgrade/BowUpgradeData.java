@@ -1,7 +1,5 @@
 package net.sweenus.simplybows.upgrade;
 
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.NbtComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -26,11 +24,10 @@ public record BowUpgradeData(int stringLevel, int frameLevel, RuneEtching runeEt
         if (stack == null || stack.isEmpty()) {
             return none();
         }
-        NbtComponent customData = stack.get(DataComponentTypes.CUSTOM_DATA);
-        if (customData == null) {
+        NbtCompound root = stack.getNbt();
+        if (root == null) {
             return none();
         }
-        NbtCompound root = customData.copyNbt();
         if (!root.contains(ROOT_KEY, NbtElement.COMPOUND_TYPE)) {
             return none();
         }
@@ -45,13 +42,11 @@ public record BowUpgradeData(int stringLevel, int frameLevel, RuneEtching runeEt
         if (stack == null || stack.isEmpty()) {
             return;
         }
-        NbtCompound root = getOrCreateCustomData(stack);
         NbtCompound upgrades = new NbtCompound();
         upgrades.putInt(STRING_KEY, clampLevel(this.stringLevel));
         upgrades.putInt(FRAME_KEY, clampLevel(this.frameLevel));
         upgrades.putString(RUNE_KEY, this.runeEtching.id());
-        root.put(ROOT_KEY, upgrades);
-        stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(root));
+        stack.getOrCreateNbt().put(ROOT_KEY, upgrades);
     }
 
     public BowUpgradeData withIncreasedString() {
@@ -86,11 +81,6 @@ public record BowUpgradeData(int stringLevel, int frameLevel, RuneEtching runeEt
 
     private static int clampLevel(int level) {
         return Math.max(0, Math.min(maxLevelPerType(), level));
-    }
-
-    private static NbtCompound getOrCreateCustomData(ItemStack stack) {
-        NbtComponent customData = stack.get(DataComponentTypes.CUSTOM_DATA);
-        return customData == null ? new NbtCompound() : customData.copyNbt();
     }
 
     public static int getMaxLevelPerType() {

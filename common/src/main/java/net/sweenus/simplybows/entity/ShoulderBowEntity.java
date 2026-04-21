@@ -93,12 +93,12 @@ public class ShoulderBowEntity extends Entity {
     }
 
     @Override
-    protected void initDataTracker(DataTracker.Builder builder) {
-        builder.add(SIDE, 1);
-        builder.add(PULL_STAGE, 0);
-        builder.add(OWNER_ENTITY_ID, -1);
-        builder.add(MIRROR_OFFHAND, false);
-        builder.add(MIRROR_ITEM_RAW_ID, Item.getRawId(Items.AIR));
+    protected void initDataTracker() {
+        this.dataTracker.startTracking(SIDE, 1);
+        this.dataTracker.startTracking(PULL_STAGE, 0);
+        this.dataTracker.startTracking(OWNER_ENTITY_ID, -1);
+        this.dataTracker.startTracking(MIRROR_OFFHAND, false);
+        this.dataTracker.startTracking(MIRROR_ITEM_RAW_ID, Item.getRawId(Items.AIR));
     }
 
     public UUID getOwnerUuid() {

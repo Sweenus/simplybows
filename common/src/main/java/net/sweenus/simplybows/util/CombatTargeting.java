@@ -9,7 +9,6 @@ import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.Registries;
-import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.scoreboard.AbstractTeam;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
@@ -26,7 +25,7 @@ import java.util.Set;
 public final class CombatTargeting {
 
     private static final Set<String> TARGET_WHITELIST = new HashSet<>();
-    private static final Identifier RANGED_WEAPON_DAMAGE_ATTRIBUTE_ID = Identifier.of("ranged_weapon", "damage");
+    private static final Identifier RANGED_WEAPON_DAMAGE_ATTRIBUTE_ID = new Identifier("ranged_weapon", "damage");
 
     static {
         addTargetWhitelist("target_dummy");
@@ -175,16 +174,11 @@ public final class CombatTargeting {
             return 0.0F;
         }
 
-        RegistryEntry<EntityAttribute> attributeEntry = Registries.ATTRIBUTE.getEntry(attribute);
-        if (attributeEntry == null) {
+        if (attackerLiving.getAttributeInstance(attribute) == null) {
             return 0.0F;
         }
 
-        if (attackerLiving.getAttributeInstance(attributeEntry) == null) {
-            return 0.0F;
-        }
-
-        double attributeValue = attackerLiving.getAttributeValue(attributeEntry);
+        double attributeValue = attackerLiving.getAttributeValue(attribute);
         float bonus = (float) (attributeValue * configMultiplier);
         if (bonus > 0.0F && SimplyBows.debugMode()) {
             SimplyBows.LOGGER.info(

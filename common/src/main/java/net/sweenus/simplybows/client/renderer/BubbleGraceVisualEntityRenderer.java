@@ -15,7 +15,7 @@ import net.sweenus.simplybows.entity.BubbleGraceVisualEntity;
 
 public class BubbleGraceVisualEntityRenderer extends EntityRenderer<BubbleGraceVisualEntity> {
 
-    private static final Identifier AXOLOTL_TEXTURE = Identifier.ofVanilla("textures/entity/axolotl/axolotl_lucy.png");
+    private static final Identifier AXOLOTL_TEXTURE = new Identifier("minecraft", "textures/entity/axolotl/axolotl_lucy.png");
     private final AxolotlEntityRenderer axolotlRenderer;
     private AxolotlEntity renderAxolotl;
 

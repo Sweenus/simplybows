@@ -26,8 +26,8 @@ public class BeeHiveVisualEntity extends Entity {
     }
 
     @Override
-    protected void initDataTracker(DataTracker.Builder builder) {
-        builder.add(HEIGHT_SCALE, 0.0F);
+    protected void initDataTracker() {
+        this.dataTracker.startTracking(HEIGHT_SCALE, 0.0F);
     }
 
     public void setHeightScale(float heightScale) {
