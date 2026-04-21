@@ -120,6 +120,10 @@ public final class SimplyBows {
             SimplyBowItem.CLIENT_COOLDOWN_READER = ClientAbilityCooldownCache::get;
             SimplyBowItem.CLIENT_COOLDOWN_TICK_READER = clientWorldTickReader;
 
+            net.sweenus.simplytooltips.api.TooltipProviderRegistry.register(
+                    new net.sweenus.simplybows.client.tooltip.SimplyBowsTooltipProvider(), 100);
+            LOGGER.info("Registered SimplyBowsTooltipProvider with Simply Tooltips");
+
         }
     }
 

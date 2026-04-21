@@ -29,6 +29,7 @@ dependencies {
 
     modImplementation "me.fzzyhmstrs:fzzy_config:${project.fzz_config_version}"
     runtimeOnly "net.peanuuutz.tomlkt:tomlkt-jvm:${rootProject.tomlkt_version}"
+    localRuntime files(rootProject.simplyTooltipsCommonDevJar)
 
     common(project(path: ':common', configuration: 'namedElements')) { transitive false }
     shadowCommon(project(path: ':common', configuration: 'transformProductionFabric')) { transitive false }

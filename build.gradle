@@ -7,6 +7,10 @@ architectury {
     minecraft = rootProject.minecraft_version
 }
 
+ext {
+    simplyTooltipsCommonDevJar = fileTree(dir: "${rootDir}/../simplytooltips/common/build/devlibs", include: ["SimplyTooltips-common-*-dev.jar"])
+}
+
 subprojects {
     apply plugin: "dev.architectury.loom"
 

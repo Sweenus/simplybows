@@ -58,6 +58,7 @@ dependencies {
     modImplementation "thedarkcolour:kfflib:${rootProject.kotlinforforge_version}"
     modImplementation "thedarkcolour:kffmod:${rootProject.kotlinforforge_version}"
     runtimeOnly "net.peanuuutz.tomlkt:tomlkt-jvm:${rootProject.tomlkt_version}"
+    localRuntime files(rootProject.simplyTooltipsCommonDevJar)
 
     common(project(path: ':common', configuration: 'namedElements')) { transitive false }
     shadowCommon(project(path: ':common', configuration: 'transformProductionForge')) { transitive = false }
