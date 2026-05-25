@@ -21,6 +21,7 @@ import net.sweenus.simplybows.entity.BubblePainArrowEntity;
 import net.sweenus.simplybows.entity.CosmicArrowEntity;
 import net.sweenus.simplybows.entity.CosmicOrbitVisualEntity;
 import net.sweenus.simplybows.entity.CosmicStrikeVisualEntity;
+import net.sweenus.simplybows.entity.CosmicTetherVisualEntity;
 import net.sweenus.simplybows.entity.EchoArrowEntity;
 import net.sweenus.simplybows.entity.EchoChaosBlackHoleVisualEntity;
 import net.sweenus.simplybows.entity.EarthArrowEntity;
@@ -100,6 +101,13 @@ public class EntityRegistry {
                     .maxTrackingRange(64)
                     .trackingTickInterval(1)
                     .build(SimplyBows.MOD_ID + ":cosmic_strike_visual"));
+
+    public static final RegistrySupplier<EntityType<CosmicTetherVisualEntity>> COSMIC_TETHER_VISUAL = ENTITY_TYPES.register("cosmic_tether_visual",
+            () -> EntityType.Builder.<CosmicTetherVisualEntity>create(CosmicTetherVisualEntity::new, SpawnGroup.MISC)
+                    .dimensions(12.0F, 12.0F)
+                    .maxTrackingRange(64)
+                    .trackingTickInterval(1)
+                    .build(SimplyBows.MOD_ID + ":cosmic_tether_visual"));
 
     public static final RegistrySupplier<EntityType<ShoulderBowEntity>> SHOULDER_BOW = ENTITY_TYPES.register("shoulder_bow",
             () -> EntityType.Builder.<ShoulderBowEntity>create(ShoulderBowEntity::new, SpawnGroup.MISC)

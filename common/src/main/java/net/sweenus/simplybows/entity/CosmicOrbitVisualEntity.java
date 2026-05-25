@@ -15,6 +15,8 @@ public class CosmicOrbitVisualEntity extends Entity {
 
     private static final TrackedData<Float> VISUAL_SCALE =
             DataTracker.registerData(CosmicOrbitVisualEntity.class, TrackedDataHandlerRegistry.FLOAT);
+    private static final TrackedData<Boolean> PAIN_MODE =
+            DataTracker.registerData(CosmicOrbitVisualEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
 
     private static final EntityDimensions DIMENSIONS = EntityDimensions.fixed(4.0F, 4.0F).withEyeHeight(2.0F);
 
@@ -33,6 +35,7 @@ public class CosmicOrbitVisualEntity extends Entity {
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
         builder.add(VISUAL_SCALE, 1.0F);
+        builder.add(PAIN_MODE, false);
     }
 
     @Override
@@ -48,6 +51,14 @@ public class CosmicOrbitVisualEntity extends Entity {
         this.dataTracker.set(VISUAL_SCALE, visualScale);
     }
 
+    public boolean isPainMode() {
+        return this.dataTracker.get(PAIN_MODE);
+    }
+
+    public void setPainMode(boolean painMode) {
+        this.dataTracker.set(PAIN_MODE, painMode);
+    }
+
     @Override
     public boolean isAttackable() {
         return false;
@@ -58,10 +69,12 @@ public class CosmicOrbitVisualEntity extends Entity {
         if (nbt.contains("visual_scale")) {
             this.setVisualScale(nbt.getFloat("visual_scale"));
         }
+        this.setPainMode(nbt.getBoolean("pain_mode"));
     }
 
     @Override
     protected void writeCustomDataToNbt(NbtCompound nbt) {
         nbt.putFloat("visual_scale", this.getVisualScale());
+        nbt.putBoolean("pain_mode", this.isPainMode());
     }
 }

@@ -14,12 +14,16 @@ import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.sweenus.simplybows.registry.EntityRegistry;
+import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.world.CosmicOrbitManager;
 
 public class CosmicArrowEntity extends ArrowEntity {
 
+    private final BowUpgradeData upgrades;
+
     public CosmicArrowEntity(EntityType<? extends CosmicArrowEntity> type, World world) {
         super(type, world);
+        this.upgrades = BowUpgradeData.none();
     }
 
     public CosmicArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
@@ -30,6 +34,7 @@ public class CosmicArrowEntity extends ArrowEntity {
         this.prevX = owner.getX();
         this.prevY = owner.getEyeY() - 0.1;
         this.prevZ = owner.getZ();
+        this.upgrades = BowUpgradeData.from(weaponStack);
     }
 
     @Override
@@ -40,7 +45,7 @@ public class CosmicArrowEntity extends ArrowEntity {
             serverWorld.spawnParticles(ParticleTypes.END_ROD, pos.x, pos.y + 0.1, pos.z, 10, 0.15, 0.15, 0.15, 0.0);
             playImpactSound(serverWorld, pos);
             if (entityHitResult.getEntity() instanceof LivingEntity target) {
-                CosmicOrbitManager.createOrRefresh(serverWorld, target, this.getOwner());
+                CosmicOrbitManager.createOrRefresh(serverWorld, target, this.getOwner(), this.upgrades);
             }
         }
     }

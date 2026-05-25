@@ -436,12 +436,19 @@ public class SimplyBowsConfig extends Config {
         // Orbit
         public ConfigGroup orbitGroup = new ConfigGroup("orbit");
         public ValidatedInt orbitDurationTicks = new ValidatedInt(180, 600, 20);
+        public ValidatedInt orbitDurationBonusPerString = new ValidatedInt(20, 200, 0);
         public ValidatedDouble orbitAttackRadius = new ValidatedDouble(10.0, 32.0, 1.0);
         public ValidatedFloat orbitAttackDamage = new ValidatedFloat(4.0F, 40.0F, 0.1F);
         public ValidatedInt orbitAttackIntervalMinTicks = new ValidatedInt(18, 200, 1);
         public ValidatedInt orbitMaxJumps = new ValidatedInt(5, 20, 1);
         @ConfigGroup.Pop
         public ValidatedInt orbitAttackIntervalMaxTicks = new ValidatedInt(36, 400, 1);
+
+        // Rune: Pain
+        public ConfigGroup painGroup = new ConfigGroup("pain");
+        public ValidatedInt painOrbitCooldownTicks = new ValidatedInt(3200, 12000, 20);
+        @ConfigGroup.Pop
+        public ValidatedDouble painTetherPullStrength = new ValidatedDouble(0.08, 1.0, 0.0);
     }
 
     // ── Loot ─────────────────────────────────────────────────
