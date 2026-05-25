@@ -432,6 +432,16 @@ public class SimplyBowsConfig extends Config {
         public ValidatedFloat trailMaxConnectionDist = new ValidatedFloat(2.5F, 6.0F, 0.5F);
         @ConfigGroup.Pop
         public ValidatedFloat trailConnectionProbability = new ValidatedFloat(0.35F, 1.0F, 0.05F);
+
+        // Orbit
+        public ConfigGroup orbitGroup = new ConfigGroup("orbit");
+        public ValidatedInt orbitDurationTicks = new ValidatedInt(180, 600, 20);
+        public ValidatedDouble orbitAttackRadius = new ValidatedDouble(10.0, 32.0, 1.0);
+        public ValidatedFloat orbitAttackDamage = new ValidatedFloat(4.0F, 40.0F, 0.1F);
+        public ValidatedInt orbitAttackIntervalMinTicks = new ValidatedInt(18, 200, 1);
+        public ValidatedInt orbitMaxJumps = new ValidatedInt(5, 20, 1);
+        @ConfigGroup.Pop
+        public ValidatedInt orbitAttackIntervalMaxTicks = new ValidatedInt(36, 400, 1);
     }
 
     // ── Loot ─────────────────────────────────────────────────

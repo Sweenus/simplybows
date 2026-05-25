@@ -14,6 +14,7 @@ import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.sweenus.simplybows.registry.EntityRegistry;
+import net.sweenus.simplybows.world.CosmicOrbitManager;
 
 public class CosmicArrowEntity extends ArrowEntity {
 
@@ -38,6 +39,9 @@ public class CosmicArrowEntity extends ArrowEntity {
             Vec3d pos = entityHitResult.getPos();
             serverWorld.spawnParticles(ParticleTypes.END_ROD, pos.x, pos.y + 0.1, pos.z, 10, 0.15, 0.15, 0.15, 0.0);
             playImpactSound(serverWorld, pos);
+            if (entityHitResult.getEntity() instanceof LivingEntity target) {
+                CosmicOrbitManager.createOrRefresh(serverWorld, target, this.getOwner());
+            }
         }
     }
 

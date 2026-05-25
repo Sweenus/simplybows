@@ -27,6 +27,8 @@ import net.sweenus.simplybows.client.renderer.HomingSpectralArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.IceChaosWallVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.ShoulderBowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.CosmicArrowEntityRenderer;
+import net.sweenus.simplybows.client.renderer.CosmicOrbitVisualEntityRenderer;
+import net.sweenus.simplybows.client.renderer.CosmicStrikeVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.SimplyBowsArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.VineFlowerVisualEntityRenderer;
 import net.sweenus.simplybows.config.SimplyBowsConfig;
@@ -92,6 +94,8 @@ public final class SimplyBows {
                     new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/echo_bow/echo_bow.png")));
             EntityRendererRegistry.register(EntityRegistry.COSMIC_ARROW, context ->
                     new CosmicArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/echo_bow/echo_bow.png")));
+            EntityRendererRegistry.register(EntityRegistry.COSMIC_ORBIT_VISUAL, CosmicOrbitVisualEntityRenderer::new);
+            EntityRendererRegistry.register(EntityRegistry.COSMIC_STRIKE_VISUAL, CosmicStrikeVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.SHOULDER_BOW, ShoulderBowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.EARTH_SPIKE_VISUAL, EarthSpikeVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.ICE_CHAOS_WALL_VISUAL, IceChaosWallVisualEntityRenderer::new);
