@@ -25,6 +25,7 @@ public class SimplyBowsConfig extends Config {
     public BlossomBowSection blossomBow = new BlossomBowSection();
     public EarthBowSection earthBow = new EarthBowSection();
     public EchoBowSection echoBow = new EchoBowSection();
+    public CosmicBowSection cosmicBow = new CosmicBowSection();
     public LootSection loot = new LootSection();
     public UpgradeSection upgrades = new UpgradeSection();
     public GeneralSection general = new GeneralSection();
@@ -414,6 +415,24 @@ public class SimplyBowsConfig extends Config {
         public ValidatedFloat chaosBlackHoleDamagePerTick = new ValidatedFloat(2.0F, 20.0F, 0.1F);
     }
 
+    // ── Cosmic Bow ─────────────────────────────────────────────
+
+    public static class CosmicBowSection extends ConfigSection {
+        // Arrow
+        public ConfigGroup arrowGroup = new ConfigGroup("arrow");
+        public ValidatedFloat arrowSpeedMultiplier = new ValidatedFloat(0.9F, 3.0F, 0.1F);
+        public ValidatedFloat arrowDivergence = new ValidatedFloat(0.8F, 5.0F, 0.0F);
+        @ConfigGroup.Pop
+        public ValidatedDouble baseDamage = new ValidatedDouble(2.0, 20.0, 0.1);
+
+        // Constellation Trail
+        public ConfigGroup trailGroup = new ConfigGroup("constellationTrail");
+        public ValidatedInt trailDurationTicks = new ValidatedInt(25, 300, 10);
+        public ValidatedFloat trailMaxConnectionDist = new ValidatedFloat(2.5F, 6.0F, 0.5F);
+        @ConfigGroup.Pop
+        public ValidatedFloat trailConnectionProbability = new ValidatedFloat(0.35F, 1.0F, 0.05F);
+    }
+
     // ── Loot ─────────────────────────────────────────────────
 
     public static class LootSection extends ConfigSection {
@@ -452,6 +471,7 @@ public class SimplyBowsConfig extends Config {
         public ValidatedFloat drawSpeedEarth = new ValidatedFloat(40.0F, 100.0F, 1.0F);
         @ConfigGroup.Pop
         public ValidatedFloat drawSpeedEcho = new ValidatedFloat(30.0F, 100.0F, 1.0F);
+        public ValidatedFloat drawSpeedCosmic = new ValidatedFloat(30.0F, 100.0F, 1.0F);
     }
 
     // ── General ──────────────────────────────────────────────

@@ -21,6 +21,7 @@ public class SimplyBowsItemProperties {
         makeBows(ItemRegistry.BLOSSOM_BOW.get(), SimplyBowsConfig.INSTANCE.upgrades.drawSpeedBlossom.get());
         makeBows(ItemRegistry.EARTH_BOW.get(), SimplyBowsConfig.INSTANCE.upgrades.drawSpeedEarth.get());
         makeBows(ItemRegistry.ECHO_BOW.get(), SimplyBowsConfig.INSTANCE.upgrades.drawSpeedEcho.get());
+        makeBows(ItemRegistry.COSMIC_BOW.get(), SimplyBowsConfig.INSTANCE.upgrades.drawSpeedCosmic.get());
     }
 
     public static void makeBows(Item item, float drawSpeed) {

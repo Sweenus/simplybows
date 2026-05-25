@@ -26,6 +26,7 @@ import net.sweenus.simplybows.client.renderer.HomingArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.HomingSpectralArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.IceChaosWallVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.ShoulderBowEntityRenderer;
+import net.sweenus.simplybows.client.renderer.CosmicArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.SimplyBowsArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.VineFlowerVisualEntityRenderer;
 import net.sweenus.simplybows.config.SimplyBowsConfig;
@@ -70,7 +71,10 @@ public final class SimplyBows {
         @Environment(EnvType.CLIENT)
         public static void initializeClient() {
             SimplyBowsItemProperties.addSimplyBowsItemProperties();
-            ClientPlayerEvent.CLIENT_PLAYER_JOIN.register(player -> ClientAbilityCooldownCache.clearAll());
+            ClientPlayerEvent.CLIENT_PLAYER_JOIN.register(player -> {
+                ClientAbilityCooldownCache.clearAll();
+                CosmicArrowEntityRenderer.clearTrails();
+            });
 
             EntityRendererRegistry.register(EntityRegistry.HOMING_ARROW, HomingArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.HOMING_SPECTRAL_ARROW, HomingSpectralArrowEntityRenderer::new);
@@ -86,6 +90,8 @@ public final class SimplyBows {
                     new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/earth_bow/earth_bow.png")));
             EntityRendererRegistry.register(EntityRegistry.ECHO_ARROW, context ->
                     new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/echo_bow/echo_bow.png")));
+            EntityRendererRegistry.register(EntityRegistry.COSMIC_ARROW, context ->
+                    new CosmicArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/echo_bow/echo_bow.png")));
             EntityRendererRegistry.register(EntityRegistry.SHOULDER_BOW, ShoulderBowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.EARTH_SPIKE_VISUAL, EarthSpikeVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.ICE_CHAOS_WALL_VISUAL, IceChaosWallVisualEntityRenderer::new);
