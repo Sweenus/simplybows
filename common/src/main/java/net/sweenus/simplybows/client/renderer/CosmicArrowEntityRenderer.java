@@ -36,6 +36,8 @@ public class CosmicArrowEntityRenderer<T extends ArrowEntity> extends SimplyBows
     private static final float LINE_R = 0.20F;
     private static final float LINE_G = 0.68F;
     private static final float LINE_B = 1.00F;
+    private static final double NODE_DRIFT_RADIUS = 0.08;
+    private static final double NODE_DRIFT_SPEED = 0.045;
 
     private static final Map<ArrowEntity, ConstellationTrail> ACTIVE_TRAILS = new IdentityHashMap<>();
     private static final List<ConstellationTrail> ORPHAN_TRAILS = new ArrayList<>();
@@ -164,9 +166,10 @@ public class CosmicArrowEntityRenderer<T extends ArrowEntity> extends SimplyBows
             if (alpha < 0.02F) continue;
 
             ConstellationTrail.TrailPoint point = points.get(i);
-            float x = (float) (point.pos.x - renderPos.x);
-            float y = (float) (point.pos.y - renderPos.y);
-            float z = (float) (point.pos.z - renderPos.z);
+            Vec3d driftedPos = driftedPointPos(point, currentTick);
+            float x = (float) (driftedPos.x - renderPos.x);
+            float y = (float) (driftedPos.y - renderPos.y);
+            float z = (float) (driftedPos.z - renderPos.z);
 
             float visibleAlpha = Math.min(1.0F, alpha * 1.3F);
             float radius = NODE_RADIUS * (0.25F + visibleAlpha * 0.75F);
@@ -191,13 +194,24 @@ public class CosmicArrowEntityRenderer<T extends ArrowEntity> extends SimplyBows
 
         ConstellationTrail.TrailPoint a = points.get(indexA);
         ConstellationTrail.TrailPoint b = points.get(indexB);
+        Vec3d driftedA = driftedPointPos(a, currentTick);
+        Vec3d driftedB = driftedPointPos(b, currentTick);
 
         renderLine(
                 matrices, lineConsumer,
-                (float) (a.pos.x - renderPos.x), (float) (a.pos.y - renderPos.y), (float) (a.pos.z - renderPos.z),
-                (float) (b.pos.x - renderPos.x), (float) (b.pos.y - renderPos.y), (float) (b.pos.z - renderPos.z),
+                (float) (driftedA.x - renderPos.x), (float) (driftedA.y - renderPos.y), (float) (driftedA.z - renderPos.z),
+                (float) (driftedB.x - renderPos.x), (float) (driftedB.y - renderPos.y), (float) (driftedB.z - renderPos.z),
                 LINE_R, LINE_G, LINE_B, Math.min(1.0F, alpha * 1.15F)
         );
+    }
+
+    private static Vec3d driftedPointPos(ConstellationTrail.TrailPoint point, long currentTick) {
+        double phase = (point.seed & 0xFFFFL) * 0.0001 + point.birthTick * 0.17;
+        double age = currentTick + phase;
+        double driftX = Math.sin(age * NODE_DRIFT_SPEED + phase) * NODE_DRIFT_RADIUS;
+        double driftY = Math.cos(age * NODE_DRIFT_SPEED * 0.83 + phase * 1.37) * NODE_DRIFT_RADIUS;
+        double driftZ = Math.sin(age * NODE_DRIFT_SPEED * 0.71 + phase * 0.61) * NODE_DRIFT_RADIUS;
+        return point.pos.add(driftX, driftY, driftZ);
     }
 
     private static double lerp(float delta, double start, double end) {
