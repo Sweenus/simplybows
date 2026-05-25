@@ -50,6 +50,7 @@ public final class SimplyBowsTooltipProvider implements TooltipProvider {
         // Build ability text directly from translation key so Simply Tooltips can
         // perform one pixel-width wrap pass (avoids double-wrap artifacts).
         List<String> abilityLines = getAbilityLines(bowKey, rawLines);
+        appendEnchantmentLines(abilityLines, rawLines);
 
         // Fixed accent colors — same as ST default theme, consistent across all bow themes
         TooltipTheme defaults = TooltipTheme.defaultTheme();
@@ -146,6 +147,41 @@ public final class SimplyBowsTooltipProvider implements TooltipProvider {
             }
             if (inAbilitySection && !trimmed.isEmpty()) {
                 result.add(s);
+            }
+        }
+
+        return result;
+    }
+
+    private static void appendEnchantmentLines(List<String> abilityLines, List<Text> rawLines) {
+        List<String> enchantmentLines = getEnchantmentLines(rawLines);
+        if (enchantmentLines.isEmpty()) {
+            return;
+        }
+
+        abilityLines.add(ModernTooltipModel.SECTION_MARKER + "Enchantments");
+        abilityLines.addAll(enchantmentLines);
+    }
+
+    private static List<String> getEnchantmentLines(List<Text> rawLines) {
+        if (rawLines.size() < 2) return List.of();
+
+        String holdAltText = Text.translatable("tooltip.simplybows.hold_alt").getString().trim();
+        boolean afterBowSections = false;
+        List<String> result = new ArrayList<>();
+
+        for (int i = 1; i < rawLines.size(); i++) {
+            String trimmed = rawLines.get(i).getString().trim();
+
+            if (!afterBowSections) {
+                if (trimmed.equals(holdAltText)) {
+                    afterBowSections = true;
+                }
+                continue;
+            }
+
+            if (!trimmed.isEmpty()) {
+                result.add(trimmed);
             }
         }
 
