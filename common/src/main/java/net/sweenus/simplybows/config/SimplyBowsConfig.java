@@ -428,6 +428,7 @@ public class SimplyBowsConfig extends Config {
         // Constellation Trail
         public ConfigGroup trailGroup = new ConfigGroup("constellationTrail");
         public ValidatedInt trailDurationTicks = new ValidatedInt(25, 300, 10);
+        public ValidatedInt trailLineDurationTicks = new ValidatedInt(12, 300, 5);
         public ValidatedFloat trailMaxConnectionDist = new ValidatedFloat(2.5F, 6.0F, 0.5F);
         @ConfigGroup.Pop
         public ValidatedFloat trailConnectionProbability = new ValidatedFloat(0.35F, 1.0F, 0.05F);

@@ -74,6 +74,7 @@ public class CosmicArrowEntityRenderer<T extends ArrowEntity> extends SimplyBows
             SimplyBowsConfig.CosmicBowSection cfg = SimplyBowsConfig.INSTANCE.cosmicBow;
             trail = new ConstellationTrail(
                     cfg.trailDurationTicks.get(),
+                    cfg.trailLineDurationTicks.get(),
                     cfg.trailMaxConnectionDist.get(),
                     cfg.trailConnectionProbability.get(),
                     2
@@ -168,7 +169,7 @@ public class CosmicArrowEntityRenderer<T extends ArrowEntity> extends SimplyBows
             float z = (float) (point.pos.z - renderPos.z);
 
             float visibleAlpha = Math.min(1.0F, alpha * 1.3F);
-            float radius = NODE_RADIUS * (0.85F + visibleAlpha * 0.15F);
+            float radius = NODE_RADIUS * (0.25F + visibleAlpha * 0.75F);
             renderNodeDisc(matrices, nodeConsumer, nodeSprite, x, y, z, radius, visibleAlpha);
         }
 
@@ -183,8 +184,8 @@ public class CosmicArrowEntityRenderer<T extends ArrowEntity> extends SimplyBows
                                               VertexConsumer lineConsumer,
                                               int indexA,
                                               int indexB) {
-        float alphaA = trail.getAlpha(indexA, currentTick);
-        float alphaB = trail.getAlpha(indexB, currentTick);
+        float alphaA = trail.getLineAlpha(indexA, currentTick);
+        float alphaB = trail.getLineAlpha(indexB, currentTick);
         float alpha = Math.min(alphaA, alphaB);
         if (alpha < 0.02F) return;
 

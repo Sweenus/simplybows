@@ -606,6 +606,8 @@
   "simplybows.config.cosmicBow.constellationTrail": "Constellation Trail",
   "simplybows.config.cosmicBow.trailDurationTicks": "Trail Duration (ticks)",
   "simplybows.config.cosmicBow.trailDurationTicks.desc": "How long constellation trail points linger (in ticks). 25 = 1.25 seconds.",
+  "simplybows.config.cosmicBow.trailLineDurationTicks": "Line Duration (ticks)",
+  "simplybows.config.cosmicBow.trailLineDurationTicks.desc": "How long constellation lines linger before fading out. Set lower than Trail Duration so nodes remain after lines vanish.",
   "simplybows.config.cosmicBow.trailMaxConnectionDist": "Max Connection Distance",
   "simplybows.config.cosmicBow.trailMaxConnectionDist.desc": "Maximum distance (in blocks) between trail points that can be connected by constellation lines.",
   "simplybows.config.cosmicBow.trailConnectionProbability": "Connection Probability",

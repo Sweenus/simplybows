@@ -9,6 +9,7 @@ import java.util.List;
 public class ConstellationTrail {
 
     private static final int DEFAULT_MAX_AGE_TICKS = 25;
+    private static final int DEFAULT_LINE_MAX_AGE_TICKS = 12;
     private static final float DEFAULT_MAX_CONNECTION_DIST = 2.5F;
     private static final float DEFAULT_CONNECTION_PROBABILITY = 0.35F;
     private static final int DEFAULT_SAMPLE_INTERVAL = 4;
@@ -19,16 +20,22 @@ public class ConstellationTrail {
     private final List<TrailPoint> points = new ArrayList<>();
     private final Long2ObjectOpenHashMap<Boolean> connectionCache = new Long2ObjectOpenHashMap<>();
     private final int maxAgeTicks;
+    private final int lineMaxAgeTicks;
     private final float maxConnectionDist;
     private final float connectionProbability;
     private final int sampleInterval;
 
     public ConstellationTrail() {
-        this(DEFAULT_MAX_AGE_TICKS, DEFAULT_MAX_CONNECTION_DIST, DEFAULT_CONNECTION_PROBABILITY, DEFAULT_SAMPLE_INTERVAL);
+        this(DEFAULT_MAX_AGE_TICKS, DEFAULT_LINE_MAX_AGE_TICKS, DEFAULT_MAX_CONNECTION_DIST, DEFAULT_CONNECTION_PROBABILITY, DEFAULT_SAMPLE_INTERVAL);
     }
 
     public ConstellationTrail(int maxAgeTicks, float maxConnectionDist, float connectionProbability, int sampleInterval) {
+        this(maxAgeTicks, Math.max(1, maxAgeTicks / 2), maxConnectionDist, connectionProbability, sampleInterval);
+    }
+
+    public ConstellationTrail(int maxAgeTicks, int lineMaxAgeTicks, float maxConnectionDist, float connectionProbability, int sampleInterval) {
         this.maxAgeTicks = maxAgeTicks;
+        this.lineMaxAgeTicks = lineMaxAgeTicks;
         this.maxConnectionDist = maxConnectionDist;
         this.connectionProbability = connectionProbability;
         this.sampleInterval = sampleInterval;
@@ -134,11 +141,19 @@ public class ConstellationTrail {
     }
 
     public float getAlpha(int index, long currentTick) {
+        return getAlpha(index, currentTick, maxAgeTicks);
+    }
+
+    public float getLineAlpha(int index, long currentTick) {
+        return getAlpha(index, currentTick, lineMaxAgeTicks);
+    }
+
+    private float getAlpha(int index, long currentTick, int maxAge) {
         if (index < 0 || index >= points.size()) return 0;
         long age = currentTick - points.get(index).birthTick;
-        if (age >= maxAgeTicks) return 0;
+        if (age >= maxAge) return 0;
         if (age <= 0) return 1.0F;
-        return 1.0F - ((float) age / maxAgeTicks);
+        return 1.0F - ((float) age / maxAge);
     }
 
     public void clear() {
