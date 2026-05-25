@@ -74,9 +74,11 @@ public class CosmicArrowEntityRenderer<T extends ArrowEntity> extends SimplyBows
 
         if (trail == null) {
             SimplyBowsConfig.CosmicBowSection cfg = SimplyBowsConfig.INSTANCE.cosmicBow;
+            int trailDuration = cfg.trailDurationTicks.get();
+            int trailLineDuration = cfg.trailLineDurationTicks.get();
             trail = new ConstellationTrail(
-                    cfg.trailDurationTicks.get(),
-                    cfg.trailLineDurationTicks.get(),
+                    trailDuration,
+                    trailLineDuration,
                     cfg.trailMaxConnectionDist.get(),
                     cfg.trailConnectionProbability.get(),
                     2

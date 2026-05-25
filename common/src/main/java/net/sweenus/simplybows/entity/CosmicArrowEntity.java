@@ -2,6 +2,9 @@ package net.sweenus.simplybows.entity;
 
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.projectile.ArrowEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -15,9 +18,14 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.sweenus.simplybows.registry.EntityRegistry;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
+import net.sweenus.simplybows.upgrade.RuneEtching;
+import net.sweenus.simplybows.world.CosmicGraceTrailManager;
 import net.sweenus.simplybows.world.CosmicOrbitManager;
 
 public class CosmicArrowEntity extends ArrowEntity {
+
+    private static final TrackedData<Boolean> GRACE_MODE =
+            DataTracker.registerData(CosmicArrowEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
 
     private final BowUpgradeData upgrades;
 
@@ -35,6 +43,26 @@ public class CosmicArrowEntity extends ArrowEntity {
         this.prevY = owner.getEyeY() - 0.1;
         this.prevZ = owner.getZ();
         this.upgrades = BowUpgradeData.from(weaponStack);
+        this.setGraceMode(this.upgrades.runeEtching() == RuneEtching.GRACE);
+    }
+
+    @Override
+    protected void initDataTracker(DataTracker.Builder builder) {
+        super.initDataTracker(builder);
+        builder.add(GRACE_MODE, false);
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+    }
+
+    public boolean isGraceMode() {
+        return this.dataTracker.get(GRACE_MODE);
+    }
+
+    private void setGraceMode(boolean graceMode) {
+        this.dataTracker.set(GRACE_MODE, graceMode);
     }
 
     @Override
@@ -44,6 +72,9 @@ public class CosmicArrowEntity extends ArrowEntity {
             Vec3d pos = entityHitResult.getPos();
             serverWorld.spawnParticles(ParticleTypes.END_ROD, pos.x, pos.y + 0.1, pos.z, 10, 0.15, 0.15, 0.15, 0.0);
             playImpactSound(serverWorld, pos);
+            if (this.isGraceMode()) {
+                CosmicGraceTrailManager.createField(serverWorld, this.getOwner(), pos);
+            }
             if (entityHitResult.getEntity() instanceof LivingEntity target) {
                 CosmicOrbitManager.createOrRefresh(serverWorld, target, this.getOwner(), this.upgrades);
             }
@@ -57,6 +88,9 @@ public class CosmicArrowEntity extends ArrowEntity {
             Vec3d pos = blockHitResult.getPos();
             serverWorld.spawnParticles(ParticleTypes.END_ROD, pos.x, pos.y + 0.1, pos.z, 8, 0.12, 0.12, 0.12, 0.0);
             playImpactSound(serverWorld, pos);
+            if (this.isGraceMode()) {
+                CosmicGraceTrailManager.createField(serverWorld, this.getOwner(), pos);
+            }
         }
     }
 

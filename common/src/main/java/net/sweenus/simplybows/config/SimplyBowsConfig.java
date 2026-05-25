@@ -447,8 +447,18 @@ public class SimplyBowsConfig extends Config {
         // Rune: Pain
         public ConfigGroup painGroup = new ConfigGroup("pain");
         public ValidatedInt painOrbitCooldownTicks = new ValidatedInt(3200, 12000, 20);
+        public ValidatedInt painMaxTetherTargets = new ValidatedInt(6, 32, 0);
         @ConfigGroup.Pop
         public ValidatedDouble painTetherPullStrength = new ValidatedDouble(0.08, 1.0, 0.0);
+
+        // Rune: Grace
+        public ConfigGroup graceGroup = new ConfigGroup("grace");
+        public ValidatedInt graceFieldDurationTicks = new ValidatedInt(160, 600, 20);
+        public ValidatedInt graceFieldCooldownTicks = new ValidatedInt(400, 12000, 20);
+        public ValidatedDouble graceFieldRadius = new ValidatedDouble(4.5, 12.0, 1.0);
+        public ValidatedInt graceFieldBuffDurationTicks = new ValidatedInt(30, 200, 10);
+        @ConfigGroup.Pop
+        public ValidatedInt graceFieldBuffAmplifier = new ValidatedInt(0, 4, 0);
     }
 
     // ── Loot ─────────────────────────────────────────────────

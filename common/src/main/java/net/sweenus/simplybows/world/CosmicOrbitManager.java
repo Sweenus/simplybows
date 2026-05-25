@@ -47,6 +47,7 @@ public final class CosmicOrbitManager {
     private static int maxAttackIntervalTicks() { return SimplyBowsConfig.INSTANCE.cosmicBow.orbitAttackIntervalMaxTicks.get(); }
     private static int maxJumps() { return SimplyBowsConfig.INSTANCE.cosmicBow.orbitMaxJumps.get(); }
     private static int painCooldownTicks() { return SimplyBowsConfig.INSTANCE.cosmicBow.painOrbitCooldownTicks.get(); }
+    private static int painMaxTetherTargets() { return SimplyBowsConfig.INSTANCE.cosmicBow.painMaxTetherTargets.get(); }
     private static double painTetherPullStrength() { return SimplyBowsConfig.INSTANCE.cosmicBow.painTetherPullStrength.get(); }
 
     public static boolean hasActive(ServerWorld world) {
@@ -242,12 +243,18 @@ public final class CosmicOrbitManager {
         LivingEntity ownerLiving = owner instanceof LivingEntity living ? living : null;
         Box box = Box.of(center, radius * 2.0, radius * 2.0, radius * 2.0);
         double maxDistanceSq = radius * radius;
-        return world.getEntitiesByClass(LivingEntity.class, box, entity ->
+        List<LivingEntity> candidates = world.getEntitiesByClass(LivingEntity.class, box, entity ->
                 entity != anchor
                         && entity != owner
                         && entity.squaredDistanceTo(center) <= maxDistanceSq
                         && CombatTargeting.isOffensiveTargetCandidate(entity, ownerLiving)
                         && anchor.canSee(entity));
+        candidates.sort((a, b) -> Double.compare(a.squaredDistanceTo(center), b.squaredDistanceTo(center)));
+        int maxTargets = Math.max(0, painMaxTetherTargets());
+        if (candidates.size() > maxTargets) {
+            return new ArrayList<>(candidates.subList(0, maxTargets));
+        }
+        return candidates;
     }
 
     private static void applyTetherPull(LivingEntity anchor, LivingEntity target) {

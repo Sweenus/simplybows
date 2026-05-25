@@ -30,10 +30,14 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
     private static final float LINE_B = 1.00F;
     private static final int NODE_SEGMENTS = 12;
     private static final float ORBIT_RADIUS = 1.15F;
+    private static final float FIELD_ORBIT_RADIUS = 4.25F;
     private static final float ORBIT_SPEED = 0.22F;
+    private static final float FIELD_ORBIT_SPEED = 0.105F;
     private static final float NODE_RADIUS = 0.038F;
     private static final int TRAIL_DURATION_TICKS = 9;
     private static final int TRAIL_LINE_DURATION_TICKS = 5;
+    private static final int FIELD_TRAIL_DURATION_TICKS = 34;
+    private static final int FIELD_TRAIL_LINE_DURATION_TICKS = 18;
     private static final float TRAIL_MAX_CONNECTION_DIST = 2.3F;
     private static final float TRAIL_CONNECTION_PROBABILITY = 0.35F;
     private static final int TRAIL_SAMPLE_INTERVAL = 1;
@@ -80,25 +84,31 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
 
     private ConstellationTrail updateTrail(CosmicOrbitVisualEntity entity, float age, long worldTick) {
         ConstellationTrail trail = trails.computeIfAbsent(entity, ignored -> new ConstellationTrail(
-                TRAIL_DURATION_TICKS,
-                TRAIL_LINE_DURATION_TICKS,
+                entity.isFieldMode() ? FIELD_TRAIL_DURATION_TICKS : TRAIL_DURATION_TICKS,
+                entity.isFieldMode() ? FIELD_TRAIL_LINE_DURATION_TICKS : TRAIL_LINE_DURATION_TICKS,
                 TRAIL_MAX_CONNECTION_DIST,
                 TRAIL_CONNECTION_PROBABILITY,
                 TRAIL_SAMPLE_INTERVAL
         ));
         if (entity.age % trail.getSampleInterval() == 0) {
-            trail.recordPoint(entity.getPos().add(orbitPoint(age)), worldTick);
+            trail.recordPoint(entity.getPos().add(orbitPoint(entity, age)), worldTick);
         }
         trail.prune(worldTick);
         return trail;
     }
 
-    private static Vec3d orbitPoint(float age) {
-        float angle = age * ORBIT_SPEED;
+    private static Vec3d orbitPoint(CosmicOrbitVisualEntity entity, float age) {
+        boolean fieldMode = entity.isFieldMode();
+        float radius = fieldMode ? FIELD_ORBIT_RADIUS : ORBIT_RADIUS;
+        float speed = fieldMode ? FIELD_ORBIT_SPEED : ORBIT_SPEED;
+        float angle = age * speed;
+        double height = fieldMode
+                ? 0.45 + Math.sin(angle * 2.1F) * 0.34
+                : 0.75 + Math.sin(angle * 1.7F) * 0.28;
         return new Vec3d(
-                Math.cos(angle) * ORBIT_RADIUS,
-                0.75 + Math.sin(angle * 1.7F) * 0.28,
-                Math.sin(angle) * ORBIT_RADIUS
+                Math.cos(angle) * radius,
+                height,
+                Math.sin(angle) * radius
         );
     }
 

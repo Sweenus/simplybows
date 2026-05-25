@@ -17,6 +17,10 @@ public class CosmicOrbitVisualEntity extends Entity {
             DataTracker.registerData(CosmicOrbitVisualEntity.class, TrackedDataHandlerRegistry.FLOAT);
     private static final TrackedData<Boolean> PAIN_MODE =
             DataTracker.registerData(CosmicOrbitVisualEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<Boolean> FIELD_MODE =
+            DataTracker.registerData(CosmicOrbitVisualEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<Integer> LIFETIME_TICKS =
+            DataTracker.registerData(CosmicOrbitVisualEntity.class, TrackedDataHandlerRegistry.INTEGER);
 
     private static final EntityDimensions DIMENSIONS = EntityDimensions.fixed(4.0F, 4.0F).withEyeHeight(2.0F);
 
@@ -36,6 +40,8 @@ public class CosmicOrbitVisualEntity extends Entity {
     protected void initDataTracker(DataTracker.Builder builder) {
         builder.add(VISUAL_SCALE, 1.0F);
         builder.add(PAIN_MODE, false);
+        builder.add(FIELD_MODE, false);
+        builder.add(LIFETIME_TICKS, 0);
     }
 
     @Override
@@ -59,9 +65,34 @@ public class CosmicOrbitVisualEntity extends Entity {
         this.dataTracker.set(PAIN_MODE, painMode);
     }
 
+    public boolean isFieldMode() {
+        return this.dataTracker.get(FIELD_MODE);
+    }
+
+    public void setFieldMode(boolean fieldMode) {
+        this.dataTracker.set(FIELD_MODE, fieldMode);
+    }
+
+    public int getLifetimeTicks() {
+        return this.dataTracker.get(LIFETIME_TICKS);
+    }
+
+    public void setLifetimeTicks(int lifetimeTicks) {
+        this.dataTracker.set(LIFETIME_TICKS, Math.max(0, lifetimeTicks));
+    }
+
     @Override
     public boolean isAttackable() {
         return false;
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        int lifetime = this.getLifetimeTicks();
+        if (!this.getWorld().isClient && lifetime > 0 && this.age > lifetime) {
+            this.discard();
+        }
     }
 
     @Override
@@ -70,11 +101,15 @@ public class CosmicOrbitVisualEntity extends Entity {
             this.setVisualScale(nbt.getFloat("visual_scale"));
         }
         this.setPainMode(nbt.getBoolean("pain_mode"));
+        this.setFieldMode(nbt.getBoolean("field_mode"));
+        this.setLifetimeTicks(nbt.getInt("lifetime_ticks"));
     }
 
     @Override
     protected void writeCustomDataToNbt(NbtCompound nbt) {
         nbt.putFloat("visual_scale", this.getVisualScale());
         nbt.putBoolean("pain_mode", this.isPainMode());
+        nbt.putBoolean("field_mode", this.isFieldMode());
+        nbt.putInt("lifetime_ticks", this.getLifetimeTicks());
     }
 }
