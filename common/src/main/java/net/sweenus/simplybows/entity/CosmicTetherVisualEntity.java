@@ -20,6 +20,8 @@ public class CosmicTetherVisualEntity extends Entity {
             DataTracker.registerData(CosmicTetherVisualEntity.class, TrackedDataHandlerRegistry.FLOAT);
     private static final TrackedData<Float> END_Z =
             DataTracker.registerData(CosmicTetherVisualEntity.class, TrackedDataHandlerRegistry.FLOAT);
+    private static final TrackedData<Boolean> COCOON_MODE =
+            DataTracker.registerData(CosmicTetherVisualEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
 
     private static final EntityDimensions DIMENSIONS = EntityDimensions.fixed(12.0F, 12.0F).withEyeHeight(6.0F);
 
@@ -40,6 +42,7 @@ public class CosmicTetherVisualEntity extends Entity {
         builder.add(END_X, 0.0F);
         builder.add(END_Y, 0.0F);
         builder.add(END_Z, 0.0F);
+        builder.add(COCOON_MODE, false);
     }
 
     @Override
@@ -57,6 +60,14 @@ public class CosmicTetherVisualEntity extends Entity {
         this.dataTracker.set(END_Z, (float) pos.z);
     }
 
+    public boolean isCocoonMode() {
+        return this.dataTracker.get(COCOON_MODE);
+    }
+
+    public void setCocoonMode(boolean cocoonMode) {
+        this.dataTracker.set(COCOON_MODE, cocoonMode);
+    }
+
     @Override
     public boolean isAttackable() {
         return false;
@@ -65,6 +76,7 @@ public class CosmicTetherVisualEntity extends Entity {
     @Override
     protected void readCustomDataFromNbt(NbtCompound nbt) {
         this.setEndPos(new Vec3d(nbt.getFloat("end_x"), nbt.getFloat("end_y"), nbt.getFloat("end_z")));
+        this.setCocoonMode(nbt.getBoolean("cocoon_mode"));
     }
 
     @Override
@@ -73,5 +85,6 @@ public class CosmicTetherVisualEntity extends Entity {
         nbt.putFloat("end_x", (float) end.x);
         nbt.putFloat("end_y", (float) end.y);
         nbt.putFloat("end_z", (float) end.z);
+        nbt.putBoolean("cocoon_mode", this.isCocoonMode());
     }
 }

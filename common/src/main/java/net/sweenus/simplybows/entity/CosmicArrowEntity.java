@@ -73,7 +73,7 @@ public class CosmicArrowEntity extends ArrowEntity {
             serverWorld.spawnParticles(ParticleTypes.END_ROD, pos.x, pos.y + 0.1, pos.z, 10, 0.15, 0.15, 0.15, 0.0);
             playImpactSound(serverWorld, pos);
             if (this.isGraceMode()) {
-                CosmicGraceTrailManager.createField(serverWorld, this.getOwner(), pos);
+                CosmicGraceTrailManager.createField(serverWorld, this.getOwner(), pos, this.upgrades);
             }
             if (entityHitResult.getEntity() instanceof LivingEntity target) {
                 CosmicOrbitManager.createOrRefresh(serverWorld, target, this.getOwner(), this.upgrades);
@@ -89,7 +89,7 @@ public class CosmicArrowEntity extends ArrowEntity {
             serverWorld.spawnParticles(ParticleTypes.END_ROD, pos.x, pos.y + 0.1, pos.z, 8, 0.12, 0.12, 0.12, 0.0);
             playImpactSound(serverWorld, pos);
             if (this.isGraceMode()) {
-                CosmicGraceTrailManager.createField(serverWorld, this.getOwner(), pos);
+                CosmicGraceTrailManager.createField(serverWorld, this.getOwner(), pos, this.upgrades);
             }
         }
     }

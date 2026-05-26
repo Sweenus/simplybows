@@ -21,6 +21,8 @@ public class CosmicOrbitVisualEntity extends Entity {
             DataTracker.registerData(CosmicOrbitVisualEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Integer> LIFETIME_TICKS =
             DataTracker.registerData(CosmicOrbitVisualEntity.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Float> FIELD_RADIUS =
+            DataTracker.registerData(CosmicOrbitVisualEntity.class, TrackedDataHandlerRegistry.FLOAT);
 
     private static final EntityDimensions DIMENSIONS = EntityDimensions.fixed(4.0F, 4.0F).withEyeHeight(2.0F);
 
@@ -42,6 +44,7 @@ public class CosmicOrbitVisualEntity extends Entity {
         builder.add(PAIN_MODE, false);
         builder.add(FIELD_MODE, false);
         builder.add(LIFETIME_TICKS, 0);
+        builder.add(FIELD_RADIUS, 4.25F);
     }
 
     @Override
@@ -81,6 +84,14 @@ public class CosmicOrbitVisualEntity extends Entity {
         this.dataTracker.set(LIFETIME_TICKS, Math.max(0, lifetimeTicks));
     }
 
+    public float getFieldRadius() {
+        return this.dataTracker.get(FIELD_RADIUS);
+    }
+
+    public void setFieldRadius(float fieldRadius) {
+        this.dataTracker.set(FIELD_RADIUS, Math.max(0.5F, fieldRadius));
+    }
+
     @Override
     public boolean isAttackable() {
         return false;
@@ -103,6 +114,9 @@ public class CosmicOrbitVisualEntity extends Entity {
         this.setPainMode(nbt.getBoolean("pain_mode"));
         this.setFieldMode(nbt.getBoolean("field_mode"));
         this.setLifetimeTicks(nbt.getInt("lifetime_ticks"));
+        if (nbt.contains("field_radius")) {
+            this.setFieldRadius(nbt.getFloat("field_radius"));
+        }
     }
 
     @Override
@@ -111,5 +125,6 @@ public class CosmicOrbitVisualEntity extends Entity {
         nbt.putBoolean("pain_mode", this.isPainMode());
         nbt.putBoolean("field_mode", this.isFieldMode());
         nbt.putInt("lifetime_ticks", this.getLifetimeTicks());
+        nbt.putFloat("field_radius", this.getFieldRadius());
     }
 }

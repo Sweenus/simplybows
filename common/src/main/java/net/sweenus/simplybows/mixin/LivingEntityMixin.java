@@ -4,6 +4,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.world.ServerWorld;
 import net.sweenus.simplybows.world.BeeGraceShieldManager;
+import net.sweenus.simplybows.world.CosmicGraceTrailManager;
 import net.sweenus.simplybows.world.CosmicOrbitManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -22,7 +23,8 @@ public abstract class LivingEntityMixin {
         if (!(living.getWorld() instanceof ServerWorld serverWorld)) {
             return;
         }
-        if (BeeGraceShieldManager.consumeShield(serverWorld, living)) {
+        if (CosmicGraceTrailManager.consumeCocoon(serverWorld, living, amount)
+                || BeeGraceShieldManager.consumeShield(serverWorld, living)) {
             cir.setReturnValue(false);
         }
     }

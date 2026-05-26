@@ -457,6 +457,8 @@ public class SimplyBowsConfig extends Config {
         public ValidatedInt graceFieldCooldownTicks = new ValidatedInt(400, 12000, 20);
         public ValidatedDouble graceFieldRadius = new ValidatedDouble(4.5, 12.0, 1.0);
         public ValidatedInt graceFieldBuffDurationTicks = new ValidatedInt(30, 200, 10);
+        public ValidatedFloat graceFieldCocoonChance = new ValidatedFloat(0.20F, 1.0F, 0.0F);
+        public ValidatedFloat graceFieldCocoonNightChanceBonus = new ValidatedFloat(0.20F, 1.0F, 0.0F);
         @ConfigGroup.Pop
         public ValidatedInt graceFieldBuffAmplifier = new ValidatedInt(0, 4, 0);
     }
