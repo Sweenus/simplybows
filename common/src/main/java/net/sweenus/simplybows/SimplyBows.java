@@ -10,6 +10,8 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.util.Identifier;
 import net.sweenus.simplybows.client.ClientAbilityCooldownCache;
+import net.sweenus.simplybows.client.particle.LongEndRodParticle;
+import net.sweenus.simplybows.client.particle.LongFireworkParticle;
 import net.sweenus.simplybows.client.particle.WaveParticle;
 import net.sweenus.simplybows.network.AbilityCooldownPayload;
 import net.sweenus.simplybows.client.renderer.BeeArrowEntityRenderer;
@@ -27,6 +29,7 @@ import net.sweenus.simplybows.client.renderer.HomingSpectralArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.IceChaosWallVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.ShoulderBowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.CosmicArrowEntityRenderer;
+import net.sweenus.simplybows.client.renderer.CosmicBountyVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.CosmicOrbitVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.CosmicStrikeVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.CosmicTetherVisualEntityRenderer;
@@ -98,6 +101,7 @@ public final class SimplyBows {
             EntityRendererRegistry.register(EntityRegistry.COSMIC_ORBIT_VISUAL, CosmicOrbitVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.COSMIC_STRIKE_VISUAL, CosmicStrikeVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.COSMIC_TETHER_VISUAL, CosmicTetherVisualEntityRenderer::new);
+            EntityRendererRegistry.register(EntityRegistry.COSMIC_BOUNTY_VISUAL, CosmicBountyVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.SHOULDER_BOW, ShoulderBowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.EARTH_SPIKE_VISUAL, EarthSpikeVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.ICE_CHAOS_WALL_VISUAL, IceChaosWallVisualEntityRenderer::new);
@@ -111,7 +115,9 @@ public final class SimplyBows {
             EntityRendererRegistry.register(EntityRegistry.KOI_FISH_VISUAL, KoiFishVisualEntityRenderer::new);
 
             ParticleProviderRegistry.register(ParticleRegistry.JAPANESE_WAVE, WaveParticle.Factory::new);
-            LOGGER.info("Registered Architectury particle provider: simplybows:japanese_wave");
+            ParticleProviderRegistry.register(ParticleRegistry.LONG_END_ROD, LongEndRodParticle.Factory::new);
+            ParticleProviderRegistry.register(ParticleRegistry.LONG_FIREWORK, LongFireworkParticle.Factory::new);
+            LOGGER.info("Registered Architectury particle providers for Simply Bows");
 
             NetworkManager.registerReceiver(
                     NetworkManager.Side.S2C,

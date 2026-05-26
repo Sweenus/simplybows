@@ -461,6 +461,18 @@ public class SimplyBowsConfig extends Config {
         public ValidatedFloat graceFieldCocoonNightChanceBonus = new ValidatedFloat(0.20F, 1.0F, 0.0F);
         @ConfigGroup.Pop
         public ValidatedInt graceFieldBuffAmplifier = new ValidatedInt(0, 4, 0);
+
+        // Rune: Bounty
+        public ConfigGroup bountyGroup = new ConfigGroup("bounty");
+        public ValidatedFloat bountyArrowSpeedMultiplier = new ValidatedFloat(0.62F, 1.0F, 0.1F);
+        public ValidatedInt bountyMaxChargeTicks = new ValidatedInt(60, 400, 20);
+        public ValidatedInt bountyImplodeTicks = new ValidatedInt(42, 120, 10);
+        public ValidatedDouble bountyMinRadius = new ValidatedDouble(3.0, 16.0, 1.0);
+        public ValidatedDouble bountyMaxRadius = new ValidatedDouble(7.0, 24.0, 1.0);
+        public ValidatedFloat bountyMinDamage = new ValidatedFloat(5.0F, 80.0F, 0.0F);
+        public ValidatedFloat bountyMaxDamage = new ValidatedFloat(13.0F, 120.0F, 0.0F);
+        @ConfigGroup.Pop
+        public ValidatedDouble bountyPullStrength = new ValidatedDouble(0.18, 1.5, 0.0);
     }
 
     // ── Loot ─────────────────────────────────────────────────

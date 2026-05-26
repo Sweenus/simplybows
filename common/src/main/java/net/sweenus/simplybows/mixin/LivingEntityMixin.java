@@ -2,17 +2,29 @@ package net.sweenus.simplybows.mixin;
 
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Hand;
 import net.sweenus.simplybows.world.BeeGraceShieldManager;
+import net.sweenus.simplybows.world.CosmicBountyManager;
 import net.sweenus.simplybows.world.CosmicGraceTrailManager;
 import net.sweenus.simplybows.world.CosmicOrbitManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin {
+
+    @Inject(method = "swingHand(Lnet/minecraft/util/Hand;Z)V", at = @At("HEAD"))
+    private void simplybows$triggerCosmicBountyDetonation(Hand hand, boolean fromServerPlayer, CallbackInfo ci) {
+        LivingEntity living = (LivingEntity) (Object) this;
+        if (living instanceof ServerPlayerEntity serverPlayer) {
+            CosmicBountyManager.triggerAirborneDetonation(serverPlayer);
+        }
+    }
 
     @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
     private void simplybows$consumeBeeGraceShield(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {

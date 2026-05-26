@@ -105,6 +105,9 @@ public class CosmicArrowEntityRenderer<T extends ArrowEntity> extends SimplyBows
         );
 
         renderConstellationTrail(trail, currentTick, renderPos, matrices, vertexConsumers);
+        if (arrow.isBountyMode()) {
+            renderBountyHeadNode(arrow, tickDelta, renderPos, matrices, vertexConsumers);
+        }
     }
 
     public static void clientTick(long worldTick) {
@@ -181,6 +184,41 @@ public class CosmicArrowEntityRenderer<T extends ArrowEntity> extends SimplyBows
         matrices.pop();
     }
 
+    private static void renderBountyHeadNode(CosmicArrowEntity arrow, float tickDelta, Vec3d renderPos,
+                                             MatrixStack matrices, VertexConsumerProvider vertexConsumers) {
+        float maxCharge = Math.max(1.0F, SimplyBowsConfig.INSTANCE.cosmicBow.bountyMaxChargeTicks.get());
+        float charge = Math.min(1.0F, (arrow.getBountyChargeTicks() + tickDelta) / maxCharge);
+        float pulse = (float) Math.sin((arrow.age + tickDelta) * 0.45F) * 0.5F + 0.5F;
+        float radius = NODE_RADIUS * (4.0F + charge * 30.0F + pulse * charge * 2.4F);
+        float r = 0.48F + charge * 0.52F;
+        float g = 0.88F - charge * 0.20F;
+        float b = 1.00F - charge * 0.88F;
+        Vec3d arrowPos = new Vec3d(
+                lerp(tickDelta, arrow.prevX, arrow.getX()),
+                lerp(tickDelta, arrow.prevY, arrow.getY()),
+                lerp(tickDelta, arrow.prevZ, arrow.getZ())
+        );
+
+        VertexConsumer nodeConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE));
+        Sprite nodeSprite = MinecraftClient.getInstance()
+                .getBakedModelManager()
+                .getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)
+                .getSprite(NODE_FILL_SPRITE);
+        renderNodeDisc(
+                matrices,
+                nodeConsumer,
+                nodeSprite,
+                (float) (arrowPos.x - renderPos.x),
+                (float) (arrowPos.y - renderPos.y),
+                (float) (arrowPos.z - renderPos.z),
+                radius,
+                r,
+                g,
+                b,
+                0.88F
+        );
+    }
+
     private static void renderTrailConnection(ConstellationTrail trail,
                                               List<ConstellationTrail.TrailPoint> points,
                                               long currentTick,
@@ -222,6 +260,12 @@ public class CosmicArrowEntityRenderer<T extends ArrowEntity> extends SimplyBows
 
     private static void renderNodeDisc(MatrixStack matrices, VertexConsumer consumer, Sprite sprite,
                                        float x, float y, float z, float radius, float alpha) {
+        renderNodeDisc(matrices, consumer, sprite, x, y, z, radius, NODE_R, NODE_G, NODE_B, alpha);
+    }
+
+    private static void renderNodeDisc(MatrixStack matrices, VertexConsumer consumer, Sprite sprite,
+                                       float x, float y, float z, float radius,
+                                       float r, float g, float b, float alpha) {
         matrices.push();
         matrices.translate(x, y, z);
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(
@@ -249,6 +293,9 @@ public class CosmicArrowEntityRenderer<T extends ArrowEntity> extends SimplyBows
                     (float) Math.sin(angleB) * radius,
                     u,
                     v,
+                    r,
+                    g,
+                    b,
                     alpha
             );
         }
@@ -262,21 +309,23 @@ public class CosmicArrowEntityRenderer<T extends ArrowEntity> extends SimplyBows
                                       float xMid, float yMid,
                                       float x2, float y2,
                                       float u, float v,
+                                      float r, float g, float b,
                                       float alpha) {
-        nodeVertex(consumer, entry, centerX, centerY, u, v, alpha);
-        nodeVertex(consumer, entry, x1, y1, u, v, alpha);
-        nodeVertex(consumer, entry, xMid, yMid, u, v, alpha);
-        nodeVertex(consumer, entry, x2, y2, u, v, alpha);
-        nodeVertex(consumer, entry, centerX, centerY, u, v, alpha);
-        nodeVertex(consumer, entry, x2, y2, u, v, alpha);
-        nodeVertex(consumer, entry, xMid, yMid, u, v, alpha);
-        nodeVertex(consumer, entry, x1, y1, u, v, alpha);
+        nodeVertex(consumer, entry, centerX, centerY, u, v, r, g, b, alpha);
+        nodeVertex(consumer, entry, x1, y1, u, v, r, g, b, alpha);
+        nodeVertex(consumer, entry, xMid, yMid, u, v, r, g, b, alpha);
+        nodeVertex(consumer, entry, x2, y2, u, v, r, g, b, alpha);
+        nodeVertex(consumer, entry, centerX, centerY, u, v, r, g, b, alpha);
+        nodeVertex(consumer, entry, x2, y2, u, v, r, g, b, alpha);
+        nodeVertex(consumer, entry, xMid, yMid, u, v, r, g, b, alpha);
+        nodeVertex(consumer, entry, x1, y1, u, v, r, g, b, alpha);
     }
 
     private static void nodeVertex(VertexConsumer consumer, MatrixStack.Entry entry,
-                                   float x, float y, float u, float v, float alpha) {
+                                   float x, float y, float u, float v,
+                                   float r, float g, float b, float alpha) {
         consumer.vertex(entry, x, y, 0.0F)
-                .color(NODE_R, NODE_G, NODE_B, alpha)
+                .color(r, g, b, alpha)
                 .texture(u, v)
                 .overlay(OverlayTexture.DEFAULT_UV)
                 .light(LightmapTextureManager.MAX_LIGHT_COORDINATE)

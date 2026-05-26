@@ -26,6 +26,10 @@ public class CosmicArrowEntity extends ArrowEntity {
 
     private static final TrackedData<Boolean> GRACE_MODE =
             DataTracker.registerData(CosmicArrowEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<Boolean> BOUNTY_MODE =
+            DataTracker.registerData(CosmicArrowEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<Integer> BOUNTY_CHARGE_TICKS =
+            DataTracker.registerData(CosmicArrowEntity.class, TrackedDataHandlerRegistry.INTEGER);
 
     private final BowUpgradeData upgrades;
 
@@ -44,17 +48,29 @@ public class CosmicArrowEntity extends ArrowEntity {
         this.prevZ = owner.getZ();
         this.upgrades = BowUpgradeData.from(weaponStack);
         this.setGraceMode(this.upgrades.runeEtching() == RuneEtching.GRACE);
+        this.setBountyMode(this.upgrades.runeEtching() == RuneEtching.BOUNTY);
     }
 
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
         super.initDataTracker(builder);
         builder.add(GRACE_MODE, false);
+        builder.add(BOUNTY_MODE, false);
+        builder.add(BOUNTY_CHARGE_TICKS, 0);
     }
 
     @Override
     public void tick() {
         super.tick();
+        if (this.isBountyMode() && !this.isOnGround() && !this.isRemoved()) {
+            this.setBountyChargeTicks(this.getBountyChargeTicks() + 1);
+            if (!this.getWorld().isClient) {
+                Vec3d velocity = this.getVelocity();
+                double horizontalDrag = this.age <= 4 ? 0.92 : 0.972;
+                double verticalBoost = this.age <= 4 ? 0.055 : -0.0015;
+                this.setVelocity(velocity.x * horizontalDrag, velocity.y + verticalBoost, velocity.z * horizontalDrag);
+            }
+        }
     }
 
     public boolean isGraceMode() {
@@ -65,6 +81,26 @@ public class CosmicArrowEntity extends ArrowEntity {
         this.dataTracker.set(GRACE_MODE, graceMode);
     }
 
+    public boolean isBountyMode() {
+        return this.dataTracker.get(BOUNTY_MODE);
+    }
+
+    private void setBountyMode(boolean bountyMode) {
+        this.dataTracker.set(BOUNTY_MODE, bountyMode);
+    }
+
+    public int getBountyChargeTicks() {
+        return this.dataTracker.get(BOUNTY_CHARGE_TICKS);
+    }
+
+    public BowUpgradeData getUpgrades() {
+        return this.upgrades;
+    }
+
+    private void setBountyChargeTicks(int chargeTicks) {
+        this.dataTracker.set(BOUNTY_CHARGE_TICKS, Math.max(0, chargeTicks));
+    }
+
     @Override
     protected void onEntityHit(EntityHitResult entityHitResult) {
         super.onEntityHit(entityHitResult);
@@ -72,6 +108,11 @@ public class CosmicArrowEntity extends ArrowEntity {
             Vec3d pos = entityHitResult.getPos();
             serverWorld.spawnParticles(ParticleTypes.END_ROD, pos.x, pos.y + 0.1, pos.z, 10, 0.15, 0.15, 0.15, 0.0);
             playImpactSound(serverWorld, pos);
+            if (this.isBountyMode()) {
+                net.sweenus.simplybows.world.CosmicBountyManager.createImplosion(serverWorld, this.getOwner(), pos, this.getBountyChargeTicks(), this.upgrades);
+                this.discard();
+                return;
+            }
             if (this.isGraceMode()) {
                 CosmicGraceTrailManager.createField(serverWorld, this.getOwner(), pos, this.upgrades);
             }
@@ -88,6 +129,11 @@ public class CosmicArrowEntity extends ArrowEntity {
             Vec3d pos = blockHitResult.getPos();
             serverWorld.spawnParticles(ParticleTypes.END_ROD, pos.x, pos.y + 0.1, pos.z, 8, 0.12, 0.12, 0.12, 0.0);
             playImpactSound(serverWorld, pos);
+            if (this.isBountyMode()) {
+                net.sweenus.simplybows.world.CosmicBountyManager.createImplosion(serverWorld, this.getOwner(), pos, this.getBountyChargeTicks(), this.upgrades);
+                this.discard();
+                return;
+            }
             if (this.isGraceMode()) {
                 CosmicGraceTrailManager.createField(serverWorld, this.getOwner(), pos, this.upgrades);
             }

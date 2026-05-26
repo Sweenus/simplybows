@@ -14,6 +14,12 @@ public class ParticleRegistry {
     public static final RegistrySupplier<SimpleParticleType> JAPANESE_WAVE =
             PARTICLE_TYPES.register("japanese_wave", () -> new SimpleParticleType(false) {});
 
+    public static final RegistrySupplier<SimpleParticleType> LONG_END_ROD =
+            PARTICLE_TYPES.register("long_end_rod", () -> new SimpleParticleType(false) {});
+
+    public static final RegistrySupplier<SimpleParticleType> LONG_FIREWORK =
+            PARTICLE_TYPES.register("long_firework", () -> new SimpleParticleType(false) {});
+
     public static void registerParticles() {
         PARTICLE_TYPES.register();
     }
