@@ -13,6 +13,10 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 import net.sweenus.simplybows.entity.CosmicTetherVisualEntity;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 public class CosmicTetherVisualEntityRenderer extends EntityRenderer<CosmicTetherVisualEntity> {
 
     private static final Identifier NODE_FILL_SPRITE = Identifier.ofVanilla("block/white_concrete");
@@ -23,6 +27,10 @@ public class CosmicTetherVisualEntityRenderer extends EntityRenderer<CosmicTethe
     private static final int COCOON_POINTS = 12;
     private static final float COCOON_RADIUS = 0.82F;
     private static final float COCOON_HEIGHT = 1.55F;
+    private static final double COCOON_FOLLOW_LERP = 0.12;
+    private static final double COCOON_FOLLOW_SNAP_DISTANCE_SQ = 16.0;
+
+    private final Map<UUID, SmoothedCocoonCenter> smoothedCocoonCenters = new HashMap<>();
 
     public CosmicTetherVisualEntityRenderer(EntityRendererFactory.Context context) {
         super(context);
@@ -36,20 +44,22 @@ public class CosmicTetherVisualEntityRenderer extends EntityRenderer<CosmicTethe
     @Override
     public void render(CosmicTetherVisualEntity entity, float yaw, float tickDelta, MatrixStack matrices,
                        VertexConsumerProvider vertexConsumers, int light) {
-        Vec3d end = entity.getEndPos().subtract(entity.getPos());
+        Vec3d renderOrigin = interpolatedPos(entity, tickDelta);
+        Vec3d end = entity.getEndPos().subtract(renderOrigin);
         Vec3d tetherStart = Vec3d.ZERO;
         Vec3d tetherEnd = end;
         Vec3d cocoonCenter = end;
         if (entity.isCocoonMode()) {
             Vec3d snappedEnd = CosmicOrbitVisualEntityRenderer.snapToLatestFieldOrbitNode(
                     entity.getWorld(),
-                    entity.getPos().add(end),
+                    renderOrigin.add(end),
                     entity.getWorld().getTime()
-            ).subtract(entity.getPos());
+            ).subtract(renderOrigin);
+            Vec3d smoothedCenter = smoothedCocoonCenter(entity, renderOrigin).subtract(renderOrigin);
             end = snappedEnd;
             tetherStart = end;
-            tetherEnd = Vec3d.ZERO;
-            cocoonCenter = Vec3d.ZERO;
+            tetherEnd = smoothedCenter;
+            cocoonCenter = smoothedCenter;
         }
         Vec3d tether = tetherEnd.subtract(tetherStart);
         Vec3d direction = tether.lengthSquared() > 1.0E-6 ? tether.normalize() : new Vec3d(0.0, 1.0, 0.0);
@@ -153,5 +163,34 @@ public class CosmicTetherVisualEntityRenderer extends EntityRenderer<CosmicTethe
         mixed *= 0x5bd1e995;
         mixed ^= mixed >>> 15;
         return ((mixed & 0xFF) / 255.0F) - 0.5F;
+    }
+
+    private Vec3d smoothedCocoonCenter(CosmicTetherVisualEntity entity, Vec3d desiredCenter) {
+        UUID entityId = entity.getUuid();
+        long worldTick = entity.getWorld().getTime();
+        smoothedCocoonCenters.entrySet().removeIf(entry -> entry.getValue().lastSeenTick + 80L < worldTick);
+
+        SmoothedCocoonCenter previous = smoothedCocoonCenters.get(entityId);
+        Vec3d previousPos = previous == null ? null : previous.pos;
+        Vec3d smoothed = previousPos == null || previousPos.squaredDistanceTo(desiredCenter) > COCOON_FOLLOW_SNAP_DISTANCE_SQ
+                ? desiredCenter
+                : previousPos.lerp(desiredCenter, COCOON_FOLLOW_LERP);
+        smoothedCocoonCenters.put(entityId, new SmoothedCocoonCenter(smoothed, worldTick));
+        return smoothed;
+    }
+
+    private static Vec3d interpolatedPos(CosmicTetherVisualEntity entity, float tickDelta) {
+        return new Vec3d(
+                lerp(tickDelta, entity.prevX, entity.getX()),
+                lerp(tickDelta, entity.prevY, entity.getY()),
+                lerp(tickDelta, entity.prevZ, entity.getZ())
+        );
+    }
+
+    private static double lerp(float delta, double start, double end) {
+        return start + (end - start) * delta;
+    }
+
+    private record SmoothedCocoonCenter(Vec3d pos, long lastSeenTick) {
     }
 }
