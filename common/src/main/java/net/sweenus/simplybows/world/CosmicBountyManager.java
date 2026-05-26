@@ -218,18 +218,19 @@ public final class CosmicBountyManager {
         double topY = field.pos.y + 1.5;
         double fallHeight = stardustFallHeight(radius);
         double topBandHeight = Math.min(2.5, fallHeight * 0.12);
+        double visualRadius = radius * 0.45;
         for (int i = 0; i < count; i++) {
             double angle = world.random.nextDouble() * Math.PI * 2.0;
-            double distance = Math.sqrt(world.random.nextDouble()) * radius;
+            double distance = Math.sqrt(world.random.nextDouble()) * visualRadius;
             double x = field.pos.x + Math.cos(angle) * distance;
             double z = field.pos.z + Math.sin(angle) * distance;
             double y = topY - world.random.nextDouble() * topBandHeight;
-            world.spawnParticles(ParticleRegistry.LONG_END_ROD.get(), x, y, z, 1, 0.022, 0.035, 0.022, -0.22);
+            world.spawnParticles(ParticleRegistry.LONG_END_ROD.get(), x, y, z, 1, 0.003, 0.028, 0.003, -0.14);
             if (world.random.nextFloat() < 0.45F) {
-                world.spawnParticles(ParticleRegistry.LONG_FIREWORK.get(), x, y + 0.15, z, 1, 0.014, 0.025, 0.014, -0.16);
+                world.spawnParticles(ParticleRegistry.LONG_FIREWORK.get(), x, y + 0.15, z, 1, 0.002, 0.020, 0.002, -0.10);
             }
         }
-        world.spawnParticles(ParticleRegistry.LONG_END_ROD.get(), field.pos.x, topY, field.pos.z, 40, radius * 0.28, 0.18, radius * 0.28, -0.20);
+        world.spawnParticles(ParticleRegistry.LONG_END_ROD.get(), field.pos.x, topY, field.pos.z, 40, radius * 0.06, 0.12, radius * 0.06, -0.12);
     }
 
     private static void damageStardustTargets(ServerWorld world, ActiveStardustField field) {

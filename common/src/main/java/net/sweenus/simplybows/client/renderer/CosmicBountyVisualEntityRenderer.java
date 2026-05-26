@@ -21,6 +21,7 @@ public class CosmicBountyVisualEntityRenderer extends EntityRenderer<CosmicBount
 
     private static final Identifier NODE_FILL_SPRITE = Identifier.ofVanilla("block/white_concrete");
     private static final int NODE_SEGMENTS = 18;
+    private static final int STAR_POINTS = 5;
     private static final int EXPANDING_ORBITS = 3;
     private static final int ORBIT_TRAIL_POINTS = 18;
     private static final float SPIRAL_NODE_RADIUS = 0.045F;
@@ -65,7 +66,20 @@ public class CosmicBountyVisualEntityRenderer extends EntityRenderer<CosmicBount
         float r = 0.62F + orangeBlend * 0.38F;
         float g = 0.88F - orangeBlend * 0.24F;
         float b = 1.00F - orangeBlend * 0.88F;
-        renderNodeDisc(matrices, nodeConsumer, nodeSprite, 0.0F, 0.0F, 0.0F, radius, r, g, b, alpha);
+        renderCoreStar(
+                matrices,
+                nodeConsumer,
+                nodeSprite,
+                0.0F,
+                0.0F,
+                0.0F,
+                radius,
+                r,
+                g,
+                b,
+                alpha,
+                (entity.age + tickDelta) * 2.4F
+        );
 
         renderImplodingGraceOrbits(entity, charge, implode, matrices, lineConsumer, nodeConsumer, nodeSprite);
     }
@@ -85,6 +99,21 @@ public class CosmicBountyVisualEntityRenderer extends EntityRenderer<CosmicBount
                 .getSprite(NODE_FILL_SPRITE);
 
         float progress = Math.min(1.0F, burstAge / 28.0F);
+        float coreRadius = (1.22F + charge * 3.85F) * (1.0F + progress * 0.18F);
+        renderCoreStar(
+                matrices,
+                nodeConsumer,
+                nodeSprite,
+                0.0F,
+                0.0F,
+                0.0F,
+                coreRadius,
+                1.0F,
+                0.76F,
+                0.18F,
+                fade * 0.92F,
+                (entity.age + burstAge) * 4.8F
+        );
         for (int orbit = 0; orbit < EXPANDING_ORBITS; orbit++) {
             float delay = orbit * 2.5F;
             float orbitAge = Math.max(0.0F, burstAge - delay);
@@ -172,6 +201,42 @@ public class CosmicBountyVisualEntityRenderer extends EntityRenderer<CosmicBount
                     nodeSprite
             );
         }
+    }
+
+    private static void renderCoreStar(MatrixStack matrices, VertexConsumer consumer, Sprite sprite,
+                                       float x, float y, float z, float radius,
+                                       float r, float g, float b, float alpha,
+                                       float rotationDegrees) {
+        renderStarBillboard(matrices, consumer, sprite, x, y, z, radius * 1.10F, radius * 0.43F, r, g, b, alpha * 0.42F, rotationDegrees + 18.0F);
+        renderStarBillboard(matrices, consumer, sprite, x, y, z, radius, radius * 0.38F, r, g, b, alpha, rotationDegrees);
+        renderStarBillboard(matrices, consumer, sprite, x, y, z, radius * 0.34F, radius * 0.22F, 1.0F, 0.96F, 0.72F, Math.min(1.0F, alpha * 1.18F), rotationDegrees * -0.35F);
+    }
+
+    private static void renderStarBillboard(MatrixStack matrices, VertexConsumer consumer, Sprite sprite,
+                                            float x, float y, float z, float outerRadius, float innerRadius,
+                                            float r, float g, float b, float alpha, float rotationDegrees) {
+        matrices.push();
+        matrices.translate(x, y, z);
+        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(
+                -MinecraftClient.getInstance().gameRenderer.getCamera().getYaw()));
+        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(
+                MinecraftClient.getInstance().gameRenderer.getCamera().getPitch()));
+        matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(rotationDegrees));
+
+        MatrixStack.Entry entry = matrices.peek();
+        float u = (sprite.getMinU() + sprite.getMaxU()) * 0.5F;
+        float v = (sprite.getMinV() + sprite.getMaxV()) * 0.5F;
+        int vertices = STAR_POINTS * 2;
+        for (int i = 0; i < vertices; i++) {
+            double angleA = -Math.PI / 2.0 + Math.PI * 2.0 * i / vertices;
+            double angleB = -Math.PI / 2.0 + Math.PI * 2.0 * (i + 1) / vertices;
+            float radiusA = (i & 1) == 0 ? outerRadius : innerRadius;
+            float radiusB = ((i + 1) & 1) == 0 ? outerRadius : innerRadius;
+            vertex(consumer, entry, 0.0F, 0.0F, u, v, r, g, b, alpha);
+            vertex(consumer, entry, (float) Math.cos(angleA) * radiusA, (float) Math.sin(angleA) * radiusA, u, v, r, g, b, alpha);
+            vertex(consumer, entry, (float) Math.cos(angleB) * radiusB, (float) Math.sin(angleB) * radiusB, u, v, r, g, b, alpha);
+        }
+        matrices.pop();
     }
 
     private static void renderNodeDisc(MatrixStack matrices, VertexConsumer consumer, Sprite sprite,
