@@ -650,6 +650,8 @@
   "simplybows.config.cosmicBow.graceFieldBuffAmplifier": "Grace Field Buff Amplifier",
   "simplybows.config.cosmicBow.graceFieldBuffAmplifier.desc": "Amplifier for Haste and Swiftness granted by the Grace field. 0 = level I.",
   "simplybows.config.cosmicBow.bounty": "Rune: Bounty",
+  "simplybows.config.cosmicBow.bountyCooldownTicks": "Bounty Cooldown (ticks)",
+  "simplybows.config.cosmicBow.bountyCooldownTicks.desc": "Cooldown before another Bounty implosion can be created. 40 = 2 seconds.",
   "simplybows.config.cosmicBow.bountyArrowSpeedMultiplier": "Bounty Arrow Speed Multiplier",
   "simplybows.config.cosmicBow.bountyArrowSpeedMultiplier.desc": "Extra speed multiplier for Bounty arrows. Lower values make arcing shots more important.",
   "simplybows.config.cosmicBow.bountyMaxChargeTicks": "Bounty Max Charge (ticks)",

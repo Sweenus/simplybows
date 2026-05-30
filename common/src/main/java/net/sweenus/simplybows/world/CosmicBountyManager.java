@@ -4,6 +4,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -15,14 +16,17 @@ import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.entity.CosmicArrowEntity;
 import net.sweenus.simplybows.entity.CosmicBountyVisualEntity;
 import net.sweenus.simplybows.item.unique.CosmicBowItem;
+import net.sweenus.simplybows.item.unique.SimplyBowItem;
 import net.sweenus.simplybows.registry.ParticleRegistry;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
 import net.sweenus.simplybows.util.CombatTargeting;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public final class CosmicBountyManager {
@@ -34,6 +38,7 @@ public final class CosmicBountyManager {
     private static final double STARDUST_FALL_HEIGHT_RADIUS_MULTIPLIER = 2.75;
     private static final List<ActiveBountyStar> ACTIVE_STARS = new ArrayList<>();
     private static final List<ActiveStardustField> ACTIVE_STARDUST_FIELDS = new ArrayList<>();
+    private static final Map<MinecraftServer, Map<UUID, Long>> BOUNTY_COOLDOWNS_BY_SERVER = CooldownStorage.newServerScopedStore();
 
     private CosmicBountyManager() {
     }
@@ -45,9 +50,13 @@ public final class CosmicBountyManager {
     private static float minDamage() { return SimplyBowsConfig.INSTANCE.cosmicBow.bountyMinDamage.get(); }
     private static float maxDamage() { return SimplyBowsConfig.INSTANCE.cosmicBow.bountyMaxDamage.get(); }
     private static double pullStrength() { return SimplyBowsConfig.INSTANCE.cosmicBow.bountyPullStrength.get(); }
+    private static int cooldownTicks() { return SimplyBowsConfig.INSTANCE.cosmicBow.bountyCooldownTicks.get(); }
 
     public static boolean hasActive(ServerWorld world) {
-        return !ACTIVE_STARS.isEmpty() || !ACTIVE_STARDUST_FIELDS.isEmpty() || world.getTime() % 20L == 0L;
+        return !ACTIVE_STARS.isEmpty()
+                || !ACTIVE_STARDUST_FIELDS.isEmpty()
+                || !getCooldowns(world).isEmpty()
+                || world.getTime() % 20L == 0L;
     }
 
     public static void createImplosion(ServerWorld world, Entity owner, Vec3d pos, int chargeTicks, BowUpgradeData upgrades) {
@@ -56,6 +65,10 @@ public final class CosmicBountyManager {
 
     public static void createImplosion(ServerWorld world, Entity owner, Vec3d pos, int chargeTicks, BowUpgradeData upgrades, boolean createStardustField) {
         if (world == null || pos == null) {
+            return;
+        }
+        UUID ownerId = owner == null ? null : owner.getUuid();
+        if (ownerId != null && !isBountyReady(world, ownerId)) {
             return;
         }
         BowUpgradeData bountyUpgrades = upgrades == null ? BowUpgradeData.none() : upgrades;
@@ -74,13 +87,24 @@ public final class CosmicBountyManager {
             return;
         }
 
-        UUID ownerId = owner == null ? null : owner.getUuid();
         ACTIVE_STARS.add(new ActiveBountyStar(world, visual.getUuid(), ownerId, pos, radius, damage, implodeDuration, createStardustField));
+        if (ownerId != null) {
+            startBountyCooldown(world, ownerId);
+            if (owner instanceof ServerPlayerEntity player) {
+                int ticks = Math.max(0, cooldownTicks());
+                if (ticks > 0) {
+                    SimplyBowItem.simplybows$sendCooldownPacket(player, "cosmic", System.currentTimeMillis() + ticks * 50L, ticks);
+                }
+            }
+        }
         playImplodeStart(world, pos, charge);
     }
 
     public static boolean triggerAirborneDetonation(ServerPlayerEntity player) {
         if (player == null || !(player.getWorld() instanceof ServerWorld world) || !isHoldingBountyCosmicBow(player)) {
+            return false;
+        }
+        if (!isBountyReady(world, player.getUuid())) {
             return false;
         }
 
@@ -111,6 +135,10 @@ public final class CosmicBountyManager {
     }
 
     public static void tick(ServerWorld world) {
+        if (world.getTime() % 40L == 0L) {
+            long now = CooldownStorage.currentTick(world);
+            getCooldowns(world).entrySet().removeIf(entry -> entry.getValue() <= now);
+        }
         if (ACTIVE_STARS.isEmpty()) {
             tickStardustFields(world);
             return;
@@ -312,6 +340,27 @@ public final class CosmicBountyManager {
 
     private static double stardustFallHeight(double radius) {
         return Math.max(STARDUST_MIN_FALL_HEIGHT, radius * STARDUST_FALL_HEIGHT_RADIUS_MULTIPLIER);
+    }
+
+    private static boolean isBountyReady(ServerWorld world, UUID ownerId) {
+        if (world == null || ownerId == null) {
+            return false;
+        }
+        long now = CooldownStorage.currentTick(world);
+        Long cooldownEnd = getCooldowns(world).get(ownerId);
+        return cooldownEnd == null || cooldownEnd <= now;
+    }
+
+    private static void startBountyCooldown(ServerWorld world, UUID ownerId) {
+        int ticks = Math.max(0, cooldownTicks());
+        if (ticks <= 0) {
+            return;
+        }
+        getCooldowns(world).put(ownerId, CooldownStorage.currentTick(world) + ticks);
+    }
+
+    private static Map<UUID, Long> getCooldowns(ServerWorld world) {
+        return CooldownStorage.forWorld(BOUNTY_COOLDOWNS_BY_SERVER, world);
     }
 
     private static class ActiveBountyStar {

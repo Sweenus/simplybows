@@ -464,6 +464,7 @@ public class SimplyBowsConfig extends Config {
 
         // Rune: Bounty
         public ConfigGroup bountyGroup = new ConfigGroup("bounty");
+        public ValidatedInt bountyCooldownTicks = new ValidatedInt(40, 12000, 0);
         public ValidatedFloat bountyArrowSpeedMultiplier = new ValidatedFloat(0.62F, 1.0F, 0.1F);
         public ValidatedInt bountyMaxChargeTicks = new ValidatedInt(60, 400, 20);
         public ValidatedInt bountyImplodeTicks = new ValidatedInt(42, 120, 10);
