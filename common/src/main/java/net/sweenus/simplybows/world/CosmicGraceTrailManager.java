@@ -234,6 +234,13 @@ public final class CosmicGraceTrailManager {
                 iterator.remove();
                 continue;
             }
+            double radius = Math.max(0.1, field.radius);
+            if (target.squaredDistanceTo(field.pos) > radius * radius) {
+                playCocoonExpireSound(world, target);
+                discardVisual(world, cocoon.visualId);
+                iterator.remove();
+                continue;
+            }
 
             Vec3d targetPos = target.getBoundingBox().getCenter();
             Vec3d start = tetherStart(world, field);

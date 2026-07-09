@@ -474,6 +474,19 @@ public class SimplyBowsConfig extends Config {
         public ValidatedFloat bountyMaxDamage = new ValidatedFloat(13.0F, 120.0F, 0.0F);
         @ConfigGroup.Pop
         public ValidatedDouble bountyPullStrength = new ValidatedDouble(0.18, 1.5, 0.0);
+
+        // Rune: Chaos
+        public ConfigGroup chaosGroup = new ConfigGroup("chaos");
+        public ValidatedInt chaosSunDurationTicks = new ValidatedInt(200, 1200, 20);
+        public ValidatedInt chaosSunMaxDurationTicks = new ValidatedInt(1200, 2400, 20);
+        public ValidatedInt chaosSunCooldownTicks = new ValidatedInt(1200, 12000, 20);
+        public ValidatedDouble chaosSunRadius = new ValidatedDouble(8.0, 32.0, 1.0);
+        public ValidatedInt chaosSunFireIntervalTicks = new ValidatedInt(60, 300, 20);
+        public ValidatedInt chaosSunDurationBonusPerShotTicks = new ValidatedInt(40, 400, 20);
+        public ValidatedInt chaosCelestialSwiftnessDurationTicks = new ValidatedInt(140, 600, 20);
+        public ValidatedInt chaosCelestialSwiftnessMaxStacks = new ValidatedInt(15, 15, 1);
+        @ConfigGroup.Pop
+        public ValidatedFloat chaosCelestialBowPullBonusPerStack = new ValidatedFloat(0.16F, 1.0F, 0.0F);
     }
 
     // ── Loot ─────────────────────────────────────────────────
@@ -512,8 +525,8 @@ public class SimplyBowsConfig extends Config {
         public ValidatedFloat drawSpeedBee = new ValidatedFloat(20.0F, 100.0F, 1.0F);
         public ValidatedFloat drawSpeedBlossom = new ValidatedFloat(20.0F, 100.0F, 1.0F);
         public ValidatedFloat drawSpeedEarth = new ValidatedFloat(40.0F, 100.0F, 1.0F);
-        @ConfigGroup.Pop
         public ValidatedFloat drawSpeedEcho = new ValidatedFloat(30.0F, 100.0F, 1.0F);
+        @ConfigGroup.Pop
         public ValidatedFloat drawSpeedCosmic = new ValidatedFloat(30.0F, 100.0F, 1.0F);
     }
 

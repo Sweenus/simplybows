@@ -12,6 +12,7 @@
     "EntityAccessor",
     "ItemStackMixin",
     "LivingEntityMixin",
+    "ProjectileEntityMixin",
     "ServerPlayerEntityMixin",
     "ServerWorldMixin"
   ],

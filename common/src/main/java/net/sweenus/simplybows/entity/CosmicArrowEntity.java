@@ -19,6 +19,7 @@ import net.minecraft.world.World;
 import net.sweenus.simplybows.registry.EntityRegistry;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
+import net.sweenus.simplybows.world.CosmicChaosSunManager;
 import net.sweenus.simplybows.world.CosmicGraceTrailManager;
 import net.sweenus.simplybows.world.CosmicOrbitManager;
 
@@ -113,6 +114,11 @@ public class CosmicArrowEntity extends ArrowEntity {
                 this.discard();
                 return;
             }
+            if (this.upgrades.runeEtching() == RuneEtching.CHAOS) {
+                CosmicChaosSunManager.createSun(serverWorld, this.getOwner(), pos, this.upgrades);
+                this.discard();
+                return;
+            }
             if (this.isGraceMode()) {
                 CosmicGraceTrailManager.createField(serverWorld, this.getOwner(), pos, this.upgrades);
             }
@@ -131,6 +137,11 @@ public class CosmicArrowEntity extends ArrowEntity {
             playImpactSound(serverWorld, pos);
             if (this.isBountyMode()) {
                 net.sweenus.simplybows.world.CosmicBountyManager.createImplosion(serverWorld, this.getOwner(), pos, this.getBountyChargeTicks(), this.upgrades);
+                this.discard();
+                return;
+            }
+            if (this.upgrades.runeEtching() == RuneEtching.CHAOS) {
+                CosmicChaosSunManager.createSun(serverWorld, this.getOwner(), pos, this.upgrades);
                 this.discard();
                 return;
             }

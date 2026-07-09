@@ -106,8 +106,11 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
                 lerp(tickDelta, entity.prevY, entity.getY()),
                 lerp(tickDelta, entity.prevZ, entity.getZ())
         );
+        if (entity.isSunMode()) {
+            renderSunSphere(entity, nodeConsumer, nodeSprite, matrices, alpha, age);
+        }
         renderTrail(trail, worldTick, renderPos, lineConsumer, nodeConsumer, nodeSprite, matrices, alpha);
-        if (entity.isFieldMode()) {
+        if (entity.isFieldMode() && !entity.isSunMode()) {
             renderFieldScatter(entity, trail, worldTick, renderPos, lineConsumer, nodeConsumer, nodeSprite, matrices, alpha);
             renderFieldConstellations(entity, worldTick, renderPos, lineConsumer, nodeConsumer, nodeSprite, matrices, alpha);
         }
@@ -116,8 +119,8 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
 
     private ConstellationTrail updateTrail(CosmicOrbitVisualEntity entity, float age, long worldTick) {
         ConstellationTrail trail = trails.computeIfAbsent(entity, ignored -> new ConstellationTrail(
-                entity.isFieldMode() ? FIELD_TRAIL_DURATION_TICKS : TRAIL_DURATION_TICKS,
-                entity.isFieldMode() ? FIELD_TRAIL_LINE_DURATION_TICKS : TRAIL_LINE_DURATION_TICKS,
+                entity.isFieldMode() || entity.isSunMode() ? FIELD_TRAIL_DURATION_TICKS : TRAIL_DURATION_TICKS,
+                entity.isFieldMode() || entity.isSunMode() ? FIELD_TRAIL_LINE_DURATION_TICKS : TRAIL_LINE_DURATION_TICKS,
                 TRAIL_MAX_CONNECTION_DIST,
                 TRAIL_CONNECTION_PROBABILITY,
                 TRAIL_SAMPLE_INTERVAL
@@ -149,7 +152,7 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
     }
 
     private static void rememberLatestFieldOrbitNode(CosmicOrbitVisualEntity entity, ConstellationTrail trail, long worldTick) {
-        if (!entity.isFieldMode() || trail.getPoints().isEmpty()) {
+        if (!entity.isFieldMode() || entity.isSunMode() || trail.getPoints().isEmpty()) {
             return;
         }
         ConstellationTrail.TrailPoint point = trail.getPoints().get(trail.getPoints().size() - 1);
@@ -384,6 +387,16 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
         );
     }
 
+    private static void renderSunSphere(CosmicOrbitVisualEntity entity, VertexConsumer consumer, Sprite sprite,
+                                        MatrixStack matrices, float alpha, float age) {
+        float pulse = (float) Math.sin(age * 0.18F) * 0.5F + 0.5F;
+        float radius = 0.88F + entity.getFieldRadius() * 0.18F + pulse * 0.08F;
+        renderColoredDisc(matrices, consumer, sprite, 0.0F, 0.0F, 0.0F, radius * 1.55F, 1.0F, 0.28F, 0.03F, alpha * 0.24F);
+        renderColoredDisc(matrices, consumer, sprite, 0.0F, 0.0F, 0.0F, radius * 1.10F, 1.0F, 0.55F, 0.07F, alpha * 0.62F);
+        renderColoredDisc(matrices, consumer, sprite, 0.0F, 0.0F, 0.0F, radius * 0.82F, 1.0F, 0.86F, 0.28F, alpha * 0.95F);
+        renderColoredDisc(matrices, consumer, sprite, 0.0F, 0.0F, 0.0F, radius * 0.42F, 1.0F, 0.98F, 0.76F, alpha);
+    }
+
     private static void renderTrail(ConstellationTrail trail, long worldTick, Vec3d renderPos,
                                     VertexConsumer lineConsumer, VertexConsumer nodeConsumer, Sprite nodeSprite,
                                     MatrixStack matrices, float visualAlpha) {
@@ -454,6 +467,29 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
         matrices.pop();
     }
 
+    private static void renderColoredDisc(MatrixStack matrices, VertexConsumer consumer, Sprite sprite,
+                                          float x, float y, float z, float radius,
+                                          float r, float g, float b, float alpha) {
+        matrices.push();
+        matrices.translate(x, y, z);
+        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(
+                -MinecraftClient.getInstance().gameRenderer.getCamera().getYaw()));
+        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(
+                MinecraftClient.getInstance().gameRenderer.getCamera().getPitch()));
+
+        MatrixStack.Entry entry = matrices.peek();
+        float u = (sprite.getMinU() + sprite.getMaxU()) * 0.5F;
+        float v = (sprite.getMinV() + sprite.getMaxV()) * 0.5F;
+        for (int i = 0; i < 24; i++) {
+            double angleA = Math.PI * 2.0 * i / 24.0;
+            double angleB = Math.PI * 2.0 * (i + 1) / 24.0;
+            coloredVertex(consumer, entry, 0.0F, 0.0F, u, v, r, g, b, alpha);
+            coloredVertex(consumer, entry, (float) Math.cos(angleA) * radius, (float) Math.sin(angleA) * radius, u, v, r, g, b, alpha);
+            coloredVertex(consumer, entry, (float) Math.cos(angleB) * radius, (float) Math.sin(angleB) * radius, u, v, r, g, b, alpha);
+        }
+        matrices.pop();
+    }
+
     private static void emitNodeWedge(VertexConsumer consumer, MatrixStack.Entry entry,
                                       float x1, float y1, float xMid, float yMid, float x2, float y2,
                                       float u, float v, float alpha) {
@@ -471,6 +507,17 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
                                    float x, float y, float u, float v, float alpha) {
         consumer.vertex(entry, x, y, 0.0F)
                 .color(NODE_R, NODE_G, NODE_B, alpha)
+                .texture(u, v)
+                .overlay(OverlayTexture.DEFAULT_UV)
+                .light(LightmapTextureManager.MAX_LIGHT_COORDINATE)
+                .normal(entry, 0.0F, 0.0F, 1.0F);
+    }
+
+    private static void coloredVertex(VertexConsumer consumer, MatrixStack.Entry entry,
+                                      float x, float y, float u, float v,
+                                      float r, float g, float b, float alpha) {
+        consumer.vertex(entry, x, y, 0.0F)
+                .color(r, g, b, alpha)
                 .texture(u, v)
                 .overlay(OverlayTexture.DEFAULT_UV)
                 .light(LightmapTextureManager.MAX_LIGHT_COORDINATE)

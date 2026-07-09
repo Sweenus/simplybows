@@ -14,6 +14,7 @@ import net.sweenus.simplybows.client.particle.LongEndRodParticle;
 import net.sweenus.simplybows.client.particle.LongFireworkParticle;
 import net.sweenus.simplybows.client.particle.WaveParticle;
 import net.sweenus.simplybows.network.AbilityCooldownPayload;
+import net.sweenus.simplybows.network.CelestialSwiftnessPayload;
 import net.sweenus.simplybows.client.renderer.BeeArrowEntityRenderer;
 import net.sweenus.simplybows.client.renderer.KoiFishVisualEntityRenderer;
 import net.sweenus.simplybows.client.renderer.BeeGraceVisualEntityRenderer;
@@ -42,6 +43,7 @@ import net.sweenus.simplybows.registry.ItemRegistry;
 import net.sweenus.simplybows.registry.ParticleRegistry;
 import net.sweenus.simplybows.registry.SimplyBowsCreativeTabRegistry;
 import net.sweenus.simplybows.registry.SimplyBowsItemProperties;
+import net.sweenus.simplybows.util.CelestialSwiftnessTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +70,7 @@ public final class SimplyBows {
         ParticleRegistry.registerParticles();
         if (Platform.getEnvironment() != Env.CLIENT) {
             NetworkManager.registerS2CPayloadType(AbilityCooldownPayload.ID, AbilityCooldownPayload.CODEC);
+            NetworkManager.registerS2CPayloadType(CelestialSwiftnessPayload.ID, CelestialSwiftnessPayload.CODEC);
         }
     }
 
@@ -79,6 +82,7 @@ public final class SimplyBows {
             SimplyBowsItemProperties.addSimplyBowsItemProperties();
             ClientPlayerEvent.CLIENT_PLAYER_JOIN.register(player -> {
                 ClientAbilityCooldownCache.clearAll();
+                CelestialSwiftnessTracker.clearAll();
                 CosmicArrowEntityRenderer.clearTrails();
             });
 
@@ -134,6 +138,17 @@ public final class SimplyBows {
                 }
                 return client.world.getTime();
             };
+
+            NetworkManager.registerReceiver(
+                    NetworkManager.Side.S2C,
+                    CelestialSwiftnessPayload.ID,
+                    CelestialSwiftnessPayload.CODEC,
+                    (payload, context) -> context.queue(() ->
+                            CelestialSwiftnessTracker.set(
+                                    payload.playerId(),
+                                    payload.stacks(),
+                                    clientWorldTickReader.getAsLong() + Math.max(1, payload.durationTicks()))));
+
             ClientAbilityCooldownCache.setGameTickReader(clientWorldTickReader);
 
             SimplyBowItem.CLIENT_COOLDOWN_READER = ClientAbilityCooldownCache::get;

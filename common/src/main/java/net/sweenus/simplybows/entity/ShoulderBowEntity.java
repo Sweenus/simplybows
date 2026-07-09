@@ -23,12 +23,14 @@ import net.minecraft.world.World;
 import net.sweenus.simplybows.item.unique.BeeBowItem;
 import net.sweenus.simplybows.item.unique.BlossomBowItem;
 import net.sweenus.simplybows.item.unique.BubbleBowItem;
+import net.sweenus.simplybows.item.unique.CosmicBowItem;
 import net.sweenus.simplybows.item.unique.EarthBowItem;
 import net.sweenus.simplybows.item.unique.EchoBowItem;
 import net.sweenus.simplybows.item.unique.IceBowItem;
 import net.sweenus.simplybows.item.unique.SimplyBowItem;
 import net.sweenus.simplybows.item.unique.VineBowItem;
 import net.sweenus.simplybows.registry.EntityRegistry;
+import net.sweenus.simplybows.config.SimplyBowsConfig;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
 import net.sweenus.simplybows.upgrade.RuneEtching;
 import net.sweenus.simplybows.util.CombatTargeting;
@@ -477,6 +479,15 @@ public class ShoulderBowEntity extends Entity {
 
                 int quantity = getOffhandIceArrowQuantity(upgrades);
                 projectile = spawnOffhandIceVolley(world, owner, offHand, arrowStack, direction, damageMultiplier, rune, speed, divergence, quantity);
+            } else if (offhandBow instanceof CosmicBowItem) {
+                float runeSpeedMultiplier = upgrades.runeEtching() == RuneEtching.BOUNTY
+                        ? SimplyBowsConfig.INSTANCE.cosmicBow.bountyArrowSpeedMultiplier.get()
+                        : 1.0F;
+                speed = ARROW_SPEED * SimplyBowsConfig.INSTANCE.cosmicBow.arrowSpeedMultiplier.get() * runeSpeedMultiplier;
+                divergence = SimplyBowsConfig.INSTANCE.cosmicBow.arrowDivergence.get();
+                CosmicArrowEntity arrow = new CosmicArrowEntity(world, owner, arrowStack, offHand);
+                arrow.setDamage(SimplyBowsConfig.INSTANCE.cosmicBow.baseDamage.get());
+                projectile = arrow;
             } else {
                 EchoArrowEntity arrow = new EchoArrowEntity(world, owner, arrowStack, mainHand);
                 arrow.setDamage(2.0);

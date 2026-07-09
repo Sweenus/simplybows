@@ -22,6 +22,7 @@ import net.sweenus.simplybows.network.AbilityCooldownPayload;
 import net.sweenus.simplybows.util.BowTooltipHelper;
 import net.sweenus.simplybows.util.CombatTargeting;
 import net.sweenus.simplybows.util.HelperMethods;
+import net.sweenus.simplybows.world.CosmicChaosSunManager;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -121,6 +122,9 @@ public class SimplyBowItem extends BowItem {
             boolean hasInfiniteAmmo = simplybows$hasInfiniteAmmo(playerEntity, stack, projectileStack);
 
             int i = this.getMaxUseTime(stack, user) - remainingUseTicks;
+            if (stack.getItem() instanceof CosmicBowItem) {
+                i = Math.round(i * CosmicChaosSunManager.getCelestialBowPullMultiplier(user));
+            }
             float f = getPullProgress(i);
             if (!((double)f < 0.1)) {
                 List<ItemStack> list;
