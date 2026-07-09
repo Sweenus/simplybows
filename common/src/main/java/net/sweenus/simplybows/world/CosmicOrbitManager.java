@@ -421,31 +421,40 @@ public final class CosmicOrbitManager {
             return;
         }
 
+        UUID damagedId = damaged.getUuid();
         for (ActiveOrbit orbit : orbits) {
-            if (!orbit.painMode || !orbit.tetherVisualIds.containsKey(damaged.getUuid())) {
+            if (!orbit.painMode || (!orbit.targetId.equals(damagedId) && !orbit.tetherVisualIds.containsKey(damagedId))) {
                 continue;
             }
-            Entity owner = orbit.ownerId == null ? null : world.getEntity(orbit.ownerId);
             SHARING_DAMAGE.set(true);
             try {
+                if (!orbit.targetId.equals(damagedId)) {
+                    LivingEntity anchor = getLivingEntity(world, orbit.targetId);
+                    applySharedPainDamage(world, anchor, source, amount);
+                }
                 for (UUID targetId : orbit.tetherVisualIds.keySet()) {
-                    if (targetId.equals(damaged.getUuid())) {
+                    if (targetId.equals(damagedId)) {
                         continue;
                     }
                     LivingEntity target = getLivingEntity(world, targetId);
-                    if (target != null && target.isAlive()) {
-                        target.hurtTime = 0;
-                        target.timeUntilRegen = 0;
-                        target.damage(source == null ? world.getDamageSources().magic() : source, amount);
-                        target.hurtTime = 0;
-                        target.timeUntilRegen = 0;
-                    }
+                    applySharedPainDamage(world, target, source, amount);
                 }
             } finally {
                 SHARING_DAMAGE.set(false);
             }
             return;
         }
+    }
+
+    private static void applySharedPainDamage(ServerWorld world, LivingEntity target, DamageSource source, float amount) {
+        if (target == null || !target.isAlive()) {
+            return;
+        }
+        target.hurtTime = 0;
+        target.timeUntilRegen = 0;
+        target.damage(source == null ? world.getDamageSources().magic() : source, amount);
+        target.hurtTime = 0;
+        target.timeUntilRegen = 0;
     }
 
     private static void purgeOrphanVisuals(ServerWorld world) {
