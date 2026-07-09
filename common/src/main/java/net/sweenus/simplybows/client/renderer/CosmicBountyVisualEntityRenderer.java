@@ -55,12 +55,7 @@ public class CosmicBountyVisualEntityRenderer extends EntityRenderer<CosmicBount
         float radius = (1.05F + charge * 3.15F) * (1.0F - implode * 0.30F) + pulse * 0.12F;
         float alpha = Math.max(0.15F, 1.0F - implode * 0.18F);
 
-        VertexConsumer nodeConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE));
-        VertexConsumer lineConsumer = vertexConsumers.getBuffer(RenderLayer.getLines());
-        Sprite nodeSprite = MinecraftClient.getInstance()
-                .getBakedModelManager()
-                .getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)
-                .getSprite(NODE_FILL_SPRITE);
+        Sprite nodeSprite = getNodeSprite();
 
         float orangeBlend = 0.35F + charge * 0.65F;
         float r = 0.62F + orangeBlend * 0.38F;
@@ -68,7 +63,7 @@ public class CosmicBountyVisualEntityRenderer extends EntityRenderer<CosmicBount
         float b = 1.00F - orangeBlend * 0.88F;
         renderCoreStar(
                 matrices,
-                nodeConsumer,
+                vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)),
                 nodeSprite,
                 0.0F,
                 0.0F,
@@ -81,7 +76,7 @@ public class CosmicBountyVisualEntityRenderer extends EntityRenderer<CosmicBount
                 (entity.age + tickDelta) * 2.4F
         );
 
-        renderImplodingGraceOrbits(entity, charge, implode, matrices, lineConsumer, nodeConsumer, nodeSprite);
+        renderImplodingGraceOrbits(entity, charge, implode, matrices, vertexConsumers, nodeSprite);
     }
 
     private static void renderSpiralBurst(CosmicBountyVisualEntity entity, float charge, float burstAge,
@@ -91,18 +86,13 @@ public class CosmicBountyVisualEntityRenderer extends EntityRenderer<CosmicBount
             return;
         }
 
-        VertexConsumer nodeConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE));
-        VertexConsumer lineConsumer = vertexConsumers.getBuffer(RenderLayer.getLines());
-        Sprite nodeSprite = MinecraftClient.getInstance()
-                .getBakedModelManager()
-                .getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)
-                .getSprite(NODE_FILL_SPRITE);
+        Sprite nodeSprite = getNodeSprite();
 
         float progress = Math.min(1.0F, burstAge / 28.0F);
         float coreRadius = (1.22F + charge * 3.85F) * (1.0F + progress * 0.18F);
         renderCoreStar(
                 matrices,
-                nodeConsumer,
+                vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)),
                 nodeSprite,
                 0.0F,
                 0.0F,
@@ -130,8 +120,7 @@ public class CosmicBountyVisualEntityRenderer extends EntityRenderer<CosmicBount
                     radius,
                     orbitAlpha,
                     matrices,
-                    lineConsumer,
-                    nodeConsumer,
+                    vertexConsumers,
                     nodeSprite
             );
         }
@@ -139,8 +128,7 @@ public class CosmicBountyVisualEntityRenderer extends EntityRenderer<CosmicBount
 
     private static void renderExpandingGraceOrbit(CosmicBountyVisualEntity entity, int orbitIndex, float orbitAge,
                                                   float radius, float alpha, MatrixStack matrices,
-                                                  VertexConsumer lineConsumer, VertexConsumer nodeConsumer,
-                                                  Sprite nodeSprite) {
+                                                  VertexConsumerProvider vertexConsumers, Sprite nodeSprite) {
         Vec3d previous = null;
         double phase = entity.getId() * 0.11 + orbitIndex * Math.PI * 2.0 / EXPANDING_ORBITS;
         double speed = 0.105 + orbitIndex * 0.018;
@@ -159,7 +147,7 @@ public class CosmicBountyVisualEntityRenderer extends EntityRenderer<CosmicBount
             if (previous != null) {
                 renderLine(
                         matrices,
-                        lineConsumer,
+                        vertexConsumers.getBuffer(RenderLayer.getLines()),
                         (float) previous.x, (float) previous.y, (float) previous.z,
                         (float) point.x, (float) point.y, (float) point.z,
                         TRAIL_LINE_R, TRAIL_LINE_G, TRAIL_LINE_B, Math.min(1.0F, pointAlpha * 1.08F)
@@ -167,7 +155,7 @@ public class CosmicBountyVisualEntityRenderer extends EntityRenderer<CosmicBount
             }
             renderNodeDisc(
                     matrices,
-                    nodeConsumer,
+                    vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)),
                     nodeSprite,
                     (float) point.x, (float) point.y, (float) point.z,
                     SPIRAL_NODE_RADIUS * (0.62F + pointAlpha * 0.55F),
@@ -181,8 +169,8 @@ public class CosmicBountyVisualEntityRenderer extends EntityRenderer<CosmicBount
     }
 
     private static void renderImplodingGraceOrbits(CosmicBountyVisualEntity entity, float charge, float implode,
-                                                   MatrixStack matrices, VertexConsumer lineConsumer,
-                                                   VertexConsumer nodeConsumer, Sprite nodeSprite) {
+                                                   MatrixStack matrices, VertexConsumerProvider vertexConsumers,
+                                                   Sprite nodeSprite) {
         float age = entity.getImplodeTicks();
         float alpha = Math.min(1.0F, 0.55F + implode * 0.45F);
         for (int orbit = 0; orbit < EXPANDING_ORBITS; orbit++) {
@@ -196,11 +184,17 @@ public class CosmicBountyVisualEntityRenderer extends EntityRenderer<CosmicBount
                     radius,
                     alpha * (1.0F - orbit * 0.08F),
                     matrices,
-                    lineConsumer,
-                    nodeConsumer,
+                    vertexConsumers,
                     nodeSprite
             );
         }
+    }
+
+    private static Sprite getNodeSprite() {
+        return MinecraftClient.getInstance()
+                .getBakedModelManager()
+                .getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)
+                .getSprite(NODE_FILL_SPRITE);
     }
 
     private static void renderCoreStar(MatrixStack matrices, VertexConsumer consumer, Sprite sprite,

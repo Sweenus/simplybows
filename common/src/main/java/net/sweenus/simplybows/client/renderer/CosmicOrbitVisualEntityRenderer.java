@@ -93,26 +93,44 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
         ConstellationTrail trail = updateTrail(entity, age, worldTick);
         rememberLatestFieldOrbitNode(entity, trail, worldTick);
 
-        VertexConsumer lineConsumer = vertexConsumers.getBuffer(RenderLayer.getLines());
-        VertexConsumer nodeConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE));
-        Sprite nodeSprite = MinecraftClient.getInstance()
-                .getBakedModelManager()
-                .getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)
-                .getSprite(NODE_FILL_SPRITE);
-
         matrices.push();
         Vec3d renderPos = new Vec3d(
                 lerp(tickDelta, entity.prevX, entity.getX()),
                 lerp(tickDelta, entity.prevY, entity.getY()),
                 lerp(tickDelta, entity.prevZ, entity.getZ())
         );
+        FieldScatterState scatterState = null;
+        FieldConstellationState constellationState = null;
+        if (entity.isFieldMode() && !entity.isSunMode()) {
+            scatterState = fieldScatter.computeIfAbsent(entity, ignored -> new FieldScatterState());
+            updateFieldScatter(entity, trail, scatterState, worldTick);
+            pruneFieldScatter(scatterState, worldTick);
+
+            constellationState = fieldConstellations.computeIfAbsent(entity, ignored -> new FieldConstellationState());
+            updateFieldConstellations(entity, constellationState, worldTick);
+            pruneFieldConstellations(constellationState, worldTick);
+        }
+
+        VertexConsumer lineConsumer = vertexConsumers.getBuffer(RenderLayer.getLines());
+        renderTrailLines(trail, worldTick, renderPos, lineConsumer, matrices, alpha);
+        if (scatterState != null) {
+            renderFieldScatterLines(scatterState, worldTick, renderPos, lineConsumer, matrices, alpha);
+        }
+        if (constellationState != null) {
+            renderFieldConstellationLines(constellationState, worldTick, renderPos, lineConsumer, matrices, alpha);
+        }
+
+        VertexConsumer nodeConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE));
+        Sprite nodeSprite = getNodeSprite();
         if (entity.isSunMode()) {
             renderSunSphere(entity, nodeConsumer, nodeSprite, matrices, alpha, age);
         }
-        renderTrail(trail, worldTick, renderPos, lineConsumer, nodeConsumer, nodeSprite, matrices, alpha);
-        if (entity.isFieldMode() && !entity.isSunMode()) {
-            renderFieldScatter(entity, trail, worldTick, renderPos, lineConsumer, nodeConsumer, nodeSprite, matrices, alpha);
-            renderFieldConstellations(entity, worldTick, renderPos, lineConsumer, nodeConsumer, nodeSprite, matrices, alpha);
+        renderTrailNodes(trail, worldTick, renderPos, nodeConsumer, nodeSprite, matrices, alpha);
+        if (scatterState != null) {
+            renderFieldScatterNodes(scatterState, worldTick, renderPos, nodeConsumer, nodeSprite, matrices, alpha);
+        }
+        if (constellationState != null) {
+            renderFieldConstellationNodes(constellationState, worldTick, renderPos, nodeConsumer, nodeSprite, matrices, alpha);
         }
         matrices.pop();
     }
@@ -159,12 +177,7 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
         LATEST_FIELD_ORBIT_NODES.put(entity.getUuid(), new FieldOrbitNodeAnchor(entity.getWorld(), point.pos, worldTick));
     }
 
-    private void renderFieldScatter(CosmicOrbitVisualEntity entity, ConstellationTrail trail, long worldTick, Vec3d renderPos,
-                                    VertexConsumer lineConsumer, VertexConsumer nodeConsumer, Sprite nodeSprite,
-                                    MatrixStack matrices, float visualAlpha) {
-        FieldScatterState state = fieldScatter.computeIfAbsent(entity, ignored -> new FieldScatterState());
-        updateFieldScatter(entity, trail, state, worldTick);
-
+    private static void pruneFieldScatter(FieldScatterState state, long worldTick) {
         Iterator<FieldScatterNode> iterator = state.nodes.iterator();
         while (iterator.hasNext()) {
             FieldScatterNode node = iterator.next();
@@ -172,7 +185,10 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
                 iterator.remove();
             }
         }
+    }
 
+    private static void renderFieldScatterLines(FieldScatterState state, long worldTick, Vec3d renderPos,
+                                                VertexConsumer lineConsumer, MatrixStack matrices, float visualAlpha) {
         for (FieldScatterNode node : state.nodes) {
             float lineAlpha = scatterAlpha(worldTick, node.birthTick, FIELD_SCATTER_LINE_DURATION_TICKS) * visualAlpha;
             if (lineAlpha >= 0.02F && node.connectionPos != null) {
@@ -185,7 +201,10 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
                 );
             }
         }
+    }
 
+    private static void renderFieldScatterNodes(FieldScatterState state, long worldTick, Vec3d renderPos,
+                                                VertexConsumer nodeConsumer, Sprite nodeSprite, MatrixStack matrices, float visualAlpha) {
         for (FieldScatterNode node : state.nodes) {
             float nodeAlpha = scatterAlpha(worldTick, node.birthTick, FIELD_SCATTER_NODE_DURATION_TICKS) * visualAlpha;
             if (nodeAlpha < 0.02F) {
@@ -269,20 +288,27 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
         return Math.max(0.0F, Math.min(fadeIn, fadeOut));
     }
 
-    private void renderFieldConstellations(CosmicOrbitVisualEntity entity, long worldTick, Vec3d renderPos,
-                                           VertexConsumer lineConsumer, VertexConsumer nodeConsumer, Sprite nodeSprite,
-                                           MatrixStack matrices, float visualAlpha) {
-        FieldConstellationState state = fieldConstellations.computeIfAbsent(entity, ignored -> new FieldConstellationState());
-        updateFieldConstellations(entity, state, worldTick);
-
+    private static void pruneFieldConstellations(FieldConstellationState state, long worldTick) {
         Iterator<FieldConstellation> iterator = state.constellations.iterator();
         while (iterator.hasNext()) {
             FieldConstellation constellation = iterator.next();
             if (constellation.birthTick + FIELD_CONSTELLATION_NODE_DURATION_TICKS <= worldTick) {
                 iterator.remove();
-                continue;
             }
-            renderFieldConstellation(constellation, worldTick, renderPos, lineConsumer, nodeConsumer, nodeSprite, matrices, visualAlpha);
+        }
+    }
+
+    private static void renderFieldConstellationLines(FieldConstellationState state, long worldTick, Vec3d renderPos,
+                                                      VertexConsumer lineConsumer, MatrixStack matrices, float visualAlpha) {
+        for (FieldConstellation constellation : state.constellations) {
+            renderFieldConstellationLines(constellation, worldTick, renderPos, lineConsumer, matrices, visualAlpha);
+        }
+    }
+
+    private static void renderFieldConstellationNodes(FieldConstellationState state, long worldTick, Vec3d renderPos,
+                                                      VertexConsumer nodeConsumer, Sprite nodeSprite, MatrixStack matrices, float visualAlpha) {
+        for (FieldConstellation constellation : state.constellations) {
+            renderFieldConstellationNodes(constellation, worldTick, renderPos, nodeConsumer, nodeSprite, matrices, visualAlpha);
         }
     }
 
@@ -333,9 +359,8 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
         return bestIndex;
     }
 
-    private static void renderFieldConstellation(FieldConstellation constellation, long worldTick, Vec3d renderPos,
-                                                 VertexConsumer lineConsumer, VertexConsumer nodeConsumer, Sprite nodeSprite,
-                                                 MatrixStack matrices, float visualAlpha) {
+    private static void renderFieldConstellationLines(FieldConstellation constellation, long worldTick, Vec3d renderPos,
+                                                      VertexConsumer lineConsumer, MatrixStack matrices, float visualAlpha) {
         float lineAlpha = scatterAlpha(worldTick, constellation.birthTick, FIELD_CONSTELLATION_LINE_DURATION_TICKS) * visualAlpha;
         if (lineAlpha >= 0.02F) {
             for (FieldConstellationNode node : constellation.nodes) {
@@ -352,7 +377,11 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
                 );
             }
         }
+    }
 
+    private static void renderFieldConstellationNodes(FieldConstellation constellation, long worldTick, Vec3d renderPos,
+                                                      VertexConsumer nodeConsumer, Sprite nodeSprite,
+                                                      MatrixStack matrices, float visualAlpha) {
         float nodeAlpha = scatterAlpha(worldTick, constellation.birthTick, FIELD_CONSTELLATION_NODE_DURATION_TICKS) * visualAlpha;
         if (nodeAlpha < 0.02F) {
             return;
@@ -397,9 +426,8 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
         renderColoredDisc(matrices, consumer, sprite, 0.0F, 0.0F, 0.0F, radius * 0.42F, 1.0F, 0.98F, 0.76F, alpha);
     }
 
-    private static void renderTrail(ConstellationTrail trail, long worldTick, Vec3d renderPos,
-                                    VertexConsumer lineConsumer, VertexConsumer nodeConsumer, Sprite nodeSprite,
-                                    MatrixStack matrices, float visualAlpha) {
+    private static void renderTrailLines(ConstellationTrail trail, long worldTick, Vec3d renderPos,
+                                         VertexConsumer lineConsumer, MatrixStack matrices, float visualAlpha) {
         var points = trail.getPoints();
         for (int i = 0; i < points.size() - 1; i++) {
             float lineAlpha = Math.min(trail.getLineAlpha(i, worldTick), trail.getLineAlpha(i + 1, worldTick)) * visualAlpha;
@@ -414,9 +442,14 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
                     (float) (a.pos.x - renderPos.x), (float) (a.pos.y - renderPos.y), (float) (a.pos.z - renderPos.z),
                     (float) (b.pos.x - renderPos.x), (float) (b.pos.y - renderPos.y), (float) (b.pos.z - renderPos.z),
                     Math.min(1.0F, lineAlpha * 1.15F)
-            );
+                );
         }
+    }
 
+    private static void renderTrailNodes(ConstellationTrail trail, long worldTick, Vec3d renderPos,
+                                         VertexConsumer nodeConsumer, Sprite nodeSprite,
+                                         MatrixStack matrices, float visualAlpha) {
+        var points = trail.getPoints();
         for (int i = 0; i < points.size(); i++) {
             float nodeAlpha = trail.getAlpha(i, worldTick) * visualAlpha;
             if (nodeAlpha < 0.02F) {
@@ -436,6 +469,13 @@ public class CosmicOrbitVisualEntityRenderer extends EntityRenderer<CosmicOrbitV
                     visibleAlpha
             );
         }
+    }
+
+    private static Sprite getNodeSprite() {
+        return MinecraftClient.getInstance()
+                .getBakedModelManager()
+                .getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)
+                .getSprite(NODE_FILL_SPRITE);
     }
 
     private static double lerp(float delta, double start, double end) {

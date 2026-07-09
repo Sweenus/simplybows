@@ -70,17 +70,9 @@ public class CosmicTetherVisualEntityRenderer extends EntityRenderer<CosmicTethe
         side = side.normalize();
         Vec3d up = direction.crossProduct(side).normalize();
 
-        VertexConsumer lineConsumer = vertexConsumers.getBuffer(RenderLayer.getLines());
-        VertexConsumer nodeConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE));
-        Sprite nodeSprite = MinecraftClient.getInstance()
-                .getBakedModelManager()
-                .getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)
-                .getSprite(NODE_FILL_SPRITE);
-
-        float lastX = (float) tetherStart.x;
-        float lastY = (float) tetherStart.y;
-        float lastZ = (float) tetherStart.z;
         float age = entity.age + tickDelta;
+        Vec3d[] tetherPoints = new Vec3d[POINTS];
+        tetherPoints[0] = tetherStart;
         for (int i = 1; i < POINTS; i++) {
             float t = i / (float) (POINTS - 1);
             float endpointFactor = i == POINTS - 1 ? 0.0F : 1.0F;
@@ -93,24 +85,59 @@ public class CosmicTetherVisualEntityRenderer extends EntityRenderer<CosmicTethe
                     jitter(entity.getId(), i, 1) * JITTER_RADIUS * endpointFactor + drift.y,
                     jitter(entity.getId(), i, 2) * JITTER_RADIUS * endpointFactor + drift.z
             );
-            float x = (float) point.x;
-            float y = (float) point.y;
-            float z = (float) point.z;
-            CosmicOrbitVisualEntityRenderer.renderLine(matrices, lineConsumer, lastX, lastY, lastZ, x, y, z, 0.82F);
-            CosmicOrbitVisualEntityRenderer.renderNodeDisc(matrices, nodeConsumer, nodeSprite, x, y, z, 0.034F, 0.95F);
-            lastX = x;
-            lastY = y;
-            lastZ = z;
+            tetherPoints[i] = point;
         }
 
+        Vec3d[] cocoonPoints = entity.isCocoonMode() ? createCocoonPoints(entity, age, cocoonCenter) : null;
+
+        VertexConsumer lineConsumer = vertexConsumers.getBuffer(RenderLayer.getLines());
+        renderTetherLines(tetherPoints, matrices, lineConsumer);
         if (entity.isCocoonMode()) {
-            renderCocoon(entity, age, cocoonCenter, matrices, lineConsumer, nodeConsumer, nodeSprite);
+            renderCocoonLines(cocoonPoints, matrices, lineConsumer);
+        }
+
+        VertexConsumer nodeConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE));
+        Sprite nodeSprite = MinecraftClient.getInstance()
+                .getBakedModelManager()
+                .getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)
+                .getSprite(NODE_FILL_SPRITE);
+        renderTetherNodes(tetherPoints, matrices, nodeConsumer, nodeSprite);
+        if (entity.isCocoonMode()) {
+            renderCocoonNodes(cocoonPoints, matrices, nodeConsumer, nodeSprite);
         }
     }
 
-    private static void renderCocoon(CosmicTetherVisualEntity entity, float age, Vec3d end,
-                                     MatrixStack matrices, VertexConsumer lineConsumer,
-                                     VertexConsumer nodeConsumer, Sprite nodeSprite) {
+    private static void renderTetherLines(Vec3d[] points, MatrixStack matrices, VertexConsumer lineConsumer) {
+        for (int i = 1; i < points.length; i++) {
+            Vec3d previous = points[i - 1];
+            Vec3d point = points[i];
+            CosmicOrbitVisualEntityRenderer.renderLine(
+                    matrices,
+                    lineConsumer,
+                    (float) previous.x, (float) previous.y, (float) previous.z,
+                    (float) point.x, (float) point.y, (float) point.z,
+                    0.82F
+            );
+        }
+    }
+
+    private static void renderTetherNodes(Vec3d[] points, MatrixStack matrices, VertexConsumer nodeConsumer, Sprite nodeSprite) {
+        for (int i = 1; i < points.length; i++) {
+            Vec3d point = points[i];
+            CosmicOrbitVisualEntityRenderer.renderNodeDisc(
+                    matrices,
+                    nodeConsumer,
+                    nodeSprite,
+                    (float) point.x,
+                    (float) point.y,
+                    (float) point.z,
+                    0.034F,
+                    0.95F
+            );
+        }
+    }
+
+    private static Vec3d[] createCocoonPoints(CosmicTetherVisualEntity entity, float age, Vec3d end) {
         Vec3d[] points = new Vec3d[COCOON_POINTS];
         for (int i = 0; i < COCOON_POINTS; i++) {
             float layer = i / (float) (COCOON_POINTS - 1);
@@ -120,20 +147,12 @@ public class CosmicTetherVisualEntityRenderer extends EntityRenderer<CosmicTethe
             double wobble = Math.sin(age * 0.037 + i * 1.41) * 0.07;
             points[i] = end.add(Math.cos(angle) * (ringRadius + wobble), y, Math.sin(angle) * (ringRadius + wobble));
         }
+        return points;
+    }
 
+    private static void renderCocoonLines(Vec3d[] points, MatrixStack matrices, VertexConsumer lineConsumer) {
         for (int i = 0; i < COCOON_POINTS; i++) {
             Vec3d point = points[i];
-            CosmicOrbitVisualEntityRenderer.renderNodeDisc(
-                    matrices,
-                    nodeConsumer,
-                    nodeSprite,
-                    (float) point.x,
-                    (float) point.y,
-                    (float) point.z,
-                    0.038F,
-                    0.92F
-            );
-
             if (i > 0) {
                 Vec3d previous = points[i - 1];
                 CosmicOrbitVisualEntityRenderer.renderLine(
@@ -154,6 +173,21 @@ public class CosmicTetherVisualEntityRenderer extends EntityRenderer<CosmicTethe
                         0.45F
                 );
             }
+        }
+    }
+
+    private static void renderCocoonNodes(Vec3d[] points, MatrixStack matrices, VertexConsumer nodeConsumer, Sprite nodeSprite) {
+        for (Vec3d point : points) {
+            CosmicOrbitVisualEntityRenderer.renderNodeDisc(
+                    matrices,
+                    nodeConsumer,
+                    nodeSprite,
+                    (float) point.x,
+                    (float) point.y,
+                    (float) point.z,
+                    0.038F,
+                    0.92F
+            );
         }
     }
 

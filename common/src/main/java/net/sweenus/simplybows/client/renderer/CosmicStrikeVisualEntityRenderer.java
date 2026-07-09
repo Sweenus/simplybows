@@ -76,57 +76,42 @@ public class CosmicStrikeVisualEntityRenderer extends EntityRenderer<CosmicStrik
         if (points <= 0) {
             return;
         }
-        VertexConsumer lineConsumer = vertexConsumers.getBuffer(RenderLayer.getLines());
-        VertexConsumer nodeConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE));
-        Sprite nodeSprite = MinecraftClient.getInstance()
-                .getBakedModelManager()
-                .getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)
-                .getSprite(NODE_FILL_SPRITE);
-
         if (entity.isPassiveMode()) {
-            renderPassiveTrail(entity, tickDelta, age, totalPoints, points, alpha, lineConsumer, nodeConsumer, nodeSprite, matrices);
+            renderPassiveTrail(entity, tickDelta, age, points, alpha, vertexConsumers, matrices);
             return;
         }
 
-        Vec3d previous = getPoint(entity, end, totalPoints, 0);
-        CosmicOrbitVisualEntityRenderer.renderNodeDisc(
-                matrices, nodeConsumer, nodeSprite,
-                (float) previous.x, (float) previous.y, (float) previous.z,
-                0.045F * alpha,
-                alpha
-        );
-        for (int i = 1; i < points; i++) {
-            Vec3d current = getPoint(entity, end, totalPoints, i);
+        List<Vec3d> trailPoints = new ArrayList<>(points);
+        for (int i = 0; i < points; i++) {
+            trailPoints.add(getPoint(entity, end, totalPoints, i));
+        }
+
+        VertexConsumer lineConsumer = vertexConsumers.getBuffer(RenderLayer.getLines());
+        for (int i = 1; i < trailPoints.size(); i++) {
+            Vec3d previous = trailPoints.get(i - 1);
+            Vec3d current = trailPoints.get(i);
             CosmicOrbitVisualEntityRenderer.renderLine(
                     matrices, lineConsumer,
                     (float) previous.x, (float) previous.y, (float) previous.z,
                     (float) current.x, (float) current.y, (float) current.z,
                     alpha
             );
+        }
+
+        VertexConsumer nodeConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE));
+        Sprite nodeSprite = getNodeSprite();
+        for (Vec3d point : trailPoints) {
             CosmicOrbitVisualEntityRenderer.renderNodeDisc(
                     matrices, nodeConsumer, nodeSprite,
-                    (float) current.x, (float) current.y, (float) current.z,
+                    (float) point.x, (float) point.y, (float) point.z,
                     0.045F * alpha,
                     alpha
             );
-            int extraConnection = entity.isPassiveMode()
-                    ? findPassiveExtraConnection(entity, end, totalPoints, i, current)
-                    : -1;
-            if (extraConnection >= 0) {
-                Vec3d extra = getPoint(entity, end, totalPoints, extraConnection);
-                CosmicOrbitVisualEntityRenderer.renderLine(
-                        matrices, lineConsumer,
-                        (float) extra.x, (float) extra.y, (float) extra.z,
-                        (float) current.x, (float) current.y, (float) current.z,
-                        alpha * 0.85F
-                );
-            }
-            previous = current;
         }
     }
 
-    private void renderPassiveTrail(CosmicStrikeVisualEntity entity, float tickDelta, float age, int totalPoints, int visiblePoints, float alpha,
-                                    VertexConsumer lineConsumer, VertexConsumer nodeConsumer, Sprite nodeSprite, MatrixStack matrices) {
+    private void renderPassiveTrail(CosmicStrikeVisualEntity entity, float tickDelta, float age, int visiblePoints, float alpha,
+                                    VertexConsumerProvider vertexConsumers, MatrixStack matrices) {
         Vec3d renderPos = new Vec3d(
                 lerp(tickDelta, entity.prevX, entity.getX()),
                 lerp(tickDelta, entity.prevY, entity.getY()),
@@ -142,16 +127,15 @@ public class CosmicStrikeVisualEntityRenderer extends EntityRenderer<CosmicStrik
             return;
         }
 
-        Vec3d previous = driftPassivePoint(entity, points.get(0), 0).subtract(renderPos);
-        float nodeAlpha = alpha * PASSIVE_NODE_OPACITY;
-        CosmicOrbitVisualEntityRenderer.renderNodeDisc(
-                matrices, nodeConsumer, nodeSprite,
-                (float) previous.x, (float) previous.y, (float) previous.z,
-                PASSIVE_NODE_RADIUS * alpha,
-                nodeAlpha
-        );
+        List<Vec3d> driftedPoints = new ArrayList<>(renderedPoints);
+        for (int i = 0; i < renderedPoints; i++) {
+            driftedPoints.add(driftPassivePoint(entity, points.get(i), i).subtract(renderPos));
+        }
+
+        VertexConsumer lineConsumer = vertexConsumers.getBuffer(RenderLayer.getLines());
         for (int i = 1; i < renderedPoints; i++) {
-            Vec3d current = driftPassivePoint(entity, points.get(i), i).subtract(renderPos);
+            Vec3d previous = driftedPoints.get(i - 1);
+            Vec3d current = driftedPoints.get(i);
             float lineAlpha = alpha * passiveLineAlpha(age, i, entity.getLifetimeTicks());
             CosmicOrbitVisualEntityRenderer.renderLine(
                     matrices, lineConsumer,
@@ -159,15 +143,10 @@ public class CosmicStrikeVisualEntityRenderer extends EntityRenderer<CosmicStrik
                     (float) current.x, (float) current.y, (float) current.z,
                     lineAlpha
             );
-            CosmicOrbitVisualEntityRenderer.renderNodeDisc(
-                    matrices, nodeConsumer, nodeSprite,
-                    (float) current.x, (float) current.y, (float) current.z,
-                    PASSIVE_NODE_RADIUS * alpha,
-                    nodeAlpha
-            );
+
             int extraConnection = findPassiveExtraConnection(entity, points, i);
             if (extraConnection >= 0) {
-                Vec3d extra = driftPassivePoint(entity, points.get(extraConnection), extraConnection).subtract(renderPos);
+                Vec3d extra = driftedPoints.get(extraConnection);
                 CosmicOrbitVisualEntityRenderer.renderLine(
                         matrices, lineConsumer,
                         (float) extra.x, (float) extra.y, (float) extra.z,
@@ -175,8 +154,26 @@ public class CosmicStrikeVisualEntityRenderer extends EntityRenderer<CosmicStrik
                         lineAlpha * 0.85F
                 );
             }
-            previous = current;
         }
+
+        VertexConsumer nodeConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE));
+        Sprite nodeSprite = getNodeSprite();
+        float nodeAlpha = alpha * PASSIVE_NODE_OPACITY;
+        for (Vec3d point : driftedPoints) {
+            CosmicOrbitVisualEntityRenderer.renderNodeDisc(
+                    matrices, nodeConsumer, nodeSprite,
+                    (float) point.x, (float) point.y, (float) point.z,
+                    PASSIVE_NODE_RADIUS * alpha,
+                    nodeAlpha
+            );
+        }
+    }
+
+    private static Sprite getNodeSprite() {
+        return MinecraftClient.getInstance()
+                .getBakedModelManager()
+                .getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)
+                .getSprite(NODE_FILL_SPRITE);
     }
 
     private static Vec3d passiveSpawnPoint(CosmicStrikeVisualEntity entity, Vec3d renderPos, int index, float tickDelta) {
