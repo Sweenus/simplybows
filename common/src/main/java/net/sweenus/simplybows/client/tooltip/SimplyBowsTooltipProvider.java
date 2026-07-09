@@ -3,6 +3,8 @@ package net.sweenus.simplybows.client.tooltip;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextContent;
+import net.minecraft.text.TranslatableTextContent;
 import net.minecraft.util.Identifier;
 import net.sweenus.simplybows.item.unique.SimplyBowItem;
 import net.sweenus.simplybows.upgrade.BowUpgradeData;
@@ -17,6 +19,7 @@ import net.sweenus.simplytooltips.api.UpgradeSection;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Bridge provider that gives Simply Bows items a rich modern tooltip
@@ -31,6 +34,8 @@ import java.util.List;
  * they remain legible across all bow themes.
  */
 public final class SimplyBowsTooltipProvider implements TooltipProvider {
+
+    private static final String SLOT_HEADER_PREFIX = "item.modifiers.";
 
     @Override
     public boolean supports(ItemStack stack) {
@@ -168,15 +173,29 @@ public final class SimplyBowsTooltipProvider implements TooltipProvider {
 
         String holdAltText = Text.translatable("tooltip.simplybows.hold_alt").getString().trim();
         boolean afterBowSections = false;
+        boolean inAttributeBlock = false;
         List<String> result = new ArrayList<>();
 
         for (int i = 1; i < rawLines.size(); i++) {
-            String trimmed = rawLines.get(i).getString().trim();
+            Text line = rawLines.get(i);
+            String trimmed = line.getString().trim();
 
             if (!afterBowSections) {
                 if (trimmed.equals(holdAltText)) {
                     afterBowSections = true;
                 }
+                continue;
+            }
+
+            if (trimmed.isEmpty()) {
+                inAttributeBlock = false;
+                continue;
+            }
+            if (isAttributeContextLine(line)) {
+                inAttributeBlock = true;
+                continue;
+            }
+            if (inAttributeBlock) {
                 continue;
             }
 
@@ -186,6 +205,43 @@ public final class SimplyBowsTooltipProvider implements TooltipProvider {
         }
 
         return result;
+    }
+
+    private static boolean isAttributeContextLine(Text line) {
+        if (hasTranslatableKey(line, key -> key.startsWith(SLOT_HEADER_PREFIX))) {
+            return true;
+        }
+
+        String s = line.getString().replace('\u00A0', ' ').trim();
+        String lower = s.toLowerCase(java.util.Locale.ROOT);
+        return lower.equals("when held:")
+                || (lower.startsWith("when in ") && lower.endsWith(":"));
+    }
+
+    private static boolean hasTranslatableKey(Text text, Predicate<String> matcher) {
+        if (text == null) return false;
+        return hasTranslatableKey0(text, matcher, 0);
+    }
+
+    private static boolean hasTranslatableKey0(Text text, Predicate<String> matcher, int depth) {
+        if (depth > 8) return false;
+
+        TextContent content = text.getContent();
+        if (content instanceof TranslatableTextContent translatable) {
+            if (matcher.test(translatable.getKey())) return true;
+            for (Object arg : translatable.getArgs()) {
+                if (arg instanceof Text nested && hasTranslatableKey0(nested, matcher, depth + 1)) {
+                    return true;
+                }
+            }
+        }
+
+        for (Text sibling : text.getSiblings()) {
+            if (hasTranslatableKey0(sibling, matcher, depth + 1)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // --- Bow key from registry ID ---
