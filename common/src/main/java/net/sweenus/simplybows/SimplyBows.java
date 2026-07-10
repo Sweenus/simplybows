@@ -89,19 +89,19 @@ public final class SimplyBows {
             EntityRendererRegistry.register(EntityRegistry.HOMING_ARROW, HomingArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.HOMING_SPECTRAL_ARROW, HomingSpectralArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.VINE_ARROW, context ->
-                    new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/vine_bow/vine_bow.png")));
+                    new SimplyBowsArrowEntityRenderer<>(context, bowArrowTexture("vine")));
             EntityRendererRegistry.register(EntityRegistry.BUBBLE_ARROW, context ->
-                    new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/bubble_bow/bubble_bow.png")));
+                    new SimplyBowsArrowEntityRenderer<>(context, bowArrowTexture("bubble")));
             EntityRendererRegistry.register(EntityRegistry.BUBBLE_PAIN_ARROW, BubblePainArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.BEE_ARROW, BeeArrowEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.BLOSSOM_ARROW, context ->
-                    new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/blossom_bow/blossom_bow.png")));
+                    new SimplyBowsArrowEntityRenderer<>(context, bowArrowTexture("blossom")));
             EntityRendererRegistry.register(EntityRegistry.EARTH_ARROW, context ->
-                    new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/earth_bow/earth_bow.png")));
+                    new SimplyBowsArrowEntityRenderer<>(context, bowArrowTexture("earth")));
             EntityRendererRegistry.register(EntityRegistry.ECHO_ARROW, context ->
-                    new SimplyBowsArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/echo_bow/echo_bow.png")));
+                    new SimplyBowsArrowEntityRenderer<>(context, bowArrowTexture("echo")));
             EntityRendererRegistry.register(EntityRegistry.COSMIC_ARROW, context ->
-                    new CosmicArrowEntityRenderer<>(context, Identifier.of(SimplyBows.MOD_ID, "textures/item/echo_bow/echo_bow.png")));
+                    new CosmicArrowEntityRenderer<>(context, bowArrowTexture("cosmic")));
             EntityRendererRegistry.register(EntityRegistry.COSMIC_ORBIT_VISUAL, CosmicOrbitVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.COSMIC_STRIKE_VISUAL, CosmicStrikeVisualEntityRenderer::new);
             EntityRendererRegistry.register(EntityRegistry.COSMIC_TETHER_VISUAL, CosmicTetherVisualEntityRenderer::new);
@@ -157,6 +157,10 @@ public final class SimplyBows {
             net.sweenus.simplytooltips.api.TooltipProviderRegistry.register(
                     new net.sweenus.simplybows.client.tooltip.SimplyBowsTooltipProvider(), 100);
             LOGGER.info("Registered SimplyBowsTooltipProvider with Simply Tooltips");
+        }
+
+        private static Identifier bowArrowTexture(String bowName) {
+            return Identifier.of(SimplyBows.MOD_ID, "textures/item/" + bowName + "_bow/" + bowName + "_bow_arrow.png");
         }
     }
 

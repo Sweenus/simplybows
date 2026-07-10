@@ -54,8 +54,13 @@ public class HomingArrowEntity extends ArrowEntity {
     }
 
     public HomingArrowEntity(World world, LivingEntity owner, ItemStack arrowStack, ItemStack weaponStack) {
-        super(world, owner, sanitizeArrowStack(arrowStack), weaponStack);
+        super(EntityRegistry.HOMING_ARROW.get(), world);
+        this.setStack(sanitizeArrowStack(arrowStack));
         this.setOwner(owner);
+        this.setPosition(owner.getX(), owner.getEyeY() - 0.1, owner.getZ());
+        this.prevX = owner.getX();
+        this.prevY = owner.getEyeY() - 0.1;
+        this.prevZ = owner.getZ();
     }
 
     @Override
